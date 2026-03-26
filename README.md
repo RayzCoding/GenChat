@@ -93,7 +93,7 @@ GenChat is a next-generation intelligent conversation application platform built
 
 Thank you to everyone who has starred this project! Your recognition is our motivation for continuous improvement.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=your-organization/GenChat&type=Date)](https://star-history.com/#your-organization/GenChat&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=RayzCoding/GenChat&type=Date)](https://star-history.com/#RayzCoding/GenChat&Date)
 
 ---
 
