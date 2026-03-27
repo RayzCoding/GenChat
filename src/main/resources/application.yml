@@ -1,6 +1,10 @@
 server:
   port: 8080
-
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/chat_agent?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
@@ -15,6 +19,8 @@ spring:
       chat:
         options:
           model: gpt-4o
+  profiles:
+    active: local
 
   flyway:
     enabled: true
