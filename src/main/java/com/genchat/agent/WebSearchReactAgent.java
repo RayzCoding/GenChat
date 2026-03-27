@@ -34,7 +34,7 @@ public class WebSearchReactAgent {
         this.chatModel = chatModel;
         this.sessionService = sessionService;
         this.maxRounds = maxRounds;
-        this.chatClient = ChatClient.builder(chatModel).build();
+        this.chatClient = ChatClient.builder(this.chatModel).build();
     }
 
     public Flux<String> stream(String conversationId, String question) {
@@ -42,8 +42,10 @@ public class WebSearchReactAgent {
         List<Message> messages = Collections.synchronizedList(new ArrayList<>());
         boolean skipSystem = true;
         boolean addLabel = true;
-        loadChatHistory(conversationId, addLabel, messages, skipSystem);
+        loadChatHistory(conversationId, messages, skipSystem, addLabel);
+
         messages.add(new UserMessage("<question>" + question + "</question>"));
+        // save current conversation message to database
         var aiChatSession = sessionService.saveQuestion(AiChatSession.builder()
                 .question(question)
                 .sessionId(conversationId).build()
@@ -53,7 +55,7 @@ public class WebSearchReactAgent {
         return chatClient.prompt().messages(messages).stream().content();
     }
 
-    private void loadChatHistory(String conversationId, boolean addLabel, List<Message> messages, boolean skipSystem) {
+    private void loadChatHistory(String conversationId, List<Message> messages, boolean skipSystem, boolean addLabel) {
         if (!ObjectUtils.isEmpty(conversationId)&& !ObjectUtils.isEmpty(chatMemory)) {
             var history = chatMemory.get(conversationId);
             if (!ObjectUtils.isEmpty(history)) {
