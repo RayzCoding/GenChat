@@ -38,6 +38,7 @@ public class WebSearchReactAgent {
     }
 
     public Flux<String> stream(String conversationId, String question) {
+        //TODO task manage
         //loading history
         List<Message> messages = Collections.synchronizedList(new ArrayList<>());
         boolean skipSystem = true;
@@ -51,7 +52,10 @@ public class WebSearchReactAgent {
                 .sessionId(conversationId).build()
         );
         currentSessionId= aiChatSession.getId();
-
+        //TODO add Round
+        //TODO add tool
+        //TODO update current conversation answer
+        //TODO return result
         return chatClient.prompt().messages(messages).stream().content();
     }
 
