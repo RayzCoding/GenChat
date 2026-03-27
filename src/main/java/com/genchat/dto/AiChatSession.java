@@ -8,7 +8,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * AI聊天会话 DTO
+ * AI chat session DTO
  */
 @Getter
 @Builder

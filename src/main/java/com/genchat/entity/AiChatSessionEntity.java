@@ -10,8 +10,8 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * AI聊天会话实体
- * 存储agent与用户之间的对话历史，支持会话隔离和记忆功能
+ * AI chat session entity
+ * Stores conversation history between agent and user, supports session isolation and memory
  */
 @Data
 @TableName("ai_chat_session")
@@ -20,44 +20,44 @@ public class AiChatSessionEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 会话ID */
+    /** Session ID */
     private String sessionId;
 
-    /** 用户问题 */
+    /** User question */
     private String question;
 
-    /** AI回答 */
+    /** AI answer */
     private String answer;
 
-    /** 工具名称 */
+    /** Tool name */
     private String tools;
 
-    /** 首次响应时间(ms) */
+    /** First response time (ms) */
     private Long firstResponseTime;
 
-    /** 完整响应时间(ms) */
+    /** Total response time (ms) */
     private Long totalResponseTime;
 
-    /** 创建时间 */
+    /** Create time */
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
-    /** 更新时间 */
+    /** Update time */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
-    /** 引用链接 */
+    /** Reference link */
     private String reference;
 
-    /** Agent类型 */
+    /** Agent type */
     private String agentType;
 
-    /** 思考过程 */
+    /** Thinking process */
     private String thinking;
 
-    /** 文件ID */
+    /** File ID */
     private String fileid;
 
-    /** 推荐问题 */
+    /** Recommended questions */
     private String recommend;
 }
