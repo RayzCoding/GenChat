@@ -58,7 +58,7 @@ public class WebSearchReactAgent {
             var history = chatMemory.get(conversationId);
             if (!ObjectUtils.isEmpty(history)) {
                 if (addLabel) {
-                    messages.add(new UserMessage("对话历史："));
+                    messages.add(new UserMessage("Conversation history："));
                 }
                 for (Message msg : history) {
                     if (skipSystem && msg instanceof SystemMessage) {
