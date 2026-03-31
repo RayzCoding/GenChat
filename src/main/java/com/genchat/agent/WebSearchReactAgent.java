@@ -2,6 +2,7 @@ package com.genchat.agent;
 
 import com.genchat.dto.AiChatSession;
 import com.genchat.service.AiChatSessionService;
+import com.genchat.service.AgentTaskService;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -15,30 +16,40 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Setter
 public class WebSearchReactAgent {
+    public static final String AGENT_TYPE = "webSearchReactAgent";
     private final ChatModel chatModel;
     private ChatMemory chatMemory;
     private ChatClient chatClient;
     private AiChatSessionService sessionService;
+    private AgentTaskService agentTaskService;
     private int maxRounds;
     protected Long currentSessionId;
 
-    public WebSearchReactAgent(ChatModel chatModel, AiChatSessionService sessionService, int maxRounds) {
+    public WebSearchReactAgent(ChatModel chatModel,
+                               AiChatSessionService sessionService,
+                               AgentTaskService agentTaskService,
+                               int maxRounds) {
         this.chatModel = chatModel;
+        this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;
         this.maxRounds = maxRounds;
         this.chatClient = ChatClient.builder(this.chatModel).build();
     }
 
     public Flux<String> stream(String conversationId, String question) {
-        //TODO task manage
+        if (!Objects.isNull(conversationId) && agentTaskService.hasRunningTask(conversationId)) {
+            return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later."));
+        }
         //loading history
         List<Message> messages = Collections.synchronizedList(new ArrayList<>());
         boolean skipSystem = true;
@@ -51,16 +62,27 @@ public class WebSearchReactAgent {
                 .question(question)
                 .sessionId(conversationId).build()
         );
-        currentSessionId= aiChatSession.getId();
+        currentSessionId = aiChatSession.getId();
+        Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
+        var taskInfo = agentTaskService.registerTask(conversationId, sink, AGENT_TYPE);
+        if (Objects.isNull(taskInfo)) {
+            return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later"));
+        }
         //TODO add Round
         //TODO add tool
         //TODO update current conversation answer
         //TODO return result
-        return chatClient.prompt().messages(messages).stream().content();
+        return chatClient.prompt()
+                .messages(messages)
+                .stream()
+                .content()
+                .doFinally(signalType->{
+                    agentTaskService.stopTask(conversationId);
+        });
     }
 
     private void loadChatHistory(String conversationId, List<Message> messages, boolean skipSystem, boolean addLabel) {
-        if (!ObjectUtils.isEmpty(conversationId)&& !ObjectUtils.isEmpty(chatMemory)) {
+        if (!ObjectUtils.isEmpty(conversationId) && !ObjectUtils.isEmpty(chatMemory)) {
             var history = chatMemory.get(conversationId);
             if (!ObjectUtils.isEmpty(history)) {
                 if (addLabel) {
@@ -85,10 +107,10 @@ public class WebSearchReactAgent {
             historyMessages.forEach(message -> {
                 var userQuestion = message.getQuestion();
                 var systemAnswer = message.getAnswer();
-                if (!ObjectUtils.isEmpty(userQuestion)){
+                if (!ObjectUtils.isEmpty(userQuestion)) {
                     chatMemory.add(conversationId, new UserMessage(userQuestion));
                 }
-                if (!ObjectUtils.isEmpty(systemAnswer)){
+                if (!ObjectUtils.isEmpty(systemAnswer)) {
                     chatMemory.add(conversationId, new AssistantMessage(systemAnswer));
                 }
             });

@@ -2,6 +2,7 @@ package com.genchat.controller;
 
 import com.genchat.agent.WebSearchReactAgent;
 import com.genchat.service.AiChatSessionService;
+import com.genchat.service.AgentTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
@@ -20,6 +21,7 @@ public class AgentController {
 
     private final ChatModel chatModel;
     private final AiChatSessionService sessionService;
+    private final AgentTaskService agentTaskService;
 
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> chat(@RequestParam String conversationId,
@@ -32,12 +34,12 @@ public class AgentController {
         }
 
         try {
-            var webSearchReactAgent = new WebSearchReactAgent(chatModel, sessionService, 5);
+            var webSearchReactAgent = new WebSearchReactAgent(chatModel, sessionService, agentTaskService, 5);
             webSearchReactAgent.initPersistentChatMemory(conversationId);
 
             return webSearchReactAgent.stream(conversationId, question);
         } catch (Exception e) {
-            log.error("error occurred while processing request to chat stream");
+            log.error("error occurred while processing request to chat stream, error:", e);
             return Flux.error(e);
         }
     }
