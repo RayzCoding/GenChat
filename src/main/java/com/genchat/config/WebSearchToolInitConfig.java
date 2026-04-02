@@ -4,6 +4,7 @@ import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.ai.tool.ToolCallback;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Configuration
 @Slf4j
+@Getter
 public class WebSearchToolInitConfig {
 
     /**
@@ -36,7 +38,7 @@ public class WebSearchToolInitConfig {
     public void init() {
         log.info("Initialize web search tool callback...");
 
-        // tavily 搜索引擎
+        // tavily search engine
         String authorizationHeader = "Bearer " + tavilyApiKey;
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()

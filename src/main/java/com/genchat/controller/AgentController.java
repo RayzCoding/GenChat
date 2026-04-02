@@ -1,6 +1,7 @@
 package com.genchat.controller;
 
 import com.genchat.agent.WebSearchReactAgent;
+import com.genchat.config.WebSearchToolInitConfig;
 import com.genchat.service.AiChatSessionService;
 import com.genchat.service.AgentTaskService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class AgentController {
     private final ChatModel chatModel;
     private final AiChatSessionService sessionService;
     private final AgentTaskService agentTaskService;
+    private final WebSearchToolInitConfig webSearchToolInitConfig;
 
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> chat(@RequestParam String conversationId,
@@ -34,7 +36,9 @@ public class AgentController {
         }
 
         try {
-            var webSearchReactAgent = new WebSearchReactAgent(chatModel, sessionService, agentTaskService, 5);
+            var webSearchReactAgent = new WebSearchReactAgent(chatModel, sessionService,
+                    agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(),
+                    5);
             webSearchReactAgent.initPersistentChatMemory(conversationId);
 
             return webSearchReactAgent.stream(conversationId, question);

@@ -62,9 +62,10 @@ public class WebSearchReactAgent {
     public WebSearchReactAgent(ChatModel chatModel,
                                AiChatSessionService sessionService,
                                AgentTaskService agentTaskService,
+                               ToolCallback[] webSearchToolCallbacks,
                                int maxRounds) {
         this.systemPrompt = "";
-        this.tools = new ArrayList<>();
+        this.tools = Arrays.asList(webSearchToolCallbacks);
         this.chatModel = chatModel;
         this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;
@@ -78,24 +79,28 @@ public class WebSearchReactAgent {
         }
         initTimers();
         clearUsedTools();
-        // loading history
-        List<Message> messages = Collections.synchronizedList(new ArrayList<>());
-        boolean skipSystem = true;
-        boolean addLabel = true;
-        loadChatHistory(conversationId, messages, skipSystem, addLabel);
-
-        messages.add(new UserMessage("<question>" + question + "</question>"));
-        currentQuestion = question;
-        // save current conversation message to database
-        var aiChatSession = sessionService.saveQuestion(AiChatSession.builder().question(question).sessionId(conversationId).build());
-        currentSessionId = aiChatSession.getId();
-
         Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
         // register conversation task
         var taskInfo = agentTaskService.registerTask(conversationId, sink, AGENT_TYPE);
         if (Objects.isNull(taskInfo)) {
             return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later"));
         }
+        // save current conversation message to database
+        var aiChatSession = sessionService.saveQuestion(AiChatSession.builder().question(question).sessionId(conversationId).build());
+        currentSessionId = aiChatSession.getId();
+        // loading system prompt
+        List<Message> messages = Collections.synchronizedList(new ArrayList<>());
+        messages.add(new SystemMessage(ReactAgentPrompts.getWebSearchPrompt()));
+        if (StringUtils.hasLength(systemPrompt)) {
+            messages.add(new SystemMessage(systemPrompt));
+        }
+        // loading history
+        boolean skipSystem = true;
+        boolean addLabel = true;
+        loadChatHistory(conversationId, messages, skipSystem, addLabel);
+
+        messages.add(new UserMessage("<question>" + question + "</question>"));
+        currentQuestion = question;
 
         // iteration round
         var roundCounter = new AtomicInteger(0);
