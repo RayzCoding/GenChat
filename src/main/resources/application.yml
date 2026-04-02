@@ -31,3 +31,7 @@ mybatis-plus:
   mapper-locations: classpath:/mapper/**/*.xml
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+tavily:
+  api-key: test
+  mcp-url: https://mcp.tavily.com/mcp/
