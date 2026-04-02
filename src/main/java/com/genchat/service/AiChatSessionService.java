@@ -1,12 +1,17 @@
 package com.genchat.service;
 
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.genchat.common.AgentResponse;
 import com.genchat.converter.AiChatSessionConverter;
 import com.genchat.dto.AiChatSession;
+import com.genchat.entity.AgentState;
 import com.genchat.entity.AiChatSessionEntity;
 import com.genchat.repository.AiChatSessionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -27,5 +32,27 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
         var entity = AiChatSessionConverter.INSTANCE.toEntity(session);
         this.save(entity);
         return AiChatSessionConverter.INSTANCE.toDto(entity);
+    }
+
+    public void update(Long id,
+                       StringBuilder finalAnswerBuffer,
+                       StringBuilder thinkingBuffer,
+                       AgentState agentState,
+                       long totalResponseTime,
+                       long fistResponseTime,
+                       String usedToolsString) {
+        String referenceJson = "";
+        if (!agentState.searchResults.isEmpty()) {
+            referenceJson = AgentResponse.reference(JSON.toJSONString(agentState.searchResults));
+        }
+        var wrapper = new LambdaUpdateWrapper<AiChatSessionEntity>();
+        wrapper.eq(AiChatSessionEntity::getId, id)
+                .set(AiChatSessionEntity::getAnswer, finalAnswerBuffer.toString())
+                .set(StringUtils.hasLength(thinkingBuffer.toString()), AiChatSessionEntity::getThinking, thinkingBuffer.toString())
+                .set(StringUtils.hasLength(usedToolsString), AiChatSessionEntity::getTools, usedToolsString)
+                .set(StringUtils.hasLength(referenceJson), AiChatSessionEntity::getReference, referenceJson)
+                .set(AiChatSessionEntity::getTotalResponseTime, totalResponseTime)
+                .set(AiChatSessionEntity::getFirstResponseTime, fistResponseTime);
+        update(wrapper);
     }
 }

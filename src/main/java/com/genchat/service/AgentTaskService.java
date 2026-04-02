@@ -70,6 +70,13 @@ public class AgentTaskService {
         return JSON.toJSONString(obj);
     }
 
+    public void setDisposable(String conversationId, Disposable disposable) {
+        var taskInfo = taskMap.get(conversationId);
+        if (Objects.nonNull(taskInfo)) {
+            taskInfo.setDisposable(disposable);
+        }
+    }
+
     @Getter
     public static class TaskInfo {
         private final Sinks.Many<String> sink;
