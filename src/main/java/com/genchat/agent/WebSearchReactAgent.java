@@ -22,6 +22,7 @@ import org.springframework.ai.chat.messages.*;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.converter.BeanOutputConverter;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.CollectionUtils;
@@ -70,7 +71,18 @@ public class WebSearchReactAgent {
         this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;
         this.maxRounds = maxRounds;
-        this.chatClient = ChatClient.builder(this.chatModel).build();
+        initChatClient();
+    }
+
+    private void initChatClient() {
+        var toolCallingChatOptions = ToolCallingChatOptions.builder()
+                .toolCallbacks(tools)
+                .internalToolExecutionEnabled(false)
+                .build();
+        this.chatClient = ChatClient.builder(this.chatModel)
+                .defaultOptions(toolCallingChatOptions)
+                .defaultToolCallbacks(tools)
+                .build();
     }
 
     public Flux<String> stream(String conversationId, String question) {
@@ -119,7 +131,7 @@ public class WebSearchReactAgent {
         return sink.asFlux()
                 .doOnNext(chunk -> {
                     recordFirstResponse();
-                    // 解析 JSON，如果是 type=text，则只拼接 content；如果是 type=thinking，则拼接 thinking
+                    // When parsing JSON, if the type is "text", only the content should be concatenated; if the type is "thinking", then the thinking should be concatenated
                     try {
                         JSONObject json = JSON.parseObject(chunk);
                         String type = json.getString("type");
