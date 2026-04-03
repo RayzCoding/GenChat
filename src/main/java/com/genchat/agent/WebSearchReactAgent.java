@@ -71,6 +71,7 @@ public class WebSearchReactAgent {
         this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;
         this.maxRounds = maxRounds;
+        this.usedTools = new HashSet<>();
         initChatClient();
     }
 
@@ -155,7 +156,8 @@ public class WebSearchReactAgent {
                     // 保存结果到会话
                     sessionService.update(currentSessionId, finalAnswerBuffer,
                             thinkingBuffer, agentState, firstResponseTime,
-                            getTotalResponseTime(), getUsedToolsString());
+                            getTotalResponseTime(), getUsedToolsString(),
+                            currentRecommendations, AGENT_TYPE);
                     // 流结束时移除任务
                     agentTaskService.stopTask(conversationId);
                 });

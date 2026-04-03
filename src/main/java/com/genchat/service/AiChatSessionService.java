@@ -40,7 +40,9 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                        AgentState agentState,
                        long totalResponseTime,
                        long fistResponseTime,
-                       String usedToolsString) {
+                       String usedToolsString,
+                       String currentRecommendations,
+                       String agentType) {
         String referenceJson = "";
         if (!agentState.searchResults.isEmpty()) {
             referenceJson = AgentResponse.reference(JSON.toJSONString(agentState.searchResults));
@@ -51,6 +53,8 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                 .set(StringUtils.hasLength(thinkingBuffer.toString()), AiChatSessionEntity::getThinking, thinkingBuffer.toString())
                 .set(StringUtils.hasLength(usedToolsString), AiChatSessionEntity::getTools, usedToolsString)
                 .set(StringUtils.hasLength(referenceJson), AiChatSessionEntity::getReference, referenceJson)
+                .set(StringUtils.hasLength(currentRecommendations), AiChatSessionEntity::getRecommend, currentRecommendations)
+                .set(StringUtils.hasLength(agentType), AiChatSessionEntity::getAgentType, agentType)
                 .set(AiChatSessionEntity::getTotalResponseTime, totalResponseTime)
                 .set(AiChatSessionEntity::getFirstResponseTime, fistResponseTime);
         update(wrapper);
