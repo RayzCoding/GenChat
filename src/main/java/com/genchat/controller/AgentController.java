@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/agent")
 @RequiredArgsConstructor
@@ -46,5 +49,29 @@ public class AgentController {
             log.error("error occurred while processing request to chat stream, error:", e);
             return Flux.error(e);
         }
+    }
+
+    @GetMapping("/stop")
+    public Map<String, Object> stopAgent(@RequestParam String conversationId) {
+        log.info("received request to stop agent, conversationId: {}", conversationId);
+        var result = new HashMap<String, Object>();
+
+        if (ObjectUtils.isEmpty(conversationId)) {
+            log.warn("conversationId is null or empty");
+            result.put("success", false);
+            result.put("message", "There is no conversation task.");
+            return result;
+        }
+        var success = agentTaskService.stopTask(conversationId);
+        if (!success) {
+            log.warn("stop agent failed, conversationId: {}", conversationId);
+            result.put("success", false);
+            result.put("message", "No task being found or stopped.");
+            return result;
+        }
+        result.put("success", true);
+        result.put("message", "Execution has been discontinued.");
+
+        return result;
     }
 }

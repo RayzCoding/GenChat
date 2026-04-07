@@ -38,29 +38,35 @@ public class AgentTaskService {
         return taskInfo;
     }
 
-    public void stopTask(String conversationId) {
-        var taskInfo = taskMap.get(conversationId);
-        if (Objects.isNull(taskInfo)) {
-            log.warn("Conversation {} has no task being executed", conversationId);
-        }
-
-        Disposable disposable = taskInfo.getDisposable();
-        if (disposable != null && !disposable.isDisposed()) {
-            disposable.dispose();
-            log.info("The underlying call has been interrupted: conversationId={}", conversationId);
-        }
-
-        Sinks.Many<String> sink = taskInfo.getSink();
-        if (sink != null) {
-            try {
-                sink.tryEmitNext(createStopMessage());
-                sink.tryEmitComplete();
-                log.info("Stop message sent: conversationId={}", conversationId);
-            } catch (Exception e) {
-                log.warn("Failed to send the stop message: conversationId={}", conversationId, e);
+    public boolean stopTask(String conversationId) {
+        try {
+            var taskInfo = taskMap.get(conversationId);
+            if (Objects.isNull(taskInfo)) {
+                log.warn("Conversation {} has no task being executed", conversationId);
             }
+
+            Disposable disposable = taskInfo.getDisposable();
+            if (disposable != null && !disposable.isDisposed()) {
+                disposable.dispose();
+                log.info("The underlying call has been interrupted: conversationId={}", conversationId);
+            }
+
+            Sinks.Many<String> sink = taskInfo.getSink();
+            if (sink != null) {
+                try {
+                    sink.tryEmitNext(createStopMessage());
+                    sink.tryEmitComplete();
+                    log.info("Stop message sent: conversationId={}", conversationId);
+                } catch (Exception e) {
+                    log.warn("Failed to send the stop message: conversationId={}", conversationId, e);
+                }
+            }
+            taskMap.remove(conversationId);
+            return true;
+        } catch (Exception e) {
+            log.warn("Conversation stop failed.", e);
+            return false;
         }
-        taskMap.remove(conversationId);
     }
 
     private String createStopMessage() {
@@ -83,7 +89,7 @@ public class AgentTaskService {
         @Setter
         private Disposable disposable;
         private final long createTime;
-        private String agentType;
+        private final String agentType;
 
         public TaskInfo(Sinks.Many<String> sink, String agentType) {
             this.sink = sink;
