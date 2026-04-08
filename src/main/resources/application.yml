@@ -35,3 +35,10 @@ mybatis-plus:
 tavily:
   api-key: test
   mcp-url: https://mcp.tavily.com/mcp/
+
+minio:
+  url: localhost:19000/
+  accessKey: ak
+  secretKey: sk
+  bucketName: test
+  endpoint: localhost:19000/
