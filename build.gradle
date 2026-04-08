@@ -33,6 +33,8 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-starter-mcp-client'
     implementation 'com.alibaba.cloud.ai:spring-ai-alibaba-agent-framework:1.1.0.0'
 
+    // Minio
+    implementation 'io.minio:minio:8.6.0'
 
     // MySQL
     runtimeOnly 'com.mysql:mysql-connector-j'
