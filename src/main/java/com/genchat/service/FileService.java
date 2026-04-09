@@ -1,11 +1,67 @@
 package com.genchat.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.genchat.converter.FileInfoConverter;
+import com.genchat.dto.FileInfo;
+import com.genchat.entity.FileInfoEntity;
+import com.genchat.repository.FileInfoRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Optional;
+
 @Service
-@Slf4j
-@RequiredArgsConstructor
-public class FileService {
+public class FileService extends ServiceImpl<FileInfoRepository, FileInfoEntity> {
+
+    /**
+     * Save file info to database
+     */
+    public void saveFileInfo(FileInfo fileInfo) {
+        FileInfoEntity entity = FileInfoConverter.INSTANCE.toEntity(fileInfo);
+        save(entity);
+    }
+
+    /**
+     * Query file info by id
+     */
+    public Optional<FileInfo> getFileInfoById(Long id) {
+        return Optional.ofNullable(getById(id))
+                .map(FileInfoConverter.INSTANCE::toDto);
+    }
+
+    /**
+     * Update file info
+     */
+    public void updateFileInfo(FileInfo fileInfo) {
+        FileInfoEntity entity = FileInfoConverter.INSTANCE.toEntity(fileInfo);
+        updateById(entity);
+    }
+
+    /**
+     * Delete file info by id
+     */
+    public void deleteFileInfoById(Long id) {
+        removeById(id);
+    }
+
+    /**
+     * Check if file info exists by id
+     */
+    public boolean existsById(Long id) {
+        return getById(id) != null;
+    }
+
+    /**
+     * Get all file info records
+     */
+    public List<FileInfo> listAll() {
+        return FileInfoConverter.INSTANCE.toDtoList(list());
+    }
+
+    /**
+     * Get total file count
+     */
+    public long totalCount() {
+        return count();
+    }
 }
