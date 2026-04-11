@@ -15,10 +15,13 @@ public class FileService extends ServiceImpl<FileInfoRepository, FileInfoEntity>
 
     /**
      * Save file info to database
+     *
+     * @return file info
      */
-    public void saveFileInfo(FileInfo fileInfo) {
-        FileInfoEntity entity = FileInfoConverter.INSTANCE.toEntity(fileInfo);
+    public FileInfo saveFileInfo(FileInfo fileInfo) {
+        var entity = FileInfoConverter.INSTANCE.toEntity(fileInfo);
         save(entity);
+        return FileInfoConverter.INSTANCE.toDto(entity);
     }
 
     /**
@@ -33,7 +36,7 @@ public class FileService extends ServiceImpl<FileInfoRepository, FileInfoEntity>
      * Update file info
      */
     public void updateFileInfo(FileInfo fileInfo) {
-        FileInfoEntity entity = FileInfoConverter.INSTANCE.toEntity(fileInfo);
+        var entity = FileInfoConverter.INSTANCE.toEntity(fileInfo);
         updateById(entity);
     }
 
