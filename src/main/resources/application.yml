@@ -48,3 +48,11 @@ minio:
   secretKey: sk
   bucketName: test
   endpoint: localhost:19000/
+
+embeddings:
+  store:
+    host: 192.168.113.52
+    port: 5433
+    database: vector_store
+    user: postgres
+    password: postgres
