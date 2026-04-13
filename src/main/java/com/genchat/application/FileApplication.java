@@ -1,8 +1,10 @@
 package com.genchat.application;
 
 import com.genchat.common.FileUtil;
+import com.genchat.common.OverlapParagraphTextSplitter;
 import com.genchat.dto.FileInfo;
 import com.genchat.entity.FileStatus;
+import com.genchat.service.EmbeddingService;
 import com.genchat.service.FileParserService;
 import com.genchat.service.FileService;
 import com.genchat.service.MinioService;
@@ -12,6 +14,7 @@ import org.apache.commons.io.IOUtils;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
@@ -30,6 +33,7 @@ public class FileApplication {
     private final MinioService minioService;
     private final FileParserService fileParserService;
     private final OpenAiChatModel multimodalChatModel;
+    private final EmbeddingService embeddingService;
 
     @Transactional(rollbackFor = Exception.class)
     public FileInfo upload(MultipartFile file) {
@@ -52,6 +56,7 @@ public class FileApplication {
                     if (FileUtil.isLargeTextFile(extractedText)) {
                         log.info("Start handling large text file, file id: {}", fileInfo.getId());
                         try {
+                            processLargeFileEmbedding(fileInfo.getId(), extractedText);
                             fileInfo.setEmbed(true);
                             fileService.updateFileInfo(fileInfo);
                             log.info("Large File embedding successfully, file id: {}", fileInfo.getId());
@@ -122,5 +127,29 @@ public class FileApplication {
             log.error("Image recognition is abnormal", e);
             throw new RuntimeException("Image recognition failed: " + e.getMessage(), e);
         }
+    }
+
+    private void processLargeFileEmbedding(Long fileId, String text) {
+        log.info("Start processing large file embedding: fileId={}, text length: {}", fileId, text.length());
+
+        // 1. Create document
+        var document = new Document(text);
+        var documents = List.of(document);
+
+        // 2. Split document (500 chars per chunk, 50 overlap)
+        var splitter = new OverlapParagraphTextSplitter(500, 50);
+        var chunks = splitter.apply(documents);
+        log.info("Document splitting completed: fileId={}, chunk count: {}", fileId, chunks.size());
+
+        // 3. Add metadata to each chunk
+        for (int i = 0; i < chunks.size(); i++) {
+            var chunk = chunks.get(i);
+            chunk.getMetadata().put("fileid", fileId);
+            chunk.getMetadata().put("chunkId", i);
+        }
+
+        // 4. Embed and store vectors
+        embeddingService.embedAndStore(chunks);
+        log.info("Large file embedding completed: fileId={}, chunk count: {}", fileId, chunks.size());
     }
 }

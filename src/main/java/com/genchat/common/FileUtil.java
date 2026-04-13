@@ -18,7 +18,7 @@ public final class FileUtil {
             "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "ico", "tiff", "tif"
     );
 
-    private static final int LARGE_TEXT_THRESHOLD = 3000;
+    private static final int LARGE_TEXT_THRESHOLD = 2000;
 
     /**
      * Extract file extension from filename (without dot, lowercase)

@@ -21,6 +21,12 @@ spring:
           model: gpt-4o
           temperature: 0.7
           maxTokens: 5000
+      embedding:
+        api-key: ${OPENAI_API_KEY:your-api-key}
+        base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+        options:
+          model: text-embedding-v4
+          dimmension: 1024
       multimodal:
         options:
           model: qwen3-vl-plus
@@ -51,8 +57,8 @@ minio:
 
 embeddings:
   store:
-    host: 192.168.113.52
+    host: 127.0.0.1
     port: 5433
-    database: vector_store
-    user: postgres
-    password: postgres
+    database: vectordb
+    user: vectoruser
+    password: 123456

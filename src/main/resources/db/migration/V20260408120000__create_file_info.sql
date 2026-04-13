@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS `file_info` (
     `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'primary key id',
     `name` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'file name',
-    `path` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'file path',
+    `path` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'file path',
     `file_type` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'file type (e.g. pdf, docx, png)',
     `size` bigint NULL DEFAULT NULL COMMENT 'file size in bytes',
     `extracted_text` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT 'extracted plain text content',
