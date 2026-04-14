@@ -1,4 +1,4 @@
-package com.genchat.prompts;
+package com.genchat.common.prompts;
 
 /**
  * React Agent prompt

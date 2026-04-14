@@ -1,6 +1,6 @@
 package com.genchat.dto;
 
-import com.genchat.common.FileUtil;
+import com.genchat.common.utils.FileUtil;
 import com.genchat.entity.FileStatus;
 import lombok.Builder;
 import lombok.Getter;

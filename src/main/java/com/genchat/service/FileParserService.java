@@ -1,6 +1,6 @@
 package com.genchat.service;
 
-import com.genchat.common.FileUtil;
+import com.genchat.common.utils.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;

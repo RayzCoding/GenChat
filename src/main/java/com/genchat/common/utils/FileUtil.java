@@ -1,4 +1,4 @@
-package com.genchat.common;
+package com.genchat.common.utils;
 
 import java.util.Set;
 

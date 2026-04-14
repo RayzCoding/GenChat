@@ -11,16 +11,16 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.rag.Query;
 import org.springframework.ai.rag.preretrieval.query.expansion.MultiQueryExpander;
-import org.springframework.ai.rag.preretrieval.query.expansion.QueryExpander;
 import org.springframework.ai.rag.preretrieval.query.transformation.CompressionQueryTransformer;
 import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,7 +42,9 @@ public class EmbeddingService {
      * Embed documents into vector representations
      */
     public List<float[]> embed(List<Document> documents) {
-        return documents.stream().map(document -> embeddingModel.embed(document.getText())).collect(Collectors.toList());
+        return documents.stream()
+                .map(document -> embeddingModel.embed(document.getText()))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -71,36 +73,36 @@ public class EmbeddingService {
         }
 
         try {
-            Query query = Query.builder().text(question).build();
+            var query = Query.builder().text(question).build();
 
             // 1. Query compression and rewriting
-            ChatClient chatClient = ChatClient.builder(chatModel).build();
-            CompressionQueryTransformer queryTransformer = CompressionQueryTransformer.builder()
+            var chatClient = ChatClient.builder(chatModel).build();
+            var queryTransformer = CompressionQueryTransformer.builder()
                     .chatClientBuilder(chatClient.mutate())
                     .build();
 
-            Query compressed = queryTransformer.transform(query);
+            var compressed = queryTransformer.transform(query);
             log.info("Compressed query: {}", compressed.text());
 
             // 2. Query expansion
-            QueryExpander queryExpander = MultiQueryExpander.builder()
+            var queryExpander = MultiQueryExpander.builder()
                     .chatClientBuilder(chatClient.mutate())
                     .numberOfQueries(3)
                     .includeOriginal(true)
                     .build();
 
-            List<Query> expandedQueries = queryExpander.expand(compressed);
+            var expandedQueries = queryExpander.expand(compressed);
             log.info("Expanded queries: {}", expandedQueries);
 
             // 3. Semantic vector search - filter by fileid
-            List<String> results = new ArrayList<>();
-            Set<String> seenIds = new HashSet<>();
+            var results = new ArrayList<String>();
+            var seenIds = new HashSet<String>();
 
-            FilterExpressionBuilder builder = new FilterExpressionBuilder();
-            Filter.Expression filter = builder.eq("fileid", fileId).build();
+            var builder = new FilterExpressionBuilder();
+            var filter = builder.eq("fileid", fileId).build();
 
             for (Query eq : expandedQueries) {
-                List<Document> docs = vectorStore.similaritySearch(
+                var docs = vectorStore.similaritySearch(
                         SearchRequest.builder()
                                 .query(eq.text())
                                 .topK(5)

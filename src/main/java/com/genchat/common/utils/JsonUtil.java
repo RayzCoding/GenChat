@@ -1,4 +1,4 @@
-package com.genchat.common;
+package com.genchat.common.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

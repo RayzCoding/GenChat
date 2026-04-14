@@ -40,8 +40,8 @@ import static com.genchat.common.utils.JsonUtil.getSafe;
 
 @Slf4j
 @Setter
-public class WebSearchReactAgent {
-    public static final String AGENT_TYPE = "webSearchReactAgent";
+public class FileReactAgent {
+    public static final String AGENT_TYPE = "fileReactAgent";
     private final ChatModel chatModel;
     private ChatMemory chatMemory;
     private final List<ToolCallback> tools;
@@ -60,13 +60,12 @@ public class WebSearchReactAgent {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    public WebSearchReactAgent(ChatModel chatModel,
-                               AiChatSessionService sessionService,
-                               AgentTaskService agentTaskService,
-                               ToolCallback[] webSearchToolCallbacks,
-                               int maxRounds) {
+    public FileReactAgent(ChatModel chatModel,
+                          AiChatSessionService sessionService,
+                          AgentTaskService agentTaskService,
+                          List<ToolCallback> tools) {
         this.systemPrompt = "";
-        this.tools = Arrays.asList(webSearchToolCallbacks);
+        this.tools = tools;
         this.chatModel = chatModel;
         this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;
@@ -86,7 +85,7 @@ public class WebSearchReactAgent {
                 .build();
     }
 
-    public Flux<String> stream(String conversationId, String question) {
+    public Flux<String> stream(String conversationId, String question, String fileId) {
         if (!Objects.isNull(conversationId) && agentTaskService.hasRunningTask(conversationId)) {
             return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later."));
         }
@@ -99,11 +98,17 @@ public class WebSearchReactAgent {
             return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later"));
         }
         // save current conversation message to database
-        var aiChatSession = sessionService.saveQuestion(AiChatSession.builder().question(question).sessionId(conversationId).build());
+        var aiChatSession = sessionService.saveQuestion(
+                AiChatSession.builder()
+                        .question(question)
+                        .fileid(fileId)
+                        .sessionId(conversationId)
+                        .build()
+        );
         currentSessionId = aiChatSession.getId();
         // loading system prompt
-        List<Message> messages = Collections.synchronizedList(new ArrayList<>());
-        messages.add(new SystemMessage(ReactAgentPrompts.getWebSearchPrompt()));
+        var messages = Collections.synchronizedList(new ArrayList<Message>());
+        messages.add(new SystemMessage(ReactAgentPrompts.getFilePrompt()));
         if (StringUtils.hasLength(systemPrompt)) {
             messages.add(new SystemMessage(systemPrompt));
         }
@@ -113,6 +118,7 @@ public class WebSearchReactAgent {
         loadChatHistory(conversationId, messages, skipSystem, addLabel);
 
         messages.add(new UserMessage("<question>" + question + "</question>"));
+        messages.add(new UserMessage("<fileid>" + fileId + "</fileid>"));
         currentQuestion = question;
 
         // iteration round
@@ -278,11 +284,9 @@ public class WebSearchReactAgent {
                     completeToolCall(completedCount, totalToolCalls, onComplete);
                     return;
                 }
-                if (toolName.contains("search")) {
-                    var args = JSON.parseObject(argsJson);
-                    var query = (String) args.get("query");
+                if (toolName.contains("loadContent")) {
                     // send thinking message
-                    var queryThink = StringUtils.hasLength(query) ? "🔍 Searching for information: " + query + "\n" : "🔍 Searching for related information\n";
+                    var queryThink = "📖 Retrieving the contents of the file, please wait... ";
                     sink.tryEmitNext(AgentResponse.thinking(queryThink));
                 }
 

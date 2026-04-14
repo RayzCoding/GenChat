@@ -1,6 +1,6 @@
 package com.genchat.application;
 
-import com.genchat.common.FileUtil;
+import com.genchat.common.utils.FileUtil;
 import com.genchat.common.OverlapParagraphTextSplitter;
 import com.genchat.dto.FileInfo;
 import com.genchat.entity.FileStatus;
