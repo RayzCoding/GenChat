@@ -1,6 +1,7 @@
 package com.genchat.controller;
 
 import com.genchat.agent.FileReactAgent;
+import com.genchat.agent.PPTBuilderAgent;
 import com.genchat.agent.WebSearchReactAgent;
 import com.genchat.application.tool.FileContentTool;
 import com.genchat.config.WebSearchToolInitConfig;
@@ -83,6 +84,26 @@ public class AgentController {
             return Flux.error(e);
         }
 
+    }
+
+    @GetMapping("/ppt/stream")
+    public Flux<String> pptStream(@RequestParam String question,
+                                  @RequestParam String conversationsId) {
+        log.info("Received  ppt question, question: {}, conversationId: {}", question, conversationsId);
+        if (!StringUtils.hasLength(question)) {
+            log.warn("Question is null or empty");
+            return Flux.error(new IllegalArgumentException("Question is null or empty"));
+        }
+        try {
+            var pptBuilderAgent = new PPTBuilderAgent(chatModel, sessionService,
+                    agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(),
+                    5);
+            pptBuilderAgent.initPersistentChatMemory(conversationsId);
+            return pptBuilderAgent.stream(conversationsId, question);
+        } catch (Exception e) {
+            log.error("Error occurred while processing ppt stream, error:", e);
+            return Flux.error(e);
+        }
     }
 
     @GetMapping("/stop")
