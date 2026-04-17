@@ -2,6 +2,8 @@ package com.genchat.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.genchat.converter.AiPptInstConverter;
+import com.genchat.dto.AiPptInst;
 import com.genchat.entity.AiPptInstEntity;
 import com.genchat.repository.AiPptInstRepository;
 import org.springframework.stereotype.Service;
@@ -15,32 +17,35 @@ public class AiPptInstService extends ServiceImpl<AiPptInstRepository, AiPptInst
     /**
      * Save a PPT instance
      */
-    public AiPptInstEntity saveInst(AiPptInstEntity entity) {
+    public AiPptInst saveInst(AiPptInst dto) {
+        AiPptInstEntity entity = AiPptInstConverter.INSTANCE.toEntity(dto);
         save(entity);
-        return entity;
+        return AiPptInstConverter.INSTANCE.toDto(entity);
     }
 
     /**
      * Query PPT instance by id
      */
-    public Optional<AiPptInstEntity> getInstById(Long id) {
-        return Optional.ofNullable(getById(id));
+    public Optional<AiPptInst> getInstById(Long id) {
+        return Optional.ofNullable(getById(id))
+                .map(AiPptInstConverter.INSTANCE::toDto);
     }
 
     /**
      * Query PPT instances by conversation id
      */
-    public List<AiPptInstEntity> listByConversationId(String conversationId) {
+    public List<AiPptInst> listByConversationId(String conversationId) {
         var wrapper = new LambdaQueryWrapper<AiPptInstEntity>()
                 .eq(AiPptInstEntity::getConversationId, conversationId)
                 .orderByDesc(AiPptInstEntity::getCreateTime);
-        return list(wrapper);
+        return AiPptInstConverter.INSTANCE.toDtoList(list(wrapper));
     }
 
     /**
      * Update PPT instance
      */
-    public void updateInst(AiPptInstEntity entity) {
+    public void updateInst(AiPptInst dto) {
+        AiPptInstEntity entity = AiPptInstConverter.INSTANCE.toEntity(dto);
         updateById(entity);
     }
 
