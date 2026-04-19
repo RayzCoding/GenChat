@@ -55,4 +55,12 @@ public class AiPptInstService extends ServiceImpl<AiPptInstRepository, AiPptInst
     public void deleteInstById(Long id) {
         removeById(id);
     }
+
+    public AiPptInst getLatestInst(String conversationId) {
+        var wrapper = new LambdaQueryWrapper<AiPptInstEntity>();
+        wrapper.eq(AiPptInstEntity::getConversationId, conversationId)
+                .orderByDesc(AiPptInstEntity::getCreateTime)
+                .last("LIMIT 1");
+        return AiPptInstConverter.INSTANCE.toDto(getOne(wrapper));
+    }
 }
