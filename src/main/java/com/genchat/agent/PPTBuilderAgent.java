@@ -12,6 +12,7 @@ import com.genchat.entity.RoundState;
 import com.genchat.entity.SearchResult;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
+import com.genchat.service.AiPptInstService;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -56,6 +57,7 @@ public class PPTBuilderAgent {
     protected long firstResponseTime;
     protected long startTime;
     protected boolean enableRecommendations = true;
+    private final PptIntentRecognizer recognizer;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -63,6 +65,7 @@ public class PPTBuilderAgent {
                            AiChatSessionService sessionService,
                            AgentTaskService agentTaskService,
                            ToolCallback[] webSearchToolCallbacks,
+                           AiPptInstService pptInstService,
                            int maxRounds) {
         this.systemPrompt = "";
         this.tools = Arrays.asList(webSearchToolCallbacks);
@@ -71,6 +74,7 @@ public class PPTBuilderAgent {
         this.sessionService = sessionService;
         this.maxRounds = maxRounds;
         this.usedTools = new HashSet<>();
+        recognizer= new PptIntentRecognizer( chatClient, pptInstService);
         initChatClient();
     }
 
@@ -109,6 +113,8 @@ public class PPTBuilderAgent {
         // Collecting the thought process
         var thinkingBuffer = new StringBuilder();
         var agentState = new AgentState();
+        var intentResult = recognizer.recognize(conversationId, question);
+        log.info("Intent result: {}", intentResult);
 
         return sink.asFlux()
                 .doOnNext(chunk -> {

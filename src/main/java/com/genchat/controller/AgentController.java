@@ -5,13 +5,13 @@ import com.genchat.agent.PPTBuilderAgent;
 import com.genchat.agent.WebSearchReactAgent;
 import com.genchat.application.tool.FileContentTool;
 import com.genchat.config.WebSearchToolInitConfig;
-import com.genchat.service.AiChatSessionService;
 import com.genchat.service.AgentTaskService;
+import com.genchat.service.AiChatSessionService;
+import com.genchat.service.AiPptInstService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.support.ToolCallbacks;
-import org.springframework.ai.tool.ToolCallback;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +34,7 @@ public class AgentController {
     private final AiChatSessionService sessionService;
     private final AgentTaskService agentTaskService;
     private final WebSearchToolInitConfig webSearchToolInitConfig;
+    private final AiPptInstService aiPptInstService;
     private final FileContentTool fileContentTool;
 
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
@@ -97,7 +97,7 @@ public class AgentController {
         try {
             var pptBuilderAgent = new PPTBuilderAgent(chatModel, sessionService,
                     agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(),
-                    5);
+                    aiPptInstService, 5);
             pptBuilderAgent.initPersistentChatMemory(conversationsId);
             return pptBuilderAgent.stream(conversationsId, question);
         } catch (Exception e) {
