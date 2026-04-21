@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, AiChatSessionEntity> {
@@ -32,6 +33,22 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
         var entity = AiChatSessionConverter.INSTANCE.toEntity(session);
         this.save(entity);
         return AiChatSessionConverter.INSTANCE.toDto(entity);
+    }
+
+    /**
+     * Query session by id
+     */
+    public Optional<AiChatSession> queryById(Long id) {
+        return Optional.ofNullable(getById(id))
+                .map(AiChatSessionConverter.INSTANCE::toDto);
+    }
+
+    /**
+     * Update session by id
+     */
+    public void updateSession(AiChatSession session) {
+        var entity = AiChatSessionConverter.INSTANCE.toEntity(session);
+        updateById(entity);
     }
 
     public void update(Long id,
