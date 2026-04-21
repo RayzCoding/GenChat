@@ -3,13 +3,12 @@ package com.genchat.agent;
 import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.genchat.application.strategy.PptStateStrategyContext;
+import com.genchat.application.strategy.PptStateStrategyFactory;
 import com.genchat.common.AgentResponse;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiChatSession;
-import com.genchat.entity.AgentState;
-import com.genchat.entity.RoundMode;
-import com.genchat.entity.RoundState;
-import com.genchat.entity.SearchResult;
+import com.genchat.entity.*;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
 import com.genchat.service.AiPptInstService;
@@ -58,6 +57,8 @@ public class PPTBuilderAgent {
     protected long startTime;
     protected boolean enableRecommendations = true;
     private final PptIntentRecognizer recognizer;
+    private final AiPptInstService pptInstService;
+    private PptStateStrategyContext strategyContext;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -74,7 +75,8 @@ public class PPTBuilderAgent {
         this.sessionService = sessionService;
         this.maxRounds = maxRounds;
         this.usedTools = new HashSet<>();
-        recognizer= new PptIntentRecognizer( chatClient, pptInstService);
+        this.pptInstService = pptInstService;
+        recognizer = new PptIntentRecognizer(chatClient, pptInstService);
         initChatClient();
     }
 
@@ -113,8 +115,26 @@ public class PPTBuilderAgent {
         // Collecting the thought process
         var thinkingBuffer = new StringBuilder();
         var agentState = new AgentState();
-        var intentResult = recognizer.recognize(conversationId, question);
-        log.info("Intent result: {}", intentResult);
+        try {
+
+            var intentResult = recognizer.recognize(conversationId, question);
+            log.info("Intent result: {}", intentResult);
+
+            initStrategyContext();
+
+            switch (intentResult.getIntent()) {
+                case CREATE_PPT -> handleCreateIntent(conversationId, question, sink, thinkingBuffer);
+                case MODIFY_PPT -> handleModifyIntent(conversationId, question, sink, thinkingBuffer);
+                case RESUME_PPT -> handleResumeIntent(conversationId, question, sink, thinkingBuffer);
+                default -> {
+                    sink.tryEmitNext("If your intention is not recognized, please rephrase it.");
+                    sink.tryEmitComplete();
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error while recognizing intent.", e);
+            sink.tryEmitError(e);
+        }
 
         return sink.asFlux()
                 .doOnNext(chunk -> {
@@ -146,6 +166,89 @@ public class PPTBuilderAgent {
                     // 流结束时移除任务
                     agentTaskService.stopTask(conversationId);
                 });
+    }
+
+    private void initStrategyContext() {
+        this.strategyContext = new PptStateStrategyContext(pptInstService);
+    }
+
+    private void handleResumeIntent(String conversationId,
+                                    String question,
+                                    Sinks.Many<String> sink,
+                                    StringBuilder thinkingBuffer) {
+        var latestInst = pptInstService.getLatestInst(conversationId);
+        if (Objects.isNull(latestInst)) {
+            log.info("No latest inst found for conversation id {}", conversationId);
+            var response = "There is no generated PPT in the current session, so it cannot be modified. Please make a PPT.";
+            sink.tryEmitNext(response);
+            saveSession(currentSessionId, response, thinkingBuffer);
+            sink.tryEmitComplete();
+            return;
+        }
+        if (latestInst.getStatus().equals(PptInstStatus.SUCCESS.name())) {
+            var response = "The current PPT has been successfully generated, if you want to modify, please explain the specific modification requirements.";
+            sink.tryEmitNext(AgentResponse.thinking(response + "\n"));
+            sink.tryEmitNext(AgentResponse.text(response));
+            sink.tryEmitComplete();
+            return;
+        }
+        sink.tryEmitNext(AgentResponse.thinking("Is from the state " + latestInst.getStatus() + " Proceed to perform PPT generation...\n"));
+        PptStateStrategyFactory.getInstance().executeNextState(latestInst, sink, question, thinkingBuffer, strategyContext);
+    }
+
+    private void handleModifyIntent(String conversationId,
+                                    String question,
+                                    Sinks.Many<String> sink,
+                                    StringBuilder thinkingBuffer) {
+        var latestInst = pptInstService.getLatestInst(conversationId);
+        if (Objects.isNull(latestInst)) {
+            log.info("No latest inst found for conversation id {}", conversationId);
+            var response = "There is no generated PPT in the current session, so it cannot be modified. Please make a PPT.";
+            sink.tryEmitNext(AgentResponse.text(response));
+            saveSession(currentSessionId, response, thinkingBuffer);
+            sink.tryEmitComplete();
+            return;
+        }
+        var pptSchema = latestInst.getPptSchema();
+        if (Objects.isNull(pptSchema)) {
+            var response = "This PPT does not have Schema data and cannot be modified.";
+            sink.tryEmitNext(AgentResponse.text(response));
+            saveSession(currentSessionId, response, thinkingBuffer);
+            sink.tryEmitComplete();
+            return;
+        }
+        sink.tryEmitNext(AgentResponse.thinking("The PPT is being modified...\n"));
+        sink.tryEmitNext(AgentResponse.thinking("Modification requirements are being analyzed...\n"));
+        sink.tryEmitNext(AgentResponse.thinking("The content of the PPT is being modified...\n"));
+        // Set modification action tags and modification requirements
+        strategyContext.setModifyMode(true);
+        strategyContext.setModifyQuestion(question);
+        // Call SchemaStrategy directly to continue execution (it handles image generation, rendering, etc.)
+        PptStateStrategyFactory.getInstance().executeSchemaStrategy(latestInst, sink,question, thinkingBuffer, strategyContext);
+    }
+
+    private void saveSession(Long currentSessionId, String response, StringBuilder thinkingBuffer) {
+        if (currentSessionId == null) {
+            return;
+        }
+        var chatSessionOptional = sessionService.queryById(currentSessionId);
+        if (Objects.isNull(chatSessionOptional)) {
+            return;
+        }
+        var aiChatSession = chatSessionOptional.get();
+        aiChatSession.setAnswer(response);
+        aiChatSession.setThinking(thinkingBuffer.toString());
+        sessionService.updateSession(aiChatSession);
+    }
+
+    private void handleCreateIntent(String conversationId,
+                                    String question,
+                                    Sinks.Many<String> sink,
+                                    StringBuilder thinkingBuffer) {
+        sink.tryEmitNext(AgentResponse.thinking("Start creating new PPT...."));
+        var aiPptInst = pptInstService.create(conversationId, question);
+
+        PptStateStrategyFactory.getInstance().executeNextState(aiPptInst, sink, question, thinkingBuffer, strategyContext);
     }
 
     private void scheduleRound(List<Message> messages,
