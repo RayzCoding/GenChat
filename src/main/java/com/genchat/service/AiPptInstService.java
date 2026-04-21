@@ -63,4 +63,13 @@ public class AiPptInstService extends ServiceImpl<AiPptInstRepository, AiPptInst
                 .last("LIMIT 1");
         return AiPptInstConverter.INSTANCE.toDto(getOne(wrapper));
     }
+
+    public AiPptInst create(String conversationId, String question) {
+        var instEntity = AiPptInstEntity.builder()
+                .conversationId(conversationId)
+                .query(question)
+                .build();
+        save(instEntity);
+        return AiPptInstConverter.INSTANCE.toDto(instEntity);
+    }
 }
