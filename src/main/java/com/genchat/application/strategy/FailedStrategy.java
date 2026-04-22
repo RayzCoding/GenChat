@@ -14,6 +14,7 @@ import java.util.Objects;
 
 @Slf4j
 public class FailedStrategy implements PptStateStrategy {
+    private static final PptInstStatus TARGET_STATUS = PptInstStatus.FAILED;
 
     @Override
     public void execute(AiPptInst inst,
@@ -83,6 +84,6 @@ public class FailedStrategy implements PptStateStrategy {
 
     @Override
     public PptInstStatus getTargetStatus() {
-        return null;
+        return TARGET_STATUS;
     }
 }
