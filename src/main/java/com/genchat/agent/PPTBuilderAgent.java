@@ -152,7 +152,8 @@ public class PPTBuilderAgent {
                             thinkingBuffer.append(json.getString("content"));
                         }
                     } catch (Exception e) {
-                        // 解析失败，直接拼接
+                        // If the parse fails, it will be spliced directly
+                        log.error("Error while parsing JSON.", e);
                         finalAnswerBuffer.append(chunk);
                     }
                 })
@@ -177,7 +178,9 @@ public class PPTBuilderAgent {
                 chatMemory,
                 chatClient,
                 agentTaskService,
-                pptTemplateService);
+                pptTemplateService,
+                currentSessionId,
+                sessionService);
     }
 
     private void handleResumeIntent(String conversationId,

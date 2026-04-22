@@ -54,7 +54,7 @@ public class RequirementStrategy implements PptStateStrategy {
                         context.getPptInstService().updateInst(inst);
                         sink.tryEmitNext(AgentResponse.thinking("\n✅ The requirements are confirmed and the relevant information is being collected\n"));
                         context.continueStateMachine(inst, sink, question, thinkingBuffer);
-                    }else {
+                    } else {
                         // If the information is insufficient, save the current state and go to the unified output of the FAILED policy
                         inst.setRequirement(response);
                         inst.setStatus(PptInstStatus.REQUIREMENT.getCode());
@@ -64,7 +64,7 @@ public class RequirementStrategy implements PptStateStrategy {
                             context.getChatMemory().add(conversationId, new AssistantMessage(response));
                         }
                         // Go to FAILED policy
-                        PptStateStrategyFactory.getInstance().executeFailedStrategy(inst,sink, question,thinkingBuffer,context);
+                        PptStateStrategyFactory.getInstance().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                     }
 
                 })

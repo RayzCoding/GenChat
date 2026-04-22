@@ -2,6 +2,7 @@ package com.genchat.application.strategy;
 
 import com.genchat.dto.AiPptInst;
 import com.genchat.service.AgentTaskService;
+import com.genchat.service.AiChatSessionService;
 import com.genchat.service.AiPptInstService;
 import com.genchat.service.AiPptTemplateService;
 import lombok.Getter;
@@ -17,7 +18,6 @@ import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.publisher.Sinks;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -29,20 +29,25 @@ public class PptStateStrategyContext {
     private final ChatClient chatClient;
     private final AgentTaskService agentTaskService;
     private final AiPptTemplateService pptTemplateService;
+    private final Long currentSessionId;
+    private final AiChatSessionService sessionService;
     private String modifyQuestion;
     private boolean modifyMode;
-
 
     public PptStateStrategyContext(AiPptInstService pptInstService,
                                    ChatMemory chatMemory,
                                    ChatClient client,
                                    AgentTaskService agentTaskService,
-                                   AiPptTemplateService pptTemplateService) {
+                                   AiPptTemplateService pptTemplateService,
+                                   Long currentSessionId,
+                                   AiChatSessionService sessionService) {
         this.pptInstService = pptInstService;
         this.chatMemory = chatMemory;
         this.chatClient = client;
         this.agentTaskService = agentTaskService;
         this.pptTemplateService = pptTemplateService;
+        this.currentSessionId = currentSessionId;
+        this.sessionService = sessionService;
     }
 
     public void loadChatHistory(String conversationId, List<Message> messages, boolean skipSystem, boolean addLabel) {
