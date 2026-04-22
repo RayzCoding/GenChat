@@ -92,7 +92,7 @@ public class PptStateStrategyFactory {
 
     private static class DefaultStrategy implements PptStateStrategy {
         @Override
-        public void execute(AiPptInst inst, Sinks.Many<String> sink, String query,
+        public void execute(AiPptInst inst, Sinks.Many<String> sink, String question,
                             StringBuilder thinkingBuffer, PptStateStrategyContext context) {
             log.warn("Unknown state: {}", inst.getStatus());
             sink.tryEmitNext(AgentResponse.thinking("❌ abnormal status, terminate execution\n"));

@@ -3,6 +3,7 @@ package com.genchat.application.strategy;
 import com.genchat.dto.AiPptInst;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiPptInstService;
+import com.genchat.service.AiPptTemplateService;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class PptStateStrategyContext {
     private final ChatMemory chatMemory;
     private final ChatClient chatClient;
     private final AgentTaskService agentTaskService;
+    private final AiPptTemplateService pptTemplateService;
     private String modifyQuestion;
     private boolean modifyMode;
 
@@ -34,11 +36,13 @@ public class PptStateStrategyContext {
     public PptStateStrategyContext(AiPptInstService pptInstService,
                                    ChatMemory chatMemory,
                                    ChatClient client,
-                                   AgentTaskService agentTaskService) {
+                                   AgentTaskService agentTaskService,
+                                   AiPptTemplateService pptTemplateService) {
         this.pptInstService = pptInstService;
         this.chatMemory = chatMemory;
         this.chatClient = client;
         this.agentTaskService = agentTaskService;
+        this.pptTemplateService = pptTemplateService;
     }
 
     public void loadChatHistory(String conversationId, List<Message> messages, boolean skipSystem, boolean addLabel) {

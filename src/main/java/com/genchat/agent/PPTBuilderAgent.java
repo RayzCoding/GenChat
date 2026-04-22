@@ -12,6 +12,7 @@ import com.genchat.entity.*;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
 import com.genchat.service.AiPptInstService;
+import com.genchat.service.AiPptTemplateService;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -58,6 +59,7 @@ public class PPTBuilderAgent {
     protected boolean enableRecommendations = true;
     private final PptIntentRecognizer recognizer;
     private final AiPptInstService pptInstService;
+    private final AiPptTemplateService pptTemplateService;
     private PptStateStrategyContext strategyContext;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -67,7 +69,9 @@ public class PPTBuilderAgent {
                            AgentTaskService agentTaskService,
                            ToolCallback[] webSearchToolCallbacks,
                            AiPptInstService pptInstService,
+                           AiPptTemplateService pptTemplateService,
                            int maxRounds) {
+        this.pptTemplateService = pptTemplateService;
         this.systemPrompt = "";
         this.tools = Arrays.asList(webSearchToolCallbacks);
         this.chatModel = chatModel;
@@ -172,7 +176,8 @@ public class PPTBuilderAgent {
         this.strategyContext = new PptStateStrategyContext(pptInstService,
                 chatMemory,
                 chatClient,
-                agentTaskService);
+                agentTaskService,
+                pptTemplateService);
     }
 
     private void handleResumeIntent(String conversationId,

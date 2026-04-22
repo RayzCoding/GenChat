@@ -15,11 +15,11 @@ public interface PptStateStrategy {
      *
      * @param inst            PPT instance
      * @param sink            response stream
-     * @param query           user query
+     * @param question           user question
      * @param thinkingBuffer  thinking buffer
      * @param context         strategy context
      */
-    void execute(AiPptInst inst, Sinks.Many<String> sink, String query,
+    void execute(AiPptInst inst, Sinks.Many<String> sink, String question,
                  StringBuilder thinkingBuffer, PptStateStrategyContext context);
 
     /**

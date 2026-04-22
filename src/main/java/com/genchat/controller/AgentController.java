@@ -8,6 +8,7 @@ import com.genchat.config.WebSearchToolInitConfig;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
 import com.genchat.service.AiPptInstService;
+import com.genchat.service.AiPptTemplateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
@@ -35,6 +36,7 @@ public class AgentController {
     private final AgentTaskService agentTaskService;
     private final WebSearchToolInitConfig webSearchToolInitConfig;
     private final AiPptInstService aiPptInstService;
+    private final AiPptTemplateService pptTemplateService;
     private final FileContentTool fileContentTool;
 
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
@@ -97,7 +99,7 @@ public class AgentController {
         try {
             var pptBuilderAgent = new PPTBuilderAgent(chatModel, sessionService,
                     agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(),
-                    aiPptInstService, 5);
+                    aiPptInstService, pptTemplateService, 5);
             pptBuilderAgent.initPersistentChatMemory(conversationsId);
             return pptBuilderAgent.stream(conversationsId, question);
         } catch (Exception e) {
