@@ -169,7 +169,10 @@ public class PPTBuilderAgent {
     }
 
     private void initStrategyContext() {
-        this.strategyContext = new PptStateStrategyContext(pptInstService);
+        this.strategyContext = new PptStateStrategyContext(pptInstService,
+                chatMemory,
+                chatClient,
+                agentTaskService);
     }
 
     private void handleResumeIntent(String conversationId,
@@ -224,7 +227,7 @@ public class PPTBuilderAgent {
         strategyContext.setModifyMode(true);
         strategyContext.setModifyQuestion(question);
         // Call SchemaStrategy directly to continue execution (it handles image generation, rendering, etc.)
-        PptStateStrategyFactory.getInstance().executeSchemaStrategy(latestInst, sink,question, thinkingBuffer, strategyContext);
+        PptStateStrategyFactory.getInstance().executeSchemaStrategy(latestInst, sink, question, thinkingBuffer, strategyContext);
     }
 
     private void saveSession(Long currentSessionId, String response, StringBuilder thinkingBuffer) {

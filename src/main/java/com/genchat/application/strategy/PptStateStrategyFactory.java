@@ -1,6 +1,7 @@
 package com.genchat.application.strategy;
 
 import com.genchat.common.AgentResponse;
+import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,15 @@ public class PptStateStrategyFactory {
     private static final Map<PptInstStatus, PptStateStrategy> STRATEGY_MAP = new HashMap<>();
 
     private PptStateStrategyFactory() {
+        STRATEGY_MAP.put(PptInstStatus.INIT, new RequirementStrategy());
+        STRATEGY_MAP.put(PptInstStatus.REQUIREMENT, new RequirementStrategy());
+        STRATEGY_MAP.put(PptInstStatus.TEMPLATE, new TemplateStrategy());
+        STRATEGY_MAP.put(PptInstStatus.OUTLINE, new OutlineStrategy());
+        STRATEGY_MAP.put(PptInstStatus.SEARCH, new SearchStrategy());
+        STRATEGY_MAP.put(PptInstStatus.SCHEMA, new SchemaStrategy());
+        STRATEGY_MAP.put(PptInstStatus.RENDER, new RenderStrategy());
+        STRATEGY_MAP.put(PptInstStatus.SUCCESS, new SuccessStrategy());
+        STRATEGY_MAP.put(PptInstStatus.FAILED, new FailedStrategy());
     }
 
     public static PptStateStrategyFactory getInstance() {
@@ -61,8 +71,19 @@ public class PptStateStrategyFactory {
     public void executeSchemaStrategy(AiPptInst latestInst,
                                       Sinks.Many<String> sink,
                                       String question,
-                                      StringBuilder thinkingBuffer, PptStateStrategyContext strategyContext) {
+                                      StringBuilder thinkingBuffer,
+                                      PptStateStrategyContext strategyContext) {
+        var schemaStrategy = new SchemaStrategy();
+        var schemaModifyPrompt = PptBuilderPrompts.getSchemaModifyPrompt(question, latestInst.getPptSchema());
+        schemaStrategy.executeWithModifyPrompt(latestInst, sink, question, thinkingBuffer, strategyContext, schemaModifyPrompt);
+    }
 
+    public void executeFailedStrategy(AiPptInst inst,
+                                      Sinks.Many<String> sink,
+                                      String question,
+                                      StringBuilder thinkingBuffer,
+                                      PptStateStrategyContext context) {
+        getStrategy(PptInstStatus.FAILED).execute(inst, sink, question, thinkingBuffer, context);
     }
 
     private static class SingletonHolder {
