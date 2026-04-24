@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.Getter;
 
 /**
- * 文件处理状态枚举
+ * File processing status enum
  */
 @Getter
 public enum FileStatus {

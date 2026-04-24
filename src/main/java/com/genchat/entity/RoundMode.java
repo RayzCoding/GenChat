@@ -3,25 +3,25 @@ package com.genchat.entity;
 import lombok.Getter;
 
 /**
- * Agent 轮次模式枚举
- * UNKNOWN: 未知模式
- * FINAL_ANSWER: 最终答案模式
- * TOOL_CALL: 工具调用模式
+ * Agent round mode enum
+ * UNKNOWN: Unknown mode
+ * FINAL_ANSWER: Final answer mode
+ * TOOL_CALL: Tool call mode
  */
 @Getter
 public enum RoundMode {
     /**
-     * 未知模式
+     * Unknown mode
      */
-    UNKNOWN("未知"),
+    UNKNOWN("unknown"),
     /**
-     * 最终答案模式
+     * Final answer mode
      */
-    FINAL_ANSWER("最终答案"),
+    FINAL_ANSWER("final_answer"),
     /**
-     * 工具调用模式
+     * Tool call mode
      */
-    TOOL_CALL("工具调用");
+    TOOL_CALL("tool_call");
 
     private final String desc;
 

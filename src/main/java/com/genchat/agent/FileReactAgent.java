@@ -148,7 +148,7 @@ public class FileReactAgent {
                             thinkingBuffer.append(json.getString("content"));
                         }
                     } catch (Exception e) {
-                        // 解析失败，直接拼接
+                        // Parse failed, concatenate directly
                         finalAnswerBuffer.append(chunk);
                     }
                 })
@@ -159,12 +159,12 @@ public class FileReactAgent {
                 .doFinally(signalType -> {
                     log.info("Final Answer: {}", finalAnswerBuffer);
                     log.info("Thinking process: {}", thinkingBuffer);
-                    // 保存结果到会话
+                    // Save result to session
                     sessionService.update(currentSessionId, finalAnswerBuffer,
                             thinkingBuffer, agentState, firstResponseTime,
                             getTotalResponseTime(), getUsedToolsString(),
                             currentRecommendations, AGENT_TYPE);
-                    // 流结束时移除任务
+                    // Remove task when stream ends
                     agentTaskService.stopTask(conversationId);
                 });
     }
@@ -307,7 +307,7 @@ public class FileReactAgent {
                     }
 
                 } catch (Exception ex) {
-                    addErrorToolResponse(messages, toolCall, "Tool execution failed：" + ex.getMessage());
+                    addErrorToolResponse(messages, toolCall, "Tool execution failed: " + ex.getMessage());
                 } finally {
                     completeToolCall(completedCount, totalToolCalls, onComplete);
                 }
@@ -479,7 +479,7 @@ public class FileReactAgent {
             // add style introduction message
             var converter = new BeanOutputConverter<List<String>>(new ParameterizedTypeReference<>() {
             });
-            messages.add(new UserMessage("Please generate 3 recommended questions based on the above dialogue. The output format is as follows：\n" + converter.getFormat()));
+            messages.add(new UserMessage("Please generate 3 recommended questions based on the above dialogue. The output format is as follows:\n" + converter.getFormat()));
             var response = ChatClient.builder(chatModel).build()
                     .prompt()
                     .messages(messages)
@@ -535,7 +535,7 @@ public class FileReactAgent {
             }
         }
 
-        // 新的 toolcall
+        // New tool call
         state.toolCalls.add(incoming);
     }
 
@@ -544,7 +544,7 @@ public class FileReactAgent {
             var history = chatMemory.get(conversationId);
             if (!ObjectUtils.isEmpty(history)) {
                 if (addLabel) {
-                    messages.add(new UserMessage("Conversation history："));
+                    messages.add(new UserMessage("Conversation history:"));
                 }
                 for (Message msg : history) {
                     if (skipSystem && msg instanceof SystemMessage) {

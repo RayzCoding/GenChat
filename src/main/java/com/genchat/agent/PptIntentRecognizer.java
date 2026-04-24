@@ -70,14 +70,14 @@ public class PptIntentRecognizer {
         if (StringUtils.hasLength(errorMsg)) {
             return true;
         }
-        String[] resumeKeywords = {"继续", "重试", "resume", "retry", "继续执行", "继续生成"};
+        String[] resumeKeywords = {"resume", "retry", "continue", "keep going", "go on"};
         var containResume = Arrays.stream(resumeKeywords)
                 .anyMatch(keyword -> question.toLowerCase().contains(keyword));
         if (containResume) {
             return true;
         }
         if (pptInstStatus != PptInstStatus.SUCCESS && pptInstStatus != PptInstStatus.INIT) {
-            String[] newKeywords = {"新建", "重新", "重新生成", "new", "create new"};
+            String[] newKeywords = {"new", "create new", "start over", "redo", "regenerate"};
             var containNew = Arrays.stream(newKeywords)
                     .anyMatch(keyword -> question.toLowerCase().contains(keyword));
             if (!containNew) {

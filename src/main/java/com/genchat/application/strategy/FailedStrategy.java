@@ -27,7 +27,7 @@ public class FailedStrategy implements PptStateStrategy {
         String prompt;
         if (StringUtils.hasText(thinkingBuffer)) {
             var newQuestionPrompt = """
-                    # Problems encountered in the previous round：
+                    # Problems encountered in the previous round:
                     %s
                     
                     # Problems encountered in this round

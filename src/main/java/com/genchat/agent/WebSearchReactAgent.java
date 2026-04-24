@@ -142,7 +142,7 @@ public class WebSearchReactAgent {
                             thinkingBuffer.append(json.getString("content"));
                         }
                     } catch (Exception e) {
-                        // 解析失败，直接拼接
+                        // Parse failed, concatenate directly
                         finalAnswerBuffer.append(chunk);
                     }
                 })
@@ -153,12 +153,12 @@ public class WebSearchReactAgent {
                 .doFinally(signalType -> {
                     log.info("Final Answer: {}", finalAnswerBuffer);
                     log.info("Thinking process: {}", thinkingBuffer);
-                    // 保存结果到会话
+                    // Save result to session
                     sessionService.update(currentSessionId, finalAnswerBuffer,
                             thinkingBuffer, agentState, firstResponseTime,
                             getTotalResponseTime(), getUsedToolsString(),
                             currentRecommendations, AGENT_TYPE);
-                    // 流结束时移除任务
+                    // Remove task when stream ends
                     agentTaskService.stopTask(conversationId);
                 });
     }
@@ -531,7 +531,7 @@ public class WebSearchReactAgent {
             }
         }
 
-        // 新的 toolcall
+        // New tool call
         state.toolCalls.add(incoming);
     }
 

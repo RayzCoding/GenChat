@@ -99,8 +99,8 @@ public final class ReactAgentPrompts {
             %s
             """.formatted(
                 ReactAgentPrompts.class.getPackage().getName().contains("prompts") ?
-                "## current system time:：\n" + java.time.LocalDateTime.now() :
-                "## current system time：\n%s".formatted(java.time.LocalDateTime.now()),
+                "## current system time:\n" + java.time.LocalDateTime.now() :
+                "## current system time:\n%s".formatted(java.time.LocalDateTime.now()),
                 BaseAgentPrompts.TOOL_CALLING_RULES,
                 BaseAgentPrompts.FINAL_ANSWER_RULES,
                 BaseAgentPrompts.OUTPUT_SPECIFICATIONS,
@@ -109,7 +109,7 @@ public final class ReactAgentPrompts {
     }
 
     /**
-     * Get FileAgent base prompt（non contain custom part）
+     * Get FileAgent base prompt (non contain custom part)
      */
     public static String getFileBasePrompt() {
         return """
@@ -130,7 +130,7 @@ public final class ReactAgentPrompts {
             %s
             %s
             """.formatted(
-                "## current system time：\n" + java.time.LocalDateTime.now(),
+                "## current system time:\n" + java.time.LocalDateTime.now(),
                 BaseAgentPrompts.OUTPUT_SPECIFICATIONS,
                 BaseAgentPrompts.FINAL_ANSWER_RULES,
                 BaseAgentPrompts.MANDATORY_REQUIREMENTS

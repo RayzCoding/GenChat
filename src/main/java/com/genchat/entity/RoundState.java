@@ -8,18 +8,18 @@ import java.util.List;
 import static java.util.Collections.synchronizedList;
 
 /**
- * Agent 轮次执行状态
- * 保存每轮执行时的中间状态
+ * Agent round execution state
+ * Holds intermediate state during each round of execution
  */
 @Data
 public class RoundState {
-    /** 当前运行模式 */
+    /** Current execution mode */
     public RoundMode mode = RoundMode.UNKNOWN;
 
-    /** 文本缓冲区 */
+    /** Text buffer */
     public StringBuilder textBuffer = new StringBuilder();
 
-    /** 工具调用列表 */
+    /** Tool call list */
     public List<AssistantMessage.ToolCall> toolCalls = synchronizedList(new java.util.ArrayList<>());
 
 }

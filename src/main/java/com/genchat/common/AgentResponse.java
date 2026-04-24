@@ -4,13 +4,13 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 
 /**
- * Agent通用响应类型
- * 用于统一各Agent的流式输出格式
+ * Agent unified response type
+ * Used to standardize streaming output format across all agents
  */
 public class AgentResponse {
 
     /**
-     * 支持的类型
+     * Supported types
      */
     public static final String TYPE_TEXT = "text";
     public static final String TYPE_THINKING = "thinking";
@@ -44,31 +44,31 @@ public class AgentResponse {
         this.data = data;
     }
 
-    // ===== 工厂方法 =====
+    // ===== Factory methods =====
 
     /**
-     * 创建text类型响应
+     * Create a text type response
      */
     public static String text(String content) {
         return new AgentResponse(TYPE_TEXT, content).toJson();
     }
 
     /**
-     * 创建thinking类型响应
+     * Create a thinking type response
      */
     public static String thinking(String content) {
         return new AgentResponse(TYPE_THINKING, content).toJson();
     }
 
     /**
-     * 创建reference类型响应
+     * Create a reference type response
      */
     public static String reference(String content, Integer count) {
         return new AgentResponse(TYPE_REFERENCE, content, count).toJson();
     }
 
     /**
-     * 创建reference类型响应（无count，自动解析JSON数组计算count）
+     * Create a reference type response (without count, auto-parses JSON array to calculate count)
      */
     public static String reference(String content) {
         try {
@@ -77,51 +77,51 @@ public class AgentResponse {
                 return reference(content, jsonArray.size());
             }
         } catch (Exception e) {
-            // 解析失败，count为null
+            // Parse failed, count is null
         }
         return reference(content, null);
     }
 
     /**
-     * 创建error类型响应
+     * Create an error type response
      */
     public static String error(String content) {
         return new AgentResponse(TYPE_ERROR, content).toJson();
     }
 
     /**
-     * 创建recommend类型响应
+     * Create a recommend type response
      */
     public static String recommend(String content) {
         return recommend(content, null);
     }
 
     /**
-     * 创建recommend类型响应（带count）
+     * Create a recommend type response (with count)
      */
     public static String recommend(String content, Integer count) {
         return new AgentResponse(TYPE_RECOMMEND, content, count).toJson();
     }
 
     /**
-     * 创建JSON类型响应（自定义类型）
+     * Create a JSON type response (custom type)
      */
     public static String json(String type, Object content) {
         if (TYPE_REFERENCE.equals(type) && content instanceof String jsonStr) {
             try {
-                // 尝试解析为JSONArray来计算数量
+                // Try to parse as JSONArray to calculate count
                 var jsonArray = JSON.parseArray(jsonStr);
                 if (jsonArray != null && !jsonArray.isEmpty()) {
                     return reference(jsonStr, jsonArray.size());
                 }
             } catch (Exception e) {
-                // 解析失败，使用普通json响应
+                // Parse failed, use plain json response
             }
         }
         return new AgentResponse(type, content == null ? null : content.toString()).toJson();
     }
 
-    // ===== JSON转换 =====
+    // ===== JSON conversion =====
 
     public String toJson() {
         JSONObject obj = new JSONObject();
