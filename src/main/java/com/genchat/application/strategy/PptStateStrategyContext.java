@@ -13,6 +13,8 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
@@ -31,16 +33,22 @@ public class PptStateStrategyContext {
     private final AiPptTemplateService pptTemplateService;
     private final Long currentSessionId;
     private final AiChatSessionService sessionService;
+    private final ChatModel chatModel;
+    private final List<ToolCallback> tools;
     private String modifyQuestion;
     private boolean modifyMode;
 
     public PptStateStrategyContext(AiPptInstService pptInstService,
+                                   ChatModel chatModel,
                                    ChatMemory chatMemory,
                                    ChatClient client,
+                                   List<ToolCallback> tools,
                                    AgentTaskService agentTaskService,
                                    AiPptTemplateService pptTemplateService,
                                    Long currentSessionId,
                                    AiChatSessionService sessionService) {
+        this.tools = tools;
+        this.chatModel = chatModel;
         this.pptInstService = pptInstService;
         this.chatMemory = chatMemory;
         this.chatClient = client;
@@ -80,7 +88,7 @@ public class PptStateStrategyContext {
         if (trimmedResponse.contains("[START PPT GENERATION]") || trimmedResponse.contains("[START PPT GENERATION]".toLowerCase())) {
             return true;
         }
-        if (trimmedResponse.contains("[PAUSE PPT GENERATION]") ||  trimmedResponse.contains("[PAUSE PPT GENERATION]".toLowerCase())) {
+        if (trimmedResponse.contains("[PAUSE PPT GENERATION]") || trimmedResponse.contains("[PAUSE PPT GENERATION]".toLowerCase())) {
             return false;
         }
 

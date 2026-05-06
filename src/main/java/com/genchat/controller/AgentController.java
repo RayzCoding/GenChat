@@ -72,7 +72,7 @@ public class AgentController {
         }
 
         try {
-            var webSearchReactAgent = new SimpleReactAgent(chatModel, webSearchToolInitConfig.getWebSearchToolCallbacks(), 5);
+            var webSearchReactAgent = new SimpleReactAgent(chatModel, List.of(webSearchToolInitConfig.getWebSearchToolCallbacks()));
             return webSearchReactAgent.stream(question);
         } catch (Exception e) {
             log.error("error occurred while processing request to chat stream, error:", e);

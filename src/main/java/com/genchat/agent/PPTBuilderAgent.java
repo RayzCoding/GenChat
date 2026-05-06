@@ -175,8 +175,10 @@ public class PPTBuilderAgent {
 
     private void initStrategyContext() {
         this.strategyContext = new PptStateStrategyContext(pptInstService,
+                chatModel,
                 chatMemory,
                 chatClient,
+                tools,
                 agentTaskService,
                 pptTemplateService,
                 currentSessionId,
