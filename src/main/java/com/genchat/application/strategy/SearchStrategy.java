@@ -6,17 +6,14 @@ import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
-import com.genchat.service.AiPptInstService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
-import reactor.core.Disposable;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 @Slf4j
 public class SearchStrategy implements PptStateStrategy {
