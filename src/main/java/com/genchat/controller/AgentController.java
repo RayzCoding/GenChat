@@ -2,6 +2,7 @@ package com.genchat.controller;
 
 import com.genchat.agent.FileReactAgent;
 import com.genchat.agent.PPTBuilderAgent;
+import com.genchat.agent.SimpleReactAgent;
 import com.genchat.agent.WebSearchReactAgent;
 import com.genchat.application.tool.FileContentTool;
 import com.genchat.config.WebSearchToolInitConfig;
@@ -56,6 +57,23 @@ public class AgentController {
             webSearchReactAgent.initPersistentChatMemory(conversationId);
 
             return webSearchReactAgent.stream(conversationId, question);
+        } catch (Exception e) {
+            log.error("error occurred while processing request to chat stream, error:", e);
+            return Flux.error(e);
+        }
+    }
+
+    @GetMapping(value = "/simple/stream", produces = "text/event-stream;charset=UTF-8")
+    public Flux<String> simpleChat(@RequestParam String question) {
+        log.info("received request to simple chat stream,  question: {}", question);
+        if ( ObjectUtils.isEmpty(question)) {
+            log.warn("Question is null or empty");
+            return Flux.error(new IllegalArgumentException("Question is null or empty"));
+        }
+
+        try {
+            var webSearchReactAgent = new SimpleReactAgent(chatModel, webSearchToolInitConfig.getWebSearchToolCallbacks(), 5);
+            return webSearchReactAgent.stream(question);
         } catch (Exception e) {
             log.error("error occurred while processing request to chat stream, error:", e);
             return Flux.error(e);
