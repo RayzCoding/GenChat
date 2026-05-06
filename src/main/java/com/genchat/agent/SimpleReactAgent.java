@@ -37,12 +37,10 @@ public class SimpleReactAgent {
     protected Set<String> usedTools;
 
     public SimpleReactAgent(ChatModel chatModel,
-                            ToolCallback[] webSearchToolCallbacks,
-                            int maxRounds) {
+                            List<ToolCallback> webSearchToolCallbacks) {
         this.systemPrompt = "";
-        this.tools = Arrays.asList(webSearchToolCallbacks);
+        this.tools = webSearchToolCallbacks;
         this.chatModel = chatModel;
-        this.maxRounds = maxRounds;
         this.usedTools = new HashSet<>();
         initChatClient();
     }
@@ -252,12 +250,11 @@ public class SimpleReactAgent {
                             .getOutput()
                             .getText();
                     if (StringUtils.hasLength(text) && !hasSentFinalResult.get()) {
-                        sink.tryEmitNext(AgentResponse.text(text));
+                        sink.tryEmitNext(text);
                         finalTextBuffer.append(text);
                     }
                 })
                 .doOnComplete(() -> {
-                    var finalText = finalTextBuffer.toString();
                     hasSentFinalResult.set(true);
                     sink.tryEmitComplete();
                 })
@@ -283,7 +280,7 @@ public class SimpleReactAgent {
         }
         // cache text
         if (StringUtils.hasLength(text)) {
-            sink.tryEmitNext(AgentResponse.text(text));
+            sink.tryEmitNext(text);
             roundState.textBuffer.append(text);
         }
     }
