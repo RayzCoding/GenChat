@@ -1,0 +1,23 @@
+package com.genchat.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+/**
+ * PPT Schema data schema
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class PptSchema {
+
+    /**
+     * slide list
+     */
+    private List<Slide> slides;
+}
