@@ -1,10 +1,7 @@
 package com.genchat.application.strategy;
 
 import com.genchat.dto.AiPptInst;
-import com.genchat.service.AgentTaskService;
-import com.genchat.service.AiChatSessionService;
-import com.genchat.service.AiPptInstService;
-import com.genchat.service.AiPptTemplateService;
+import com.genchat.service.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +31,7 @@ public class PptStateStrategyContext {
     private final Long currentSessionId;
     private final AiChatSessionService sessionService;
     private final ChatModel chatModel;
+    private final MinioService minioService;
     private final List<ToolCallback> tools;
     private String modifyQuestion;
     private boolean modifyMode;
@@ -46,7 +44,8 @@ public class PptStateStrategyContext {
                                    AgentTaskService agentTaskService,
                                    AiPptTemplateService pptTemplateService,
                                    Long currentSessionId,
-                                   AiChatSessionService sessionService) {
+                                   AiChatSessionService sessionService,
+                                   MinioService minioService) {
         this.tools = tools;
         this.chatModel = chatModel;
         this.pptInstService = pptInstService;
@@ -56,6 +55,7 @@ public class PptStateStrategyContext {
         this.pptTemplateService = pptTemplateService;
         this.currentSessionId = currentSessionId;
         this.sessionService = sessionService;
+        this.minioService = minioService;
     }
 
     public void loadChatHistory(String conversationId, List<Message> messages, boolean skipSystem, boolean addLabel) {

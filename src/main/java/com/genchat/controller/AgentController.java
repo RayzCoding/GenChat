@@ -6,10 +6,7 @@ import com.genchat.agent.SimpleReactAgent;
 import com.genchat.agent.WebSearchReactAgent;
 import com.genchat.application.tool.FileContentTool;
 import com.genchat.config.WebSearchToolInitConfig;
-import com.genchat.service.AgentTaskService;
-import com.genchat.service.AiChatSessionService;
-import com.genchat.service.AiPptInstService;
-import com.genchat.service.AiPptTemplateService;
+import com.genchat.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
@@ -38,6 +35,7 @@ public class AgentController {
     private final WebSearchToolInitConfig webSearchToolInitConfig;
     private final AiPptInstService aiPptInstService;
     private final AiPptTemplateService pptTemplateService;
+    private final MinioService minioService;
     private final FileContentTool fileContentTool;
 
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
@@ -66,7 +64,7 @@ public class AgentController {
     @GetMapping(value = "/simple/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> simpleChat(@RequestParam String question) {
         log.info("received request to simple chat stream,  question: {}", question);
-        if ( ObjectUtils.isEmpty(question)) {
+        if (ObjectUtils.isEmpty(question)) {
             log.warn("Question is null or empty");
             return Flux.error(new IllegalArgumentException("Question is null or empty"));
         }
@@ -117,7 +115,7 @@ public class AgentController {
         try {
             var pptBuilderAgent = new PPTBuilderAgent(chatModel, sessionService,
                     agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(),
-                    aiPptInstService, pptTemplateService, 5);
+                    aiPptInstService, pptTemplateService, minioService, 5);
             pptBuilderAgent.initPersistentChatMemory(conversationsId);
             return pptBuilderAgent.stream(conversationsId, question);
         } catch (Exception e) {

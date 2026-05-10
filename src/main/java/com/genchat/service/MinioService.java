@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.UUID;
 
@@ -92,6 +93,24 @@ public class MinioService {
         } catch (Exception e) {
             log.error("Bucket check/creation failed: {}", bucketName, e);
             throw new RuntimeException("Bucket operation failed", e);
+        }
+    }
+
+    public String uploadFile(String objectName, byte[] content, String contentType) throws Exception {
+        try (InputStream stream = new ByteArrayInputStream(content)) {
+            var bucketName = minioConfig.getBucketName();
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .stream(stream, content.length, -1)
+                            .contentType(contentType)
+                            .build()
+            );
+
+            var endpoint = minioConfig.getEndpoint();
+            String cleanEndpoint = endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
+            return String.format("%s/%s/%s", cleanEndpoint, bucketName, objectName);
         }
     }
 }

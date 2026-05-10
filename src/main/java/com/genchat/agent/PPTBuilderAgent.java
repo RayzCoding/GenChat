@@ -9,10 +9,7 @@ import com.genchat.common.AgentResponse;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiChatSession;
 import com.genchat.entity.*;
-import com.genchat.service.AgentTaskService;
-import com.genchat.service.AiChatSessionService;
-import com.genchat.service.AiPptInstService;
-import com.genchat.service.AiPptTemplateService;
+import com.genchat.service.*;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -60,6 +57,7 @@ public class PPTBuilderAgent {
     private final PptIntentRecognizer recognizer;
     private final AiPptInstService pptInstService;
     private final AiPptTemplateService pptTemplateService;
+    private final MinioService minioService;
     private PptStateStrategyContext strategyContext;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -70,6 +68,7 @@ public class PPTBuilderAgent {
                            ToolCallback[] webSearchToolCallbacks,
                            AiPptInstService pptInstService,
                            AiPptTemplateService pptTemplateService,
+                           MinioService minioService,
                            int maxRounds) {
         this.pptTemplateService = pptTemplateService;
         this.systemPrompt = "";
@@ -80,6 +79,7 @@ public class PPTBuilderAgent {
         this.maxRounds = maxRounds;
         this.usedTools = new HashSet<>();
         this.pptInstService = pptInstService;
+        this.minioService = minioService;
         recognizer = new PptIntentRecognizer(chatClient, pptInstService);
         initChatClient();
     }
@@ -182,7 +182,8 @@ public class PPTBuilderAgent {
                 agentTaskService,
                 pptTemplateService,
                 currentSessionId,
-                sessionService);
+                sessionService,
+                minioService);
     }
 
     private void handleResumeIntent(String conversationId,
