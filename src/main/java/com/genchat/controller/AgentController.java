@@ -36,6 +36,7 @@ public class AgentController {
     private final AiPptInstService aiPptInstService;
     private final AiPptTemplateService pptTemplateService;
     private final MinioService minioService;
+    private final ImageGenerationService imageGenerationService;
     private final FileContentTool fileContentTool;
 
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
@@ -115,7 +116,7 @@ public class AgentController {
         try {
             var pptBuilderAgent = new PPTBuilderAgent(chatModel, sessionService,
                     agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(),
-                    aiPptInstService, pptTemplateService, minioService, 5);
+                    aiPptInstService, pptTemplateService, minioService, imageGenerationService,5);
             pptBuilderAgent.initPersistentChatMemory(conversationsId);
             return pptBuilderAgent.stream(conversationsId, question);
         } catch (Exception e) {

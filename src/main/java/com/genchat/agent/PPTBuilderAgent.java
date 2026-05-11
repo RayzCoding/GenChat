@@ -56,6 +56,7 @@ public class PPTBuilderAgent {
     protected boolean enableRecommendations = true;
     private final PptIntentRecognizer recognizer;
     private final AiPptInstService pptInstService;
+    private final ImageGenerationService imageGenerationService;
     private final AiPptTemplateService pptTemplateService;
     private final MinioService minioService;
     private PptStateStrategyContext strategyContext;
@@ -69,6 +70,7 @@ public class PPTBuilderAgent {
                            AiPptInstService pptInstService,
                            AiPptTemplateService pptTemplateService,
                            MinioService minioService,
+                           ImageGenerationService imageGenerationService,
                            int maxRounds) {
         this.pptTemplateService = pptTemplateService;
         this.systemPrompt = "";
@@ -80,6 +82,7 @@ public class PPTBuilderAgent {
         this.usedTools = new HashSet<>();
         this.pptInstService = pptInstService;
         this.minioService = minioService;
+        this.imageGenerationService = imageGenerationService;
         recognizer = new PptIntentRecognizer(chatClient, pptInstService);
         initChatClient();
     }

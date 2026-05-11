@@ -113,7 +113,7 @@ public class SchemaStrategy implements PptStateStrategy {
                 int currentTask = i + 1;
                 sink.tryEmitNext(AgentResponse.thinking("Image is being generated (" + currentTask + "/" + size + ")...\n"));
                 try {
-                    var originalImageUrl = "";
+                    var originalImageUrl = context.getImageGenerationService().generateImage(imageGenerationTask.prompt);
                     var imageBytes = downloadImageFromUrl(originalImageUrl);
                     if (imageBytes != null) {
                         // upload to MinIO
