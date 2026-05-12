@@ -59,6 +59,7 @@ public class PPTBuilderAgent {
     private final ImageGenerationService imageGenerationService;
     private final AiPptTemplateService pptTemplateService;
     private final MinioService minioService;
+    private final PptPythonRenderService pptPythonRenderService;
     private PptStateStrategyContext strategyContext;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -71,6 +72,7 @@ public class PPTBuilderAgent {
                            AiPptTemplateService pptTemplateService,
                            MinioService minioService,
                            ImageGenerationService imageGenerationService,
+                           PptPythonRenderService pptPythonRenderService,
                            int maxRounds) {
         this.pptTemplateService = pptTemplateService;
         this.systemPrompt = "";
@@ -83,6 +85,7 @@ public class PPTBuilderAgent {
         this.pptInstService = pptInstService;
         this.minioService = minioService;
         this.imageGenerationService = imageGenerationService;
+        this.pptPythonRenderService = pptPythonRenderService;
         recognizer = new PptIntentRecognizer(chatClient, pptInstService);
         initChatClient();
     }
@@ -186,6 +189,8 @@ public class PPTBuilderAgent {
                 pptTemplateService,
                 currentSessionId,
                 sessionService,
+                imageGenerationService,
+                pptPythonRenderService,
                 minioService);
     }
 

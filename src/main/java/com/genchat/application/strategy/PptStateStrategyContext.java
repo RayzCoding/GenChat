@@ -34,6 +34,7 @@ public class PptStateStrategyContext {
     private final MinioService minioService;
     private final List<ToolCallback> tools;
     private final ImageGenerationService imageGenerationService;
+    private final PptPythonRenderService pptPythonRenderService;
     private String modifyQuestion;
     private boolean modifyMode;
 
@@ -47,6 +48,7 @@ public class PptStateStrategyContext {
                                    Long currentSessionId,
                                    AiChatSessionService sessionService,
                                    ImageGenerationService imageGenerationService,
+                                   PptPythonRenderService pptPythonRenderService,
                                    MinioService minioService) {
         this.tools = tools;
         this.chatModel = chatModel;
@@ -59,6 +61,7 @@ public class PptStateStrategyContext {
         this.sessionService = sessionService;
         this.minioService = minioService;
         this.imageGenerationService = imageGenerationService;
+        this.pptPythonRenderService = pptPythonRenderService;
     }
 
     public void loadChatHistory(String conversationId, List<Message> messages, boolean skipSystem, boolean addLabel) {
