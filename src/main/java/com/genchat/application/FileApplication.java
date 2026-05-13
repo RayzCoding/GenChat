@@ -1,7 +1,7 @@
 package com.genchat.application;
 
-import com.genchat.common.utils.FileUtil;
 import com.genchat.common.OverlapParagraphTextSplitter;
+import com.genchat.common.utils.FileUtil;
 import com.genchat.dto.FileInfo;
 import com.genchat.entity.FileStatus;
 import com.genchat.service.EmbeddingService;
@@ -88,7 +88,7 @@ public class FileApplication {
                 return fileInfo;
             }
 
-            log.info("File is not image and text, file name:{}",  originalFilename);
+            log.info("File is not image and text, file name:{}", originalFilename);
             return fileInfo;
         } catch (Exception e) {
             log.error("Error while processing file,file name:{} error: {}", originalFilename, e.getMessage());
@@ -151,5 +151,9 @@ public class FileApplication {
         // 4. Embed and store vectors
         embeddingService.embedAndStore(chunks);
         log.info("Large file embedding completed: fileId={}, chunk count: {}", fileId, chunks.size());
+    }
+
+    public void deleteFileById(Long id) {
+        fileService.deleteFileInfoById(id);
     }
 }
