@@ -24,7 +24,34 @@ import java.util.Map;
 public class PptPythonRenderService {
     private final AiPptTemplateService templateService;
     private final MinioService minioService;
-    private final  static String PYTHON_SCRIPT_PATH="../resources/python/render_ppt.py";
+    private final static String PYTHON_SCRIPT_PATH="/Users/baoruizhang/myProject/AI/GenChat/src/main/resources/python/render_ppt.py";
+
+    /**
+     * Detect available Python command
+     */
+    private String getPythonCommand() {
+        // Try python3 first (common on macOS/Linux)
+        if (isCommandAvailable("python3")) {
+            return "python3";
+        }
+        // Try python (common on Windows or systems with python symlink)
+        if (isCommandAvailable("python")) {
+            return "python";
+        }
+        throw new RuntimeException("Python not found. Please install Python 3 and ensure it's in PATH.");
+    }
+
+    private boolean isCommandAvailable(String command) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(command, "--version");
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            process.waitFor();
+            return process.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     public String renderPpt(AiPptInst inst, String pptSchema) throws Exception {
 
@@ -51,8 +78,9 @@ public class PptPythonRenderService {
         }
 
         // ---------- Build command ----------
+        String pythonCmd = getPythonCommand();
         List<String> command = List.of(
-                "python",
+                pythonCmd,
                 PYTHON_SCRIPT_PATH,
                 "--template", templateFilePath,
                 "--output", outputFilePath
