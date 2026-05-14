@@ -11,7 +11,7 @@ import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 public class OutlineStrategy implements PptStateStrategy {
-    private static final PptInstStatus TARGET_STATUS = PptInstStatus.SEARCH;
+    private static final PptInstStatus TARGET_STATUS = PptInstStatus.SCHEMA;
 
     @Override
     public void execute(AiPptInst inst,

@@ -17,7 +17,7 @@ import java.util.Collections;
 
 @Slf4j
 public class SearchStrategy implements PptStateStrategy {
-    private static final PptInstStatus TARGET_STATUS = PptInstStatus.SCHEMA;
+    private static final PptInstStatus TARGET_STATUS = PptInstStatus.TEMPLATE;
 
     @Override
     public void execute(AiPptInst inst,
