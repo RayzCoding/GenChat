@@ -113,4 +113,61 @@ public class MinioService {
             return String.format("%s/%s/%s", cleanEndpoint, bucketName, objectName);
         }
     }
+
+    /**
+     * Generate a presigned URL for downloading an object
+     * @param objectName The object path in MinIO
+     * @param expirySeconds URL expiry time in seconds (default 1 hour if not specified)
+     * @return Presigned URL that can be used for public download
+     */
+    public String getPresignedUrl(String objectName, int expirySeconds) {
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .bucket(minioConfig.getBucketName())
+                            .object(objectName)
+                            .expiry(expirySeconds)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Failed to generate presigned URL: {}", objectName, e);
+            throw new RuntimeException("Failed to generate presigned URL", e);
+        }
+    }
+
+    /**
+     * Generate a presigned URL with default 1 hour expiry
+     */
+    public String getPresignedUrl(String objectName) {
+        return getPresignedUrl(objectName, 3600);
+    }
+
+    /**
+     * Extract object name from MinIO URL
+     * e.g., "http://127.0.0.1:9000/bucket/path/to/file.png" -> "path/to/file.png"
+     */
+    public String extractObjectNameFromUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return null;
+        }
+        String bucketName = minioConfig.getBucketName();
+        // Find bucket name position in URL
+        int bucketIndex = url.indexOf("/" + bucketName + "/");
+        if (bucketIndex == -1) {
+            return null;
+        }
+        return url.substring(bucketIndex + bucketName.length() + 2);
+    }
+
+    /**
+     * Convert a MinIO URL to a presigned URL
+     */
+    public String toPresignedUrl(String minioUrl) {
+        String objectName = extractObjectNameFromUrl(minioUrl);
+        if (objectName == null) {
+            log.warn("Cannot extract object name from URL: {}", minioUrl);
+            return minioUrl; // Return original URL if parsing fails
+        }
+        return getPresignedUrl(objectName);
+    }
 }
