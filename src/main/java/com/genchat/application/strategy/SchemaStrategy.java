@@ -118,13 +118,14 @@ public class SchemaStrategy implements PptStateStrategy {
                     if (imageBytes != null) {
                         // upload to MinIO
                         String objectName = "ppt/" + conversationId + "/images/" + System.currentTimeMillis() + "_" + (i + 1) + ".png";
-                        String minioUrl = context.getMinioService().uploadFile(objectName, imageBytes, "image/png");
+                        context.getMinioService().uploadFile(objectName, imageBytes, "image/png");
 
-                        // Update the URL in the schema to the MinIO address
-                        imageGenerationTask.fieldData.setUrl(minioUrl);
+                        // Generate presigned URL for Python script to download
+                        String presignedUrl = context.getMinioService().getPresignedUrl(objectName, 3600);
+                        imageGenerationTask.fieldData.setUrl(presignedUrl);
 
                         sink.tryEmitNext(AgentResponse.thinking("✅ The image generation is complete (" + currentTask + "/" + size + ")...\n"));
-                        log.info("Images have been uploaded to MinIO: {} -> {}", imageGenerationTask.key, minioUrl);
+                        log.info("Images have been uploaded to MinIO: {} -> {}", imageGenerationTask.key, presignedUrl);
                     } else {
                         throw new RuntimeException("Could not download image from url: " + originalImageUrl);
                     }
@@ -198,7 +199,7 @@ public class SchemaStrategy implements PptStateStrategy {
         if (response.statusCode() == 200) {
             return response.body();
         } else {
-            throw new RuntimeException("下载图片失败，状态码: " + response.statusCode());
+            throw new RuntimeException("Failed to download image, status code: " + response.statusCode());
         }
     }
 

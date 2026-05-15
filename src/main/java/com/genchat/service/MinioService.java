@@ -3,6 +3,7 @@ package com.genchat.service;
 import com.genchat.config.MinioConfig;
 import io.minio.*;
 import io.minio.errors.*;
+import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -124,6 +125,7 @@ public class MinioService {
         try {
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
                             .bucket(minioConfig.getBucketName())
                             .object(objectName)
                             .expiry(expirySeconds)
