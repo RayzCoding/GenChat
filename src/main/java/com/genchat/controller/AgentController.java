@@ -63,7 +63,7 @@ public class AgentController {
     @GetMapping("/deep/stream")
     public Flux<String> deepStream(@RequestParam String question,
                                    @RequestParam String conversationsId) {
-        log.info("Reveive question, question: {}, conversationsId: {} ", question, conversationsId);
+        log.info("Receive question, question: {}, conversationsId: {} ", question, conversationsId);
         if (!StringUtils.hasLength(question)) {
             log.warn("question is null or empty");
             return Flux.error(new IllegalArgumentException("question is null or empty"));
