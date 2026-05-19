@@ -1,9 +1,6 @@
 package com.genchat.controller;
 
-import com.genchat.agent.FileReactAgent;
-import com.genchat.agent.PPTBuilderAgent;
-import com.genchat.agent.SimpleReactAgent;
-import com.genchat.agent.WebSearchReactAgent;
+import com.genchat.agent.*;
 import com.genchat.application.tool.FileContentTool;
 import com.genchat.config.WebSearchToolInitConfig;
 import com.genchat.service.*;
@@ -63,6 +60,32 @@ public class AgentController {
         }
     }
 
+    @GetMapping("/deep/stream")
+    public Flux<String> deepStream(@RequestParam String question,
+                                   @RequestParam String conversationsId) {
+        log.info("Reveive question, question: {}, conversationsId: {} ", question, conversationsId);
+        if (!StringUtils.hasLength(question)) {
+            log.warn("question is null or empty");
+            return Flux.error(new IllegalArgumentException("question is null or empty"));
+        }
+        if (ObjectUtils.isEmpty(conversationsId)) {
+            log.warn("conversationsId is null or empty");
+            return Flux.error(new IllegalArgumentException("conversationsId is null or empty"));
+        }
+        try {
+            var deepResearchAgent = new DeepResearchAgent(sessionService,
+                    chatModel,
+                    List.of(webSearchToolInitConfig.getWebSearchToolCallbacks()),
+                    agentTaskService,
+                    3);
+            deepResearchAgent.initPersistentChatMemory(conversationsId);
+            return deepResearchAgent.stream(conversationsId, question);
+        } catch (Exception e) {
+            log.error("error occurred while processing deep stream, error:", e);
+            return Flux.error(e);
+        }
+    }
+
     @GetMapping(value = "/simple/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> simpleChat(@RequestParam String question) {
         log.info("received request to simple chat stream,  question: {}", question);
@@ -103,7 +126,6 @@ public class AgentController {
             log.error("error occurred while processing file stream, error:", e);
             return Flux.error(e);
         }
-
     }
 
     @GetMapping("/ppt/stream")
