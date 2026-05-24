@@ -108,7 +108,7 @@ public class DeepResearchAgent {
 
         // start flow: clarify requirement-> generate research topic -> execute loop
         clarifyRequirement(overAllState, sink, finished,
-                () -> generateResearchTopicPhase());
+                () -> generateResearchTopicPhase(overAllState, sink, finished, thinkingBuffer));
         agentTaskService.setDisposable(conversationsId, compositeDisposable);
 
         return sink.asFlux()
@@ -146,8 +146,49 @@ public class DeepResearchAgent {
         }
     }
 
-    private void generateResearchTopicPhase() {
+    private void generateResearchTopicPhase(OverAllState overAllState,
+                                            Sinks.Many<String> sink,
+                                            AtomicBoolean finished,
+                                            StringBuilder thinkingBuffer) {
+        emitThinking(sink, finished, "📝Research topics are being generated\n");
+        var messages = new ArrayList<Message>();
+        messages.add(new SystemMessage(PlanExecutePrompts.getCurrentTime()
+                + "\n\n" + PlanExecutePrompts.RESEARCH_TOPIC_GENERATION));
+        if (!CollectionUtils.isEmpty(overAllState.getMessages())) {
+            messages.addAll(overAllState.getMessages());
+        }
+        messages.add(new UserMessage("<original_question>" + overAllState.getQuestion() + "</original_question>"));
+        var topicInThinkHolder = new AtomicBoolean(false);
+        var topicBuffer = new StringBuilder();
 
+        var disposable = chatClient.prompt()
+                .messages(messages)
+                .stream()
+                .content()
+                .doOnNext(chunk -> {
+                    var parse = ThinkTagParser.parse(chunk, topicInThinkHolder.get());
+                    topicInThinkHolder.set(parse.inThink());
+                    for (var segment : parse.segments()) {
+                        emitThinking(sink, finished, segment.content());
+                        if (!segment.thinking()) {
+                            topicBuffer.append(segment.content());
+                        }
+                    }
+                })
+                .doOnComplete(() -> {
+                    var topic = topicBuffer.toString();
+                    overAllState.setRefinedResearchTopic(topic);
+                    emitThinking(sink,finished,"\n✅ The research topic has been generated\n\n");
+                })
+                .doOnError(throwable -> {
+                    log.error("Research topic generation failed", throwable);
+                    if (finished.compareAndSet(false, true)) {
+                        sink.tryEmitError(throwable);
+                    }
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe();
+        compositeDisposable.add(disposable);
     }
 
     private void clarifyRequirement(OverAllState overAllState,
