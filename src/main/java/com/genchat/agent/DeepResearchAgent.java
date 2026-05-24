@@ -1,5 +1,6 @@
 package com.genchat.agent;
 
+import com.alibaba.fastjson2.JSON;
 import com.genchat.common.AgentResponse;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.utils.ThinkTagParser;
@@ -109,7 +110,40 @@ public class DeepResearchAgent {
         clarifyRequirement(overAllState, sink, finished,
                 () -> generateResearchTopicPhase());
         agentTaskService.setDisposable(conversationsId, compositeDisposable);
-        return null;
+
+        return sink.asFlux()
+                .doOnNext(chunk -> {
+                    recordFirstResponse();
+                    parseAndAppendToBuffers(chunk, finalAnswerBuffer, thinkingBuffer);
+                })
+                .doOnCancel(() -> {
+                    finished.set(true);
+                    agentTaskService.stopTask(conversationsId);
+                })
+                .doFinally(signalType -> {
+                    log.info("Agent has finished, conversationId: {}", conversationsId);
+                    finished.set(true);
+                    var totalResponseTime = System.currentTimeMillis() - startTime;
+                    sessionService.update(currentSessionId, finalAnswerBuffer
+                            , thinkingBuffer, null, totalResponseTime, firstResponseTime,
+                            String.join(",", usedTools), null, agentType);
+                    agentTaskService.stopTask(conversationsId);
+                    compositeDisposable.dispose();
+                });
+    }
+
+    private void parseAndAppendToBuffers(String chunk, StringBuilder finalAnswerBuffer, StringBuilder thinkingBuffer) {
+        try {
+            var jsonObject = JSON.parseObject(chunk);
+            var type = jsonObject.get("type");
+            if ("text".equals(type)) {
+                finalAnswerBuffer.append(jsonObject.get("content"));
+            } else if ("thinking".equals(type)) {
+                thinkingBuffer.append(jsonObject.get("content"));
+            }
+        } catch (Exception e) {
+            finalAnswerBuffer.append(chunk);
+        }
     }
 
     private void generateResearchTopicPhase() {
@@ -193,6 +227,13 @@ public class DeepResearchAgent {
     protected void clearUsedTools() {
         if (usedTools != null) {
             usedTools.clear();
+        }
+    }
+
+    protected void recordFirstResponse() {
+        if (firstResponseTime == 0 && startTime > 0) {
+            firstResponseTime = System.currentTimeMillis() - startTime;
+            log.debug("Record the first response time: {}ms", firstResponseTime);
         }
     }
 
