@@ -1,12 +1,19 @@
 package com.genchat.agent;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.genchat.common.AgentResponse;
+import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.prompts.ReactAgentPrompts;
+import com.genchat.dto.SimpleReactResult;
+import com.genchat.entity.AgentState;
 import com.genchat.entity.RoundMode;
 import com.genchat.entity.RoundState;
+import com.genchat.entity.SearchResult;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.messages.*;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -23,6 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.genchat.common.utils.JsonUtil.getSafe;
+
 /**
  * It does not contain any conversational memory and only answers the current question
  */
@@ -32,7 +41,7 @@ public class SimpleReactAgent {
     private final ChatModel chatModel;
     private final List<ToolCallback> tools;
     private ChatClient chatClient;
-    private final String systemPrompt;
+    private String systemPrompt;
     private int maxRounds;
     protected Set<String> usedTools;
 
@@ -301,5 +310,134 @@ public class SimpleReactAgent {
 
         // New tool call
         state.toolCalls.add(incoming);
+    }
+
+    public SimpleReactResult executeInternal(String conversationId, String question, boolean withReference) {
+        List<Message> messages = Collections.synchronizedList(new ArrayList<>());
+
+        AgentState agentState = withReference ? new AgentState() : null;
+
+        // 合并为单个 SystemMessage（部分模型不支持多个）
+        messages.add(new SystemMessage(PlanExecutePrompts.getCurrentTime() + "\n\n"
+                + ReactAgentPrompts.getReactAgentSystemPrompt() + "\n\n" + systemPrompt));
+
+
+        messages.add(new UserMessage("<question>" + question + "</question>"));
+
+        // 迭代轮次
+        int round = 0;
+
+        while (true) {
+            round++;
+            if (maxRounds > 0 && round > maxRounds) {
+                log.warn("=== 达到 maxRounds（{}），强制生成最终答案 ===", maxRounds);
+                messages.add(new UserMessage("""
+                        你已达到最大推理轮次限制。
+                        请基于当前已有的上下文信息，
+                        直接给出最终答案。
+                        禁止再调用任何工具。
+                        如果信息不完整，请合理总结和说明。
+                        """));
+
+                String forcedAnswer = chatClient.prompt().messages(messages).call().content();
+                return SimpleReactResult.builder()
+                        .answer(forcedAnswer)
+                        .searchResults(agentState != null ? agentState.searchResults : Collections.emptyList())
+                        .build();
+            }
+
+            ChatClientResponse chatResponse = chatClient
+                    .prompt()
+                    .messages(messages)
+                    .call()
+                    .chatClientResponse();
+
+            AssistantMessage.Builder builder = AssistantMessage.builder().content(chatResponse.chatResponse().getResult().getOutput().getText());
+
+            // ===== 没有工具调用，视为最终答案 =====
+            if (!chatResponse.chatResponse().hasToolCalls()) {
+                String finalText = chatResponse.chatResponse().getResult().getOutput().getText();
+                return SimpleReactResult.builder()
+                        .answer(finalText)
+                        .searchResults(agentState.searchResults)
+                        .build();
+            }
+
+            // ===== 有工具调用：执行工具 =====
+            List<AssistantMessage.ToolCall> toolCalls = chatResponse.chatResponse().getResult().getOutput().getToolCalls();
+            messages.add(builder.toolCalls(toolCalls).build());
+
+            for (AssistantMessage.ToolCall toolCall : toolCalls) {
+                String toolName = toolCall.name();
+                String argsJson = toolCall.arguments();
+
+                ToolCallback callback = findTool(toolName);
+                if (callback == null) {
+                    addErrorToolResponse(messages, toolCall, "工具未找到：" + toolName);
+                    continue;
+                }
+
+                try {
+                    Object result = callback.call(argsJson);
+                    String resultStr = Objects.toString(result, "");
+
+                    // 解析搜索结果
+                    if (agentState != null) {
+                        parseSearchResult(resultStr, agentState);
+                    }
+
+                    ToolResponseMessage.ToolResponse tr = new ToolResponseMessage.ToolResponse(
+                            toolCall.id(), toolName, resultStr);
+                    messages.add(ToolResponseMessage.builder()
+                            .responses(List.of(tr))
+                            .build());
+                } catch (Exception ex) {
+                    addErrorToolResponse(messages, toolCall, "工具执行失败：" + ex.getMessage());
+                }
+            }
+        }
+    }
+
+    private void parseSearchResult(String resultJson, AgentState state) {
+        try {
+            var objectMapper = new ObjectMapper();
+            JsonNode root = objectMapper.readTree(resultJson);
+
+            // tavily 搜索结果格式: [{ "text": { "results": [...] } }]
+            if (!root.isArray() || root.isEmpty()) {
+                return;
+            }
+
+            JsonNode first = root.get(0);
+            JsonNode textNode = first.get("text");
+
+            if (textNode == null || textNode.isNull()) {
+                return;
+            }
+
+            JsonNode textJson;
+            if (textNode.isTextual()) {
+                textJson = objectMapper.readTree(textNode.asText());
+            } else {
+                textJson = textNode;
+            }
+
+            JsonNode results = textJson.get("results");
+            if (results == null || !results.isArray()) {
+                return;
+            }
+
+            for (JsonNode item : results) {
+                String url = getSafe(item, "url");
+                String title = getSafe(item, "title");
+                String content = getSafe(item, "content");
+
+                if (url != null && !url.isBlank()) {
+                    state.searchResults.add(new SearchResult(url, title, content));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("解析搜索结果失败: {}", e.getMessage());
+        }
     }
 }

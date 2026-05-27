@@ -163,7 +163,7 @@ public class FileReactAgent {
                     sessionService.update(currentSessionId, finalAnswerBuffer,
                             thinkingBuffer, agentState, firstResponseTime,
                             getTotalResponseTime(), getUsedToolsString(),
-                            currentRecommendations, AGENT_TYPE);
+                            currentRecommendations, AGENT_TYPE, null);
                     // Remove task when stream ends
                     agentTaskService.stopTask(conversationId);
                 });

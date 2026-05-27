@@ -19,7 +19,60 @@ public class OverAllState {
         this.question = question;
         this.conversationId = conversationId;
     }
+
     public void add(Message m) {
         messages.add(m);
     }
+
+    public String renderFullContext() {
+        // 先找到最近一次 Critique Feedback 的索引
+        int lastCritiqueIndex = findLastCritiqueIndex();
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < messages.size(); i++) {
+            Message m = messages.get(i);
+            String text = m.getText();
+
+            // 如果这是之前轮次的 Critique Feedback，跳过
+            if (i < lastCritiqueIndex && text != null && text.contains("【Critique Feedback】")) {
+                continue;
+            }
+
+            sb.append("\n\n[").append(m.getMessageType()).append("]\n\n")
+                    .append(text);
+        }
+        return sb.toString();
+    }
+
+    private int findLastCritiqueIndex() {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            String text = messages.get(i).getText();
+            if (text != null && text.contains("【Critique Feedback】")) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public int currentChars() {
+        return messages.stream()
+                .mapToInt(m -> m.getText() == null ? 0 : m.getText().length())
+                .sum();
+    }
+
+    /**
+     * 提取所有工具执行结果
+     * 用于 summarize 阶段生成报告
+     */
+    public String extractToolResults() {
+        StringBuilder sb = new StringBuilder();
+        for (Message m : messages) {
+            String text = m.getText();
+            if (text != null && text.contains("【Completed Task Result】")) {
+                sb.append(text).append("\n\n");
+            }
+        }
+        return sb.toString();
+    }
+
 }

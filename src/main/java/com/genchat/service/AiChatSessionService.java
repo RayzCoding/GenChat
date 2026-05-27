@@ -59,8 +59,8 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                        long fistResponseTime,
                        String usedToolsString,
                        String currentRecommendations,
-                       String agentType) {
-        String referenceJson = "";
+                       String agentType,
+                       String referenceJson) {
         if (!agentState.searchResults.isEmpty()) {
             referenceJson = AgentResponse.reference(JSON.toJSONString(agentState.searchResults));
         }
