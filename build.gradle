@@ -34,6 +34,9 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-pgvector'
     implementation 'com.alibaba.cloud.ai:spring-ai-alibaba-agent-framework:1.1.0.0'
 
+    // redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.redisson:redisson-spring-boot-starter:3.24.3'
 
     // Minio
     implementation 'io.minio:minio:8.6.0'
