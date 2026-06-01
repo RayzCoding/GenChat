@@ -148,6 +148,21 @@ public class AgentController {
         }
     }
 
+    @GetMapping("/skills/stream")
+    public Flux<String> skillsStream(@RequestParam String question,
+                                     @RequestParam String conversationsId,
+                                     @RequestParam(required = false) String fileId) {
+        log.info("Received skills question, question: {}, conversationId: {}", question, conversationsId);
+        if (!StringUtils.hasLength(question)) {
+            log.warn("Question is null or empty");
+            return Flux.error(new IllegalArgumentException("Question is null or empty"));
+        }
+        var skillsReactAgent = new SkillsReactAgent(chatModel, sessionService,
+                agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(), 5);
+        skillsReactAgent.initPersistentChatMemory(conversationsId);
+        return skillsReactAgent.stream(conversationsId, question, fileId);
+    }
+
     @GetMapping("/stop")
     public Map<String, Object> stopAgent(@RequestParam String conversationId) {
         log.info("received request to stop agent, conversationId: {}", conversationId);

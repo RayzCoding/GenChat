@@ -17,6 +17,7 @@ public class AgentResponse {
     public static final String TYPE_REFERENCE = "reference";
     public static final String TYPE_ERROR = "error";
     public static final String TYPE_RECOMMEND = "recommend";
+    public static final String TYPE_COMPLETE = "complete";
 
     private String type;
     private String content;
@@ -45,6 +46,10 @@ public class AgentResponse {
     }
 
     // ===== Factory methods =====
+
+    public static String complete() {
+        return new AgentResponse(TYPE_COMPLETE, "").toJson();
+    }
 
     /**
      * Create a text type response
