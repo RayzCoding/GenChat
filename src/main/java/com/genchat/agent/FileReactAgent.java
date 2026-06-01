@@ -387,7 +387,7 @@ public class FileReactAgent {
                                   String conversationId,
                                   AgentState agentState) {
         var newMessages = new ArrayList<Message>();
-        newMessages.add(new SystemMessage(ReactAgentPrompts.getWebSearchPrompt()));
+        newMessages.add(new SystemMessage(ReactAgentPrompts.getFilePrompt()));
         if (StringUtils.hasLength(systemPrompt)) {
             newMessages.add(new SystemMessage(systemPrompt));
         }

@@ -139,8 +139,7 @@ public class AgentController {
         try {
             var pptBuilderAgent = new PPTBuilderAgent(chatModel, sessionService,
                     agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(),
-                    aiPptInstService, pptTemplateService, minioService, imageGenerationService, pptPythonRenderService,
-                    5);
+                    aiPptInstService, pptTemplateService, minioService, imageGenerationService, pptPythonRenderService);
             pptBuilderAgent.initPersistentChatMemory(conversationsId);
             return pptBuilderAgent.stream(conversationsId, question);
         } catch (Exception e) {
