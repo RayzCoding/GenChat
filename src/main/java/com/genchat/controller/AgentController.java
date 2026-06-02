@@ -2,12 +2,16 @@ package com.genchat.controller;
 
 import com.genchat.agent.*;
 import com.genchat.application.tool.FileContentTool;
+import com.genchat.application.tool.SkillsTool;
+import com.genchat.common.utils.ToolMergeUtils;
 import com.genchat.config.WebSearchToolInitConfig;
 import com.genchat.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.support.ToolCallbacks;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,6 +40,8 @@ public class AgentController {
     private final ImageGenerationService imageGenerationService;
     private final PptPythonRenderService pptPythonRenderService;
     private final FileContentTool fileContentTool;
+    @Value("${skills.directory:}")
+    private String skillsDirectory;
 
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> chat(@RequestParam String conversationId,
@@ -157,8 +163,13 @@ public class AgentController {
             log.warn("Question is null or empty");
             return Flux.error(new IllegalArgumentException("Question is null or empty"));
         }
+        var webSearchToolCallbacks = webSearchToolInitConfig.getWebSearchToolCallbacks();
+        var toolCallbacks = ToolMergeUtils.mergeTools(webSearchToolCallbacks,
+                ToolCallbacks.from(fileContentTool),new ToolCallback[]{SkillsTool.builder()
+                        .addSkillsDirectory(skillsDirectory)
+                        .build()});
         var skillsReactAgent = new SkillsReactAgent(chatModel, sessionService,
-                agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(), 5);
+                agentTaskService, toolCallbacks, 5);
         skillsReactAgent.initPersistentChatMemory(conversationsId);
         return skillsReactAgent.stream(conversationsId, question, fileId);
     }

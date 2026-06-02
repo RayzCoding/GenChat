@@ -2,7 +2,6 @@ package com.genchat.agent;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.genchat.common.AgentResponse;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiChatSession;
@@ -53,15 +52,13 @@ public class SkillsReactAgent {
     protected long firstResponseTime;
     protected long startTime;
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     public SkillsReactAgent(ChatModel chatModel,
                             AiChatSessionService sessionService,
                             AgentTaskService agentTaskService,
-                            ToolCallback[] webSearchToolCallbacks,
+                            ToolCallback[] toolCallbacks,
                             int maxRounds) {
         this.systemPrompt = "";
-        this.tools = Arrays.asList(webSearchToolCallbacks);
+        this.tools = Arrays.asList(toolCallbacks);
         this.chatModel = chatModel;
         this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;

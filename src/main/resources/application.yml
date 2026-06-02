@@ -68,3 +68,6 @@ embeddings:
     database: vectordb
     user: vectoruser
     password: 123456
+
+skills:
+  directory: /Users/xx/xx/AI/xx/skills
