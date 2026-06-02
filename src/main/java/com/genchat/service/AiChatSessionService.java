@@ -61,7 +61,7 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                        String currentRecommendations,
                        String agentType,
                        String referenceJson) {
-        if (!agentState.searchResults.isEmpty()) {
+        if (agentState !=null && !agentState.searchResults.isEmpty()) {
             referenceJson = AgentResponse.reference(JSON.toJSONString(agentState.searchResults));
         }
         var wrapper = new LambdaUpdateWrapper<AiChatSessionEntity>();

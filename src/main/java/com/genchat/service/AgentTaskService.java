@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AgentTaskService implements InitializingBean, DisposableBean {
     private final Map<String, TaskInfo> taskMap = new ConcurrentHashMap<>();
     private final RedissonClient redissonClient;
@@ -36,9 +35,16 @@ public class AgentTaskService implements InitializingBean, DisposableBean {
     private static final String STOP_TOPIC_NAME = "agent:stop";
     private static final long TASK_TTL_MINUTES = 30;
     private static final long TTL_REFRESH_INTERVAL_MINUTES = 5;
-    private final String instanceId = UUID.randomUUID().toString().substring(0, 8);
-    private final RTopic stopTopic = redissonClient.getTopic(STOP_TOPIC_NAME, StringCodec.INSTANCE);
+    private final String instanceId;
+    private final RTopic stopTopic;
     private int listenerId;
+
+    public AgentTaskService(RedissonClient redissonClient) {
+        this.redissonClient = redissonClient;
+        this.instanceId = UUID.randomUUID().toString().substring(0, 8);
+        this.stopTopic = redissonClient.getTopic(STOP_TOPIC_NAME, StringCodec.INSTANCE);
+        log.info("AgentTaskManager init, instanceId:{}", instanceId);
+    }
 
     private final ScheduledExecutorService ttlRefreshScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "agent-ttl-refresh");
@@ -64,7 +70,7 @@ public class AgentTaskService implements InitializingBean, DisposableBean {
         }
         var taskBucket = getTaskBucket(conversationId);
         boolean acquired = taskBucket.trySet(instanceId, TASK_TTL_MINUTES, TimeUnit.MINUTES);
-        if (acquired) {
+        if (!acquired) {
             var holder = taskBucket.get();
             log.info("Conversation [{}] has been acquired and holder{}, instance id{}.", conversationId, holder, instanceId);
             return null;
@@ -119,7 +125,7 @@ public class AgentTaskService implements InitializingBean, DisposableBean {
                     log.warn("Failed to send the stop message: conversationId={}", conversationId, e);
                 }
             }
-        }finally {
+        } finally {
             doRemoveTask(conversationId);
         }
     }
@@ -146,7 +152,7 @@ public class AgentTaskService implements InitializingBean, DisposableBean {
     public void destroy() {
         try {
             stopTopic.removeListener(listenerId);
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.warn("Failed to destroy stop task listener.", e);
         }
         ttlRefreshScheduler.shutdown();
