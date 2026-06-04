@@ -2,6 +2,7 @@ package com.genchat.controller;
 
 import com.genchat.agent.*;
 import com.genchat.application.tool.FileContentTool;
+import com.genchat.application.tool.GrepTool;
 import com.genchat.application.tool.SkillsTool;
 import com.genchat.common.utils.ToolMergeUtils;
 import com.genchat.config.WebSearchToolInitConfig;
@@ -165,9 +166,10 @@ public class AgentController {
         }
         var webSearchToolCallbacks = webSearchToolInitConfig.getWebSearchToolCallbacks();
         var toolCallbacks = ToolMergeUtils.mergeTools(webSearchToolCallbacks,
-                ToolCallbacks.from(fileContentTool),new ToolCallback[]{SkillsTool.builder()
+                ToolCallbacks.from(fileContentTool), new ToolCallback[]{SkillsTool.builder()
                         .addSkillsDirectory(skillsDirectory)
-                        .build()});
+                        .build()},
+                GrepTool.create());
         var skillsReactAgent = new SkillsReactAgent(chatModel, sessionService,
                 agentTaskService, toolCallbacks, 5);
         skillsReactAgent.initPersistentChatMemory(conversationsId);
