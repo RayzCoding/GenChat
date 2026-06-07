@@ -1,0 +1,47 @@
+{
+  "app": {
+    "name": "GenChat",
+    "proAccount": "Pro 账户"
+  },
+  "nav": {
+    "newChat": "新建对话",
+    "aiChat": "AI 对话",
+    "fileQa": "文件问答",
+    "pptGen": "PPT 生成",
+    "deepResearch": "深度研究",
+    "settings": "设置",
+    "support": "支持"
+  },
+  "user": {
+    "name": "Alex Rivera",
+    "role": "Premium Researcher"
+  },
+  "topbar": {
+    "searchPlaceholder": "搜索历史...",
+    "notifications": "通知",
+    "history": "历史",
+    "language": "语言"
+  },
+  "chat": {
+    "inputPlaceholder": "输入您想问的问题...",
+    "disclaimer": "AI 可能会产生偏差信息，仅供参考。",
+    "send": "发送",
+    "stopGenerating": "停止生成",
+    "thinkingProcess": "思考过程",
+    "references": "参考来源",
+    "recommendations": "相关推荐",
+    "emptyTitle": "联网对话问答",
+    "emptySubtitle": "输入问题，AI 将联网搜索并为您整理答案",
+    "errorGeneric": "请求失败，请稍后重试",
+    "errorInProgress": "当前会话正在处理中，请稍后再试",
+    "streaming": "正在生成..."
+  },
+  "session": {
+    "noHistory": "暂无历史对话",
+    "loadError": "加载会话失败"
+  },
+  "lang": {
+    "zh": "中文",
+    "en": "English"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "app": {
+    "name": "GenChat",
+    "proAccount": "Pro Account"
+  },
+  "nav": {
+    "newChat": "New Chat",
+    "aiChat": "AI Chat",
+    "fileQa": "File Q&A",
+    "pptGen": "PPT Generation",
+    "deepResearch": "Deep Research",
+    "settings": "Settings",
+    "support": "Support"
+  },
+  "user": {
+    "name": "Alex Rivera",
+    "role": "Premium Researcher"
+  },
+  "topbar": {
+    "searchPlaceholder": "Search history...",
+    "notifications": "Notifications",
+    "history": "History",
+    "language": "Language"
+  },
+  "chat": {
+    "inputPlaceholder": "Enter your question...",
+    "disclaimer": "AI may produce inaccurate information. For reference only.",
+    "send": "Send",
+    "stopGenerating": "Stop Generating",
+    "thinkingProcess": "Thinking Process",
+    "references": "References",
+    "recommendations": "Suggested follow-ups",
+    "emptyTitle": "Web-connected Chat",
+    "emptySubtitle": "Ask a question and AI will search the web to compose an answer",
+    "errorGeneric": "Request failed. Please try again.",
+    "errorInProgress": "This conversation is in progress. Please try again later.",
+    "streaming": "Generating..."
+  },
+  "session": {
+    "noHistory": "No conversation history",
+    "loadError": "Failed to load session"
+  },
+  "lang": {
+    "zh": "中文",
+    "en": "English"
+  }
+}
