@@ -4,7 +4,7 @@ import type { SessionSummary } from '../types'
 import { sessionMessagesToTurns } from '../utils/chat'
 import type { ChatTurn } from '../types'
 
-export function useSessions() {
+export function useSessions(pageSize = 30) {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -13,15 +13,15 @@ export function useSessions() {
     setLoading(true)
     try {
       const result = searchQuery.trim()
-        ? await searchSessions(searchQuery.trim())
-        : await listSessions()
+        ? await searchSessions(searchQuery.trim(), 1, pageSize)
+        : await listSessions(1, pageSize)
       setSessions(result.items)
     } catch {
       setSessions([])
     } finally {
       setLoading(false)
     }
-  }, [searchQuery])
+  }, [searchQuery, pageSize])
 
   useEffect(() => {
     void refresh()

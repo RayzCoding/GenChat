@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import type { SessionSummary } from '../../types'
 import { MobileNav } from './MobileNav'
 import { Sidebar } from './Sidebar'
@@ -25,10 +26,17 @@ export function AppShell({
   onSelectSession,
   sessionsLoading,
 }: AppShellProps) {
+  const location = useLocation()
+  const isHistoryPage = location.pathname.startsWith('/history')
+
   return (
     <div className="min-h-screen bg-surface">
       <Sidebar onNewChat={onNewChat} />
-      <main className="relative flex min-h-screen flex-col overflow-hidden md:ml-sidebar-width">
+      <main
+        className={`relative flex min-h-screen flex-col overflow-hidden md:ml-sidebar-width ${
+          isHistoryPage ? 'md:pt-header-height' : ''
+        }`}
+      >
         <TopBar
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}

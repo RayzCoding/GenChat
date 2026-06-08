@@ -55,15 +55,27 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
         updateById(entity);
     }
 
-    public PageResult<SessionSummaryDTO> listSessions(String agentType, int page, int pageSize) {
-        return querySessionSummaries(agentType, null, page, pageSize);
+    public PageResult<SessionSummaryDTO> listSessions(int page, int pageSize) {
+        return querySessionSummaries(null, page, pageSize);
     }
 
-    public PageResult<SessionSummaryDTO> searchSessions(String agentType, String keyword, int page, int pageSize) {
+    public PageResult<SessionSummaryDTO> searchSessions(String keyword, int page, int pageSize) {
         if (!StringUtils.hasLength(keyword)) {
-            return listSessions(agentType, page, pageSize);
+            return listSessions(page, pageSize);
         }
-        return querySessionSummaries(agentType, keyword.trim(), page, pageSize);
+        return querySessionSummaries(keyword.trim(), page, pageSize);
+    }
+
+    public boolean deleteSession(String conversationId) {
+        if (!StringUtils.hasLength(conversationId)) {
+            return false;
+        }
+        var wrapper = new LambdaQueryWrapper<AiChatSessionEntity>()
+                .eq(AiChatSessionEntity::getSessionId, conversationId);
+        if (count(wrapper) == 0) {
+            return false;
+        }
+        return remove(wrapper);
     }
 
     public Optional<SessionDetailDTO> getSessionDetail(String conversationId) {
@@ -86,16 +98,15 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                 .build());
     }
 
-    private PageResult<SessionSummaryDTO> querySessionSummaries(String agentType,
-                                                                String keyword,
+    private PageResult<SessionSummaryDTO> querySessionSummaries(String keyword,
                                                                 int page,
                                                                 int pageSize) {
         var safePage = Math.max(page, 1);
         var safePageSize = Math.min(Math.max(pageSize, 1), 100);
 
-        var total = countDistinctSessions(agentType, keyword);
+        var total = countDistinctSessions(keyword);
 
-        var groupWrapper = buildGroupQueryWrapper(agentType, keyword);
+        var groupWrapper = buildGroupQueryWrapper(keyword);
         var mpPage = new Page<Map<String, Object>>(safePage, safePageSize);
         mpPage.setSearchCount(false);
 
@@ -117,13 +128,12 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                 .build();
     }
 
-    private QueryWrapper<AiChatSessionEntity> buildGroupQueryWrapper(String agentType, String keyword) {
+    private QueryWrapper<AiChatSessionEntity> buildGroupQueryWrapper(String keyword) {
         var wrapper = new QueryWrapper<AiChatSessionEntity>()
                 .select("session_id",
                         "MAX(update_time) AS update_time",
                         "COUNT(*) AS message_count",
                         "MAX(agent_type) AS agent_type")
-                .eq("agent_type", agentType)
                 .groupBy("session_id")
                 .orderByDesc("update_time");
 
@@ -131,10 +141,9 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
         return wrapper;
     }
 
-    private long countDistinctSessions(String agentType, String keyword) {
+    private long countDistinctSessions(String keyword) {
         var countWrapper = new QueryWrapper<AiChatSessionEntity>()
-                .select("COUNT(DISTINCT session_id) AS total")
-                .eq("agent_type", agentType);
+                .select("COUNT(DISTINCT session_id) AS total");
         applyKeywordFilter(countWrapper, keyword);
 
         var rows = baseMapper.selectMaps(countWrapper);

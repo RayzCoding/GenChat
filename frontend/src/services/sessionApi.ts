@@ -1,5 +1,4 @@
 import type { PageResult, SessionDetail, SessionSummary } from '../types'
-import { WEB_SEARCH_AGENT_TYPE } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
@@ -24,11 +23,7 @@ async function getJson<T>(path: string, params?: Record<string, string | number 
 }
 
 export function listSessions(page = 1, pageSize = 30): Promise<PageResult<SessionSummary>> {
-  return getJson('/agent/sessions', {
-    agentType: WEB_SEARCH_AGENT_TYPE,
-    page,
-    pageSize,
-  })
+  return getJson('/agent/sessions', { page, pageSize })
 }
 
 export function searchSessions(
@@ -36,14 +31,19 @@ export function searchSessions(
   page = 1,
   pageSize = 30,
 ): Promise<PageResult<SessionSummary>> {
-  return getJson('/agent/sessions/search', {
-    q,
-    agentType: WEB_SEARCH_AGENT_TYPE,
-    page,
-    pageSize,
-  })
+  return getJson('/agent/sessions/search', { q, page, pageSize })
 }
 
 export function getSessionDetail(conversationId: string): Promise<SessionDetail> {
   return getJson(`/agent/sessions/${encodeURIComponent(conversationId)}`)
+}
+
+export async function deleteSession(conversationId: string): Promise<void> {
+  const response = await fetch(
+    buildUrl(`/agent/sessions/${encodeURIComponent(conversationId)}`),
+    { method: 'DELETE' },
+  )
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
 }

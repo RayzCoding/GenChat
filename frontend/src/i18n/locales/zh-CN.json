@@ -17,9 +17,12 @@
     "role": "Premium Researcher"
   },
   "topbar": {
-    "searchPlaceholder": "搜索历史...",
+    "searchPlaceholder": "Search history...",
+    "pageTitleChat": "AI Chat",
+    "pageTitleHistory": "History Management",
     "notifications": "通知",
     "history": "历史",
+    "account": "账户",
     "language": "语言"
   },
   "chat": {
@@ -39,6 +42,39 @@
   "session": {
     "noHistory": "暂无历史对话",
     "loadError": "加载会话失败"
+  },
+  "history": {
+    "title": "历史对话",
+    "subtitle": "管理与回顾您的 AI 交互记录",
+    "batchManage": "批量管理",
+    "selected": "已选择项目",
+    "archive": "归档",
+    "delete": "删除",
+    "cancel": "取消",
+    "loading": "加载中...",
+    "newExplore": "开始新的探索",
+    "rounds": "轮",
+    "continueChat": "继续对话",
+    "viewDetail": "查看详情",
+    "exportPpt": "导出 PPT",
+    "filters": {
+      "all": "全部",
+      "aiChat": "AI Chat",
+      "fileQa": "File Q&A",
+      "ppt": "PPT",
+      "research": "Research"
+    },
+    "types": {
+      "aiChat": "AI Chat",
+      "fileQa": "File Q&A",
+      "ppt": "PPT Generation",
+      "research": "Deep Research"
+    },
+    "actions": {
+      "pin": "置顶",
+      "rename": "重命名",
+      "delete": "删除"
+    }
   },
   "lang": {
     "zh": "中文",

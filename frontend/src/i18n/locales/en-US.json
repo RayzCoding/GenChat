@@ -18,8 +18,11 @@
   },
   "topbar": {
     "searchPlaceholder": "Search history...",
+    "pageTitleChat": "AI Chat",
+    "pageTitleHistory": "History Management",
     "notifications": "Notifications",
     "history": "History",
+    "account": "Account",
     "language": "Language"
   },
   "chat": {
@@ -39,6 +42,39 @@
   "session": {
     "noHistory": "No conversation history",
     "loadError": "Failed to load session"
+  },
+  "history": {
+    "title": "History",
+    "subtitle": "Manage and review your AI conversations",
+    "batchManage": "Batch Manage",
+    "selected": "Selected",
+    "archive": "Archive",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "newExplore": "Start a new exploration",
+    "rounds": "rounds",
+    "continueChat": "Continue",
+    "viewDetail": "View details",
+    "exportPpt": "Export PPT",
+    "filters": {
+      "all": "All",
+      "aiChat": "AI Chat",
+      "fileQa": "File Q&A",
+      "ppt": "PPT",
+      "research": "Research"
+    },
+    "types": {
+      "aiChat": "AI Chat",
+      "fileQa": "File Q&A",
+      "ppt": "PPT Generation",
+      "research": "Deep Research"
+    },
+    "actions": {
+      "pin": "Pin",
+      "rename": "Rename",
+      "delete": "Delete"
+    }
   },
   "lang": {
     "zh": "中文",
