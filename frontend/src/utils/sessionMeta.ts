@@ -50,6 +50,16 @@ const AGENT_META: Record<string, SessionTypeMeta> = {
     actionIcon: 'download',
     actionKey: 'history.exportPpt',
   },
+  skillsReactAgent: {
+    labelKey: 'history.types.skills',
+    icon: 'extension',
+    badgeClass: 'text-secondary/80',
+    iconWrapClass: 'bg-secondary-container/20 text-secondary',
+    titleHoverClass: 'group-hover/card:text-secondary',
+    actionHoverClass: 'hover:text-secondary',
+    actionIcon: 'arrow_forward',
+    actionKey: 'history.continueChat',
+  },
 }
 
 const DEFAULT_META = AGENT_META.webSearchReactAgent

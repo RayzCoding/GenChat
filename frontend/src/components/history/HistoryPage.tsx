@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useSessions } from '../../hooks/useSessions'
 import { createConversationId } from '../../utils/chat'
+import { getRouteForAgentType } from '../../utils/agentRoutes'
 import { AppShell } from '../layout/AppShell'
 import { HistoryCard } from './HistoryCard'
 import { HistoryFilters, type HistoryFilterKey } from './HistoryFilters'
@@ -31,9 +32,11 @@ export function HistoryPage() {
 
   const handleOpenSession = useCallback(
     (conversationId: string) => {
-      navigate(`/chat/${conversationId}`)
+      const session = sessions.find((s) => s.conversationId === conversationId)
+      const base = getRouteForAgentType(session?.agentType)
+      navigate(`${base}/${conversationId}`)
     },
-    [navigate],
+    [navigate, sessions],
   )
 
   const toggleMultiSelect = useCallback(() => {

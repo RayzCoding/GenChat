@@ -1,5 +1,6 @@
 package com.genchat.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.genchat.converter.FileInfoConverter;
 import com.genchat.dto.FileInfo;
@@ -52,6 +53,16 @@ public class FileService extends ServiceImpl<FileInfoRepository, FileInfoEntity>
      */
     public boolean existsById(Long id) {
         return getById(id) != null;
+    }
+
+    /**
+     * List file summaries ordered by create time descending (without extracted text).
+     */
+    public List<FileInfo> listSummaries() {
+        var wrapper = new QueryWrapper<FileInfoEntity>()
+                .select("id", "name", "path", "file_type", "size", "embed", "status", "create_time", "update_time")
+                .orderByDesc("create_time");
+        return FileInfoConverter.INSTANCE.toDtoList(list(wrapper));
     }
 
     /**

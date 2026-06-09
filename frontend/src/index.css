@@ -25,7 +25,7 @@
 
 @layer components {
   .glass-panel {
-    background: rgba(30, 31, 40, 0.7);
+    background: rgba(26, 27, 35, 0.7);
     backdrop-filter: blur(30px);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
@@ -63,6 +63,95 @@
     border: 1px solid rgba(92, 140, 255, 0.4);
     color: #b2c5ff;
     box-shadow: 0 0 15px rgba(62, 123, 255, 0.2);
+  }
+
+  .cyber-glass {
+    background: rgba(18, 19, 27, 0.7);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .chat-bubble-ai {
+    border-bottom-left-radius: 4px;
+  }
+
+  .chat-bubble-user {
+    border-bottom-right-radius: 4px;
+  }
+
+  .cyber-glow {
+    box-shadow: 0 0 20px rgba(92, 140, 255, 0.25);
+  }
+
+  .neon-glow {
+    box-shadow: 0 0 12px rgba(92, 140, 255, 0.4);
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(178, 197, 255, 0.1);
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(62, 123, 255, 0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+  }
+
+  .shimmer-bar {
+    background: linear-gradient(90deg, transparent, rgba(0, 223, 193, 0.3), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  .task-branch::after {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 48px;
+    bottom: 24px;
+    width: 1px;
+    background: rgba(140, 144, 160, 0.2);
+  }
+
+  .task-node::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 50%;
+    width: 24px;
+    height: 1px;
+    background: rgba(140, 144, 160, 0.2);
+  }
+
+  .terminal-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(140, 144, 160, 0.2) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(140, 144, 160, 0.2);
+    border-radius: 10px;
+  }
+
+  /* Stitch: Active Files section caption (file-qa-consistent.html) */
+  .section-caption {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    font-family: Geist, system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #c2c6d7;
   }
 }
 

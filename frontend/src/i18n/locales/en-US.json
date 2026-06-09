@@ -9,6 +9,7 @@
     "fileQa": "File Q&A",
     "pptGen": "PPT Generation",
     "deepResearch": "Deep Research",
+    "skills": "Skills Assistant",
     "settings": "Settings",
     "support": "Support"
   },
@@ -37,7 +38,14 @@
     "emptySubtitle": "Ask a question and AI will search the web to compose an answer",
     "errorGeneric": "Request failed. Please try again.",
     "errorInProgress": "This conversation is in progress. Please try again later.",
-    "streaming": "Generating..."
+    "streaming": "Generating...",
+    "enterToSend": "Enter to Send"
+  },
+  "input": {
+    "send": "Send",
+    "attach": "Attach file",
+    "enterHint": "Enter to send · Shift+Enter for newline",
+    "disclaimer": "AI can make mistakes. Verify important information."
   },
   "session": {
     "noHistory": "No conversation history",
@@ -62,13 +70,15 @@
       "aiChat": "AI Chat",
       "fileQa": "File Q&A",
       "ppt": "PPT",
-      "research": "Research"
+      "research": "Research",
+      "skills": "Skills"
     },
     "types": {
       "aiChat": "AI Chat",
       "fileQa": "File Q&A",
       "ppt": "PPT Generation",
-      "research": "Deep Research"
+      "research": "Deep Research",
+      "skills": "Skills Assistant"
     },
     "actions": {
       "pin": "Pin",
@@ -79,5 +89,232 @@
   "lang": {
     "zh": "中文",
     "en": "English"
+  },
+  "mobile": {
+    "chat": "Chat",
+    "files": "Files",
+    "create": "Create",
+    "research": "Research",
+    "skills": "Skills"
+  },
+  "fileQa": {
+    "pageTitle": "File Q&A Assistant",
+    "searchPlaceholder": "Search knowledge...",
+    "knowledgeBase": "Knowledge Base",
+    "activeFiles": "Active Files",
+    "uploadTitle": "Add more context",
+    "uploadHint": "PDF, DOCX, PNG (Max 50MB)",
+    "inputPlaceholder": "Ask about the documents...",
+    "poweredBy": "Powered by GenChat Engine • 128k Context Window",
+    "welcome": "Hello! I've indexed your uploaded documents. You can ask specific questions about the 2024 Market Report or the Architecture Diagram. How can I help you today?",
+    "userQuestion": "What are the predictions for the second half of the year in this document?",
+    "aiAnswerIntro": "According to page 42 of the 2024 Market Report:",
+    "quote": "\"From Q3 to Q4 2024, AI-driven SaaS market share is expected to increase by 18%. In Asia-Pacific, enterprise AI spending growth may reach 24% due to policy incentives...\"",
+    "aiAnswerOutro": "The Architecture Diagram also shows infrastructure expansion plans for H2 to meet the predicted growth.",
+    "ocrView": "OCR VIEW: Architecture Diagram.png",
+    "ocrConfidence": "98% CONFIDENCE",
+    "helpful": "Helpful",
+    "share": "Share",
+    "noFiles": "No files uploaded yet",
+    "uploadFailed": "Upload failed",
+    "loadFailed": "Failed to load files",
+    "loading": "Loading...",
+    "deleteFailed": "Delete failed",
+    "deleteFile": "Remove file",
+    "welcomeEmpty": "Upload a document to start asking questions about its content.",
+    "welcomeWithFile": "I've indexed \"{{name}}\". Ask me anything about this file.",
+    "inputPlaceholderNoFile": "Upload a file first...",
+    "status": {
+      "ready": "Ready",
+      "processing": "Processing",
+      "failed": "Failed",
+      "ocrActive": "OCR Active"
+    },
+    "files": {
+      "report": "2024 Market Report.pdf",
+      "reportMeta": "4.2 MB • Ready",
+      "diagram": "Architecture Diagram.png",
+      "diagramMeta": "1.8 MB • OCR Active"
+    }
+  },
+  "deepResearch": {
+    "pageTitle": "Deep Research Lab",
+    "searchPlaceholder": "Search research nodes...",
+    "activeThread": "Active Research Thread",
+    "topic": "2026 AI Industry Trends: Breakthroughs, Market Size, Applications",
+    "processing": "Processing... 72%",
+    "elapsed": "Elapsed: 12m 45s",
+    "sources": "Sources: 42 verified",
+    "executionPlan": "Execution Plan",
+    "hierarchical": "Hierarchical Decomposition",
+    "mainObjective": "Main Objective",
+    "mainObjectiveDesc": "Comprehensive 2026 AI Trend Analysis",
+    "iterateLog": "Criticize & Iterate Log",
+    "processingCycle": "Processing [Cycle {{cycle}}]",
+    "parallelStreams": "Parallel Streams",
+    "finalSynthesis": "Final Synthesis",
+    "exportReport": "Export Comprehensive Report",
+    "exportFormats": "Available in PDF, Markdown, and JSON Schema",
+    "vizAlt": "Real-time Research Visualization",
+    "phase": {
+      "idle": "Ready",
+      "clarifying": "Analyzing requirements",
+      "awaiting_clarification": "Awaiting details",
+      "generating_topic": "Refining topic",
+      "planning": "Planning",
+      "executing": "Searching",
+      "critiquing": "Evaluating",
+      "compressing": "Compressing context",
+      "summarizing": "Writing report",
+      "complete": "Complete",
+      "stopped": "Stopped",
+      "error": "Error"
+    },
+    "hero": {
+      "elapsed": "Elapsed {{time}}",
+      "sources": "{{count}} sources",
+      "round": "Round {{current}} / {{max}}",
+      "topicFallback": "Generating research topic…"
+    },
+    "clarification": {
+      "title": "More information needed",
+      "hint": "Please provide the details below to continue deep research",
+      "continue": "Continue research"
+    },
+    "input": {
+      "placeholder": "Enter a research question, e.g. 2026 AI industry trends…",
+      "refinePlaceholder": "Add custom instructions or refine the research…",
+      "resumePlaceholder": "Add more details to continue deep research…",
+      "send": "Start research",
+      "stop": "Stop Generating",
+      "resume": "Continue"
+    },
+    "thinkingProcess": "Thinking Process",
+    "finalSynthesisDraft": "Final Synthesis (Draft)",
+    "citations": "Citations & Sources",
+    "footerDisclaimer": "Synthetic Intelligence System v2.4 • Real-time Data Indexing Active",
+    "error": {
+      "inProgress": "A research task is already running for this session",
+      "generic": "Research request failed. Please try again",
+      "emptyQuestion": "Please enter a research question"
+    },
+    "taskStatus": {
+      "pending": "Pending",
+      "executing": "Running",
+      "completed": "Done",
+      "failed": "Failed"
+    },
+    "critique": {
+      "passed": "Critique passed",
+      "failed": "Needs iteration"
+    },
+    "report": {
+      "empty": "Final report will appear when research completes",
+      "references": "References"
+    },
+    "task1": { "label": "Task 1", "desc": "Search market size projections (2024-2030)" },
+    "task2": { "label": "Task 2", "desc": "Analyze technical papers: LLM Efficiency & Robotics" },
+    "task3": { "label": "Task 3", "desc": "Map application scenarios: Healthcare vs Manufacturing" },
+    "status": { "completed": "COMPLETED", "executing": "EXECUTING", "pending": "PENDING" },
+    "streams": {
+      "web": "Web Browsing",
+      "semantic": "Semantic Analysis",
+      "drafting": "Drafting Synthesis",
+      "active": "Active",
+      "queued": "Queued",
+      "pending": "Pending",
+      "done": "Done"
+    },
+    "welcome": "Enter a research question below. The agent will plan searches, iterate, and synthesize a report.",
+    "tasksIdle": "Execution plan will appear here once research starts",
+    "tasksEmpty": "Generating execution plan…",
+    "taskLabel": "Task {{index}}",
+    "logs": {
+      "empty": "Agent thinking log will appear here…",
+      "title": "Thinking",
+      "item1": "Optimization: Adjusting search parameters for 'zero-shot' accuracy...",
+      "item2": "Drafting section: The Rise of Sovereign AI Infrastructures",
+      "item3": "Cross-referencing energy consumption metrics for inferencing clusters...",
+      "item4": "Analyzing hardware shipment forecasts for 2026...",
+      "item5": "Validating edge-computing penetration in automotive sector...",
+      "item6": "Optimization: Adjusting search parameters for 'zero-shot' accuracy..."
+    }
+  },
+  "ppt": {
+    "pageTitle": "PPT Generation",
+    "searchPlaceholder": "Search conversations...",
+    "welcomeTitle": "Describe your presentation",
+    "welcomeHint": "Tell me the topic, audience, and key sections — I'll handle outline, design, and slide generation.",
+    "inputPlaceholder": "Describe the PPT you want to create...",
+    "inputPlaceholderBrief": "Add more details or type continue to proceed...",
+    "send": "Send",
+    "disclaimer": "AI can make mistakes. Verify important information.",
+    "thinking": "Thinking",
+    "progress": {
+      "outline": "Outline",
+      "generating": "Generating Slides..."
+    },
+    "result": {
+      "ready": "Ready",
+      "preview": "Preview",
+      "download": "Download",
+      "defaultTheme": "Custom Theme",
+      "meta": "{{count}} Slides • {{theme}}"
+    },
+    "preview": {
+      "close": "Close",
+      "slideCount": "{{count}} slides",
+      "hint": "Download the file to open and edit in PowerPoint or compatible apps."
+    },
+    "suggestions": {
+      "springBoot": {
+        "label": "Spring Boot",
+        "prompt": "Spring Boot beginner tutorial with setup, Hello World, and core concepts"
+      },
+      "aiTrends": {
+        "label": "AI Trends",
+        "prompt": "2025 AI industry trends overview for executives"
+      },
+      "productLaunch": {
+        "label": "Product Launch",
+        "prompt": "Product launch deck with market analysis and roadmap"
+      }
+    },
+    "error": {
+      "generic": "PPT generation failed. Please try again.",
+      "inProgress": "A task is already in progress for this conversation."
+    }
+  },
+  "skills": {
+    "pageTitle": "Skills Assistant",
+    "searchPlaceholder": "Search conversations...",
+    "emptyTitle": "Skills Assistant",
+    "emptySubtitle": "Load specialized skills to handle PPT creation, document analysis, coding tasks, and more.",
+    "inputPlaceholder": "Enter a message… (Markdown supported, Shift+Enter for newline)",
+    "enterHint": "Enter to send · Shift+Enter for newline",
+    "send": "Send",
+    "attachFile": "Attach file",
+    "disclaimer": "AI can make mistakes. Verify important information.",
+    "thinkingProcess": "Thinking Process",
+    "thinkingRunning": "Analyzing and invoking tools…",
+    "taskComplete": "Task complete",
+    "suggestions": {
+      "pptLegal": {
+        "label": "AI Legal PPT",
+        "prompt": "Create a 5-page tech-style dark PPT about AI's impact on the legal industry"
+      },
+      "dataReport": {
+        "label": "Data Analysis",
+        "prompt": "Analyze the uploaded data file and generate a summary report"
+      },
+      "codeReview": {
+        "label": "Code Review",
+        "prompt": "Review this code and suggest improvements"
+      }
+    },
+    "error": {
+      "generic": "Request failed. Please try again.",
+      "inProgress": "This conversation is in progress. Please try again later."
+    }
   }
 }

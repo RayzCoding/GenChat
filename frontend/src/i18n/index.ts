@@ -23,8 +23,11 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 })
 
+document.documentElement.lang = detectLanguage().startsWith('zh') ? 'zh-CN' : 'en'
+
 export function setLanguage(lang: 'zh-CN' | 'en-US') {
   localStorage.setItem(STORAGE_KEY, lang)
+  document.documentElement.lang = lang.startsWith('zh') ? 'zh-CN' : 'en'
   void i18n.changeLanguage(lang)
 }
 

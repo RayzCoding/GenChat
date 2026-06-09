@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import type { SessionSummary } from '../../types'
+import { getTopBarConfig } from '../../utils/topbarConfig'
 import { Icon } from '../ui/Icon'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 interface TopBarProps {
   searchQuery: string
@@ -23,14 +25,12 @@ export function TopBar({
 }: TopBarProps) {
   const { t } = useTranslation()
   const location = useLocation()
+  const config = getTopBarConfig(location.pathname)
   const isHistoryPage = location.pathname.startsWith('/history')
 
   const [localQuery, setLocalQuery] = useState(searchQuery)
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-
-  const pageTitle = isHistoryPage ? t('topbar.pageTitleHistory') : t('topbar.pageTitleChat')
-  const searchPlaceholder = t('topbar.searchPlaceholder')
 
   useEffect(() => {
     setLocalQuery(searchQuery)
@@ -50,28 +50,25 @@ export function TopBar({
     e.preventDefault()
     onSearchChange(localQuery)
     onSearchSubmit()
-    setOpen(true)
+    if (config.enableSessionSearch) {
+      setOpen(true)
+    }
   }
 
-  const showDropdown = open && localQuery.trim().length > 0
+  const showDropdown =
+    config.enableSessionSearch && open && localQuery.trim().length > 0
 
   return (
     <header
       className={
-        isHistoryPage
+        config.layout === 'fixed'
           ? 'fixed left-0 right-0 top-0 z-50 flex h-header-height flex-shrink-0 items-center justify-between border-b border-outline-variant/10 bg-surface/70 px-container-padding shadow-sm backdrop-blur-xl md:left-sidebar-width'
           : 'sticky top-0 z-40 flex h-header-height flex-shrink-0 items-center justify-between border-b border-outline-variant/10 bg-surface/50 px-container-padding backdrop-blur-xl'
       }
     >
       <div className="flex items-center gap-3">
         <Icon name="menu" className="cursor-pointer md:hidden" />
-        <span
-          className={`font-headline-md text-headline-md font-bold tracking-tight ${
-            isHistoryPage ? 'text-on-surface' : 'text-primary'
-          }`}
-        >
-          {pageTitle}
-        </span>
+        <span className={config.titleClassName}>{t(config.titleKey)}</span>
       </div>
 
       <div className="flex items-center gap-6">
@@ -82,10 +79,12 @@ export function TopBar({
               value={localQuery}
               onChange={(e) => {
                 setLocalQuery(e.target.value)
-                setOpen(true)
+                if (config.enableSessionSearch) setOpen(true)
               }}
-              onFocus={() => setOpen(true)}
-              placeholder={searchPlaceholder}
+              onFocus={() => {
+                if (config.enableSessionSearch) setOpen(true)
+              }}
+              placeholder={t(config.searchKey)}
               className="h-10 w-64 rounded-full border border-outline-variant/20 bg-surface-container px-4 pl-10 text-sm text-on-surface outline-none transition-all placeholder:text-on-surface-variant focus:border-tertiary focus:outline-none focus:ring-0"
             />
             <Icon
@@ -119,7 +118,8 @@ export function TopBar({
           )}
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <LanguageSwitcher />
           <button
             type="button"
             title={t('topbar.notifications')}

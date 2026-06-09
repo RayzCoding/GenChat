@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import type { SessionSummary } from '../../types'
+import { needsFixedTopBarOffset } from '../../utils/topbarConfig'
 import { MobileNav } from './MobileNav'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
@@ -27,14 +28,14 @@ export function AppShell({
   sessionsLoading,
 }: AppShellProps) {
   const location = useLocation()
-  const isHistoryPage = location.pathname.startsWith('/history')
+  const fixedTopBar = needsFixedTopBarOffset(location.pathname)
 
   return (
     <div className="min-h-screen bg-surface">
       <Sidebar onNewChat={onNewChat} />
       <main
-        className={`relative flex min-h-screen flex-col overflow-hidden md:ml-sidebar-width ${
-          isHistoryPage ? 'md:pt-header-height' : ''
+        className={`relative flex h-screen flex-col overflow-hidden md:ml-sidebar-width ${
+          fixedTopBar ? 'md:pt-header-height' : ''
         }`}
       >
         <TopBar

@@ -156,4 +156,8 @@ public class FileApplication {
     public void deleteFileById(Long id) {
         fileService.deleteFileInfoById(id);
     }
+
+    public List<FileInfo> listFiles() {
+        return fileService.listSummaries();
+    }
 }

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../ui/Icon'
 
-const FILTER_KEYS = ['all', 'aiChat', 'fileQa', 'ppt', 'research'] as const
+const FILTER_KEYS = ['all', 'aiChat', 'fileQa', 'ppt', 'research', 'skills'] as const
 export type HistoryFilterKey = (typeof FILTER_KEYS)[number]
 
 interface HistoryFiltersProps {
