@@ -116,7 +116,8 @@ public class PPTBuilderAgent {
                 case MODIFY_PPT -> handleModifyIntent(conversationId, question, sink, thinkingBuffer);
                 case RESUME_PPT -> handleResumeIntent(conversationId, question, sink, thinkingBuffer);
                 default -> {
-                    sink.tryEmitNext("If your intention is not recognized, please rephrase it.");
+                    sink.tryEmitNext(new AgentStreamEvent.Text(
+                            "If your intention is not recognized, please rephrase it.").toJSON());
                     sink.tryEmitComplete();
                 }
             }
@@ -181,7 +182,7 @@ public class PPTBuilderAgent {
         if (Objects.isNull(latestInst)) {
             log.info("No latest inst found for conversation id {}", conversationId);
             var response = "There is no generated PPT in the current session, so it cannot be modified. Please make a PPT.";
-            sink.tryEmitNext(response);
+            sink.tryEmitNext(new AgentStreamEvent.Text(response).toJSON());
             saveSession(currentSessionId, response, thinkingBuffer);
             sink.tryEmitComplete();
             return;
@@ -215,6 +216,7 @@ public class PPTBuilderAgent {
             var response = "This PPT does not have Schema data and cannot be modified.";
             sink.tryEmitNext(new AgentStreamEvent.Text(response).toJSON());
             saveSession(currentSessionId, response, thinkingBuffer);
+            sink.tryEmitNext(new AgentStreamEvent.Complete().toJSON());
             sink.tryEmitComplete();
             return;
         }

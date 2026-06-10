@@ -25,7 +25,11 @@ export function AssistantMessage({
       </div>
 
       <div className="max-w-[90%] flex-1 space-y-6">
-        <ThinkingBlock thinking={turn.thinking ?? ''} isStreaming={isStreaming && !turn.content} />
+        <ThinkingBlock
+          thinking={turn.thinking ?? ''}
+          toolCalls={turn.toolCalls}
+          isStreaming={isStreaming && !turn.content}
+        />
 
         {(turn.content || isStreaming) && (
           <div className="glass-panel ai-glow rounded-2xl border border-primary/10 p-8">

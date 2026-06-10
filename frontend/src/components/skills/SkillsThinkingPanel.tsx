@@ -1,17 +1,21 @@
 import { useTranslation } from 'react-i18next'
+import type { ToolCallStep } from '../../types'
 import { parseSkillsThinkingSteps } from '../../utils/skillsUi'
+import { ToolStepsList } from '../chat/ToolStepsList'
 import { Icon } from '../ui/Icon'
 
 interface SkillsThinkingPanelProps {
   thinking: string
+  toolCalls?: ToolCallStep[]
   isStreaming?: boolean
 }
 
-export function SkillsThinkingPanel({ thinking, isStreaming }: SkillsThinkingPanelProps) {
+export function SkillsThinkingPanel({ thinking, toolCalls, isStreaming }: SkillsThinkingPanelProps) {
   const { t } = useTranslation()
   const steps = parseSkillsThinkingSteps(thinking)
+  const hasToolCalls = (toolCalls?.length ?? 0) > 0
 
-  if (!thinking && !isStreaming) return null
+  if (!thinking && !hasToolCalls && !isStreaming) return null
 
   return (
     <details className="group w-full" open={isStreaming || !!thinking}>
@@ -25,6 +29,7 @@ export function SkillsThinkingPanel({ thinking, isStreaming }: SkillsThinkingPan
       </summary>
 
       <div className="mt-2 space-y-1.5 rounded-xl border border-outline-variant/10 bg-surface-container-low/80 p-4 font-mono-code text-sm">
+        {hasToolCalls && <ToolStepsList steps={toolCalls!} />}
         {steps.length > 0 ? (
           steps.map((step, index) => (
             <div
@@ -48,7 +53,7 @@ export function SkillsThinkingPanel({ thinking, isStreaming }: SkillsThinkingPan
             </div>
           ))
         ) : (
-          isStreaming && (
+          isStreaming && !hasToolCalls && (
             <div className="flex items-center gap-2 text-on-surface-variant">
               <Icon name="pending" className="animate-spin text-sm" />
               <span>{t('skills.thinkingRunning')}</span>

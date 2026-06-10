@@ -1,15 +1,19 @@
 import { useTranslation } from 'react-i18next'
+import type { ToolCallStep } from '../../types'
 import { Icon } from '../ui/Icon'
+import { ToolStepsList } from './ToolStepsList'
 
 interface ThinkingBlockProps {
   thinking: string
+  toolCalls?: ToolCallStep[]
   isStreaming?: boolean
 }
 
-export function ThinkingBlock({ thinking, isStreaming }: ThinkingBlockProps) {
+export function ThinkingBlock({ thinking, toolCalls, isStreaming }: ThinkingBlockProps) {
   const { t } = useTranslation()
+  const hasToolCalls = (toolCalls?.length ?? 0) > 0
 
-  if (!thinking && !isStreaming) return null
+  if (!thinking && !hasToolCalls && !isStreaming) return null
 
   return (
     <details className="group" open>
@@ -22,10 +26,11 @@ export function ThinkingBlock({ thinking, isStreaming }: ThinkingBlockProps) {
         />
       </summary>
       <div className="thinking-shimmer ml-6 mt-3 space-y-2 border-l-2 border-tertiary-fixed/20 pl-4 font-mono-code text-on-surface-variant">
+        {hasToolCalls && <ToolStepsList steps={toolCalls!} />}
         {thinking ? (
           <p className="whitespace-pre-wrap text-sm">{thinking}</p>
         ) : (
-          isStreaming && <p className="text-sm">...</p>
+          isStreaming && !hasToolCalls && <p className="text-sm">...</p>
         )}
       </div>
     </details>

@@ -1,4 +1,6 @@
-import type { AgentChunk, ChatTurn, SearchResult } from '../types'
+import type { AgentChunk, ChatTurn, SearchResult, ToolCallStep } from '../types'
+import { RECOVERABLE_STREAM_ERROR_CODES } from '../types'
+import { isToolResultFailed } from './toolSteps'
 
 export function createId(): string {
   return crypto.randomUUID()
@@ -40,12 +42,56 @@ export function applyChunk(turn: ChatTurn, chunk: AgentChunk): ChatTurn {
       const recs = normalizeRecommendations(chunk.content)
       return { ...turn, recommendations: recs }
     }
-    case 'error':
+    case 'error': {
+      const message = String(chunk.message ?? chunk.content ?? '')
+      if (chunk.code && RECOVERABLE_STREAM_ERROR_CODES.has(chunk.code)) {
+        const warning = message ? `⚠️ ${message}\n` : ''
+        return {
+          ...turn,
+          thinking: (turn.thinking ?? '') + warning,
+        }
+      }
       return {
         ...turn,
-        content: turn.content || String(chunk.content ?? ''),
+        content: turn.content || message,
         status: 'error',
       }
+    }
+    case 'tool_start': {
+      const toolCallId = chunk.toolCallId ?? ''
+      const existing = turn.toolCalls ?? []
+      if (existing.some((step) => step.toolCallId === toolCallId)) {
+        return turn
+      }
+      const step: ToolCallStep = {
+        toolCallId,
+        toolName: chunk.toolName ?? 'tool',
+        arguments: chunk.arguments,
+        status: 'running',
+      }
+      return { ...turn, toolCalls: [...existing, step] }
+    }
+    case 'tool_end': {
+      const toolCallId = chunk.toolCallId ?? ''
+      const failed = isToolResultFailed(chunk.result)
+      const steps = [...(turn.toolCalls ?? [])]
+      const index = steps.findIndex((step) => step.toolCallId === toolCallId)
+      if (index >= 0) {
+        steps[index] = {
+          ...steps[index],
+          result: chunk.result,
+          status: failed ? 'failed' : 'done',
+        }
+      } else {
+        steps.push({
+          toolCallId,
+          toolName: chunk.toolName ?? 'tool',
+          result: chunk.result,
+          status: failed ? 'failed' : 'done',
+        })
+      }
+      return { ...turn, toolCalls: steps }
+    }
     case 'complete':
       return { ...turn, status: 'complete' }
     default:

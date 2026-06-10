@@ -1,4 +1,5 @@
 import type { AgentChunk } from '../types'
+import { RECOVERABLE_STREAM_ERROR_CODES } from '../types'
 import type {
   DeepResearchPhase,
   DeepResearchPlanTask,
@@ -200,8 +201,14 @@ export function reduceDeepResearchState(
         phase: 'complete',
       }
     }
-    case 'error':
+    case 'error': {
+      if (chunk.code && RECOVERABLE_STREAM_ERROR_CODES.has(chunk.code)) {
+        const message = String(chunk.message ?? chunk.content ?? '')
+        const warning = message ? `⚠️ ${message}\n` : ''
+        return { ...state, thinkingLog: state.thinkingLog + warning }
+      }
       return { ...state, phase: 'error' }
+    }
     case 'complete':
       return state.phase === 'summarizing' || state.report
         ? { ...state, phase: 'complete' }

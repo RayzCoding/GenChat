@@ -19,7 +19,11 @@ export function SkillsAssistantMessage({ turn }: SkillsAssistantMessageProps) {
   return (
     <div className="flex flex-col items-start gap-3 duration-700 animate-in fade-in slide-in-from-left-4">
       <div className="flex w-full max-w-chat flex-col gap-3">
-        <SkillsThinkingPanel thinking={thinking} isStreaming={isStreaming && !turn.content} />
+        <SkillsThinkingPanel
+          thinking={thinking}
+          toolCalls={turn.toolCalls}
+          isStreaming={isStreaming && !turn.content}
+        />
 
         {(turn.content || isStreaming) && (
           <div className="glass-panel w-full rounded-2xl border border-outline-variant/20 p-6 shadow-xl">
