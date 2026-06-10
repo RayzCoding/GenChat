@@ -1,6 +1,6 @@
 package com.genchat.application.strategy;
 
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
@@ -44,7 +44,7 @@ public class FailedStrategy implements PptStateStrategy {
                 .content()
                 .doOnNext(chunk -> {
                     responseBuffer.append(chunk);
-                    sink.tryEmitNext(AgentResponse.text(chunk));
+                    sink.tryEmitNext(new AgentStreamEvent.Text(chunk).toJSON());
                 })
                 .doOnComplete(() -> {
                     log.info("Failure indicates that the output is complete:{}", responseBuffer);
@@ -54,7 +54,7 @@ public class FailedStrategy implements PptStateStrategy {
                 .doOnError(err -> {
                     log.error("Output failure indicates an exception", err);
                     var fallbackMsg = StringUtils.hasText(errorMsg) ? errorMsg : "PPT generation failed, please try again";
-                    sink.tryEmitNext(AgentResponse.text(fallbackMsg));
+                    sink.tryEmitNext(new AgentStreamEvent.Text(fallbackMsg).toJSON());
                     saveSessionResult(context, fallbackMsg, thinkingBuffer);
                     sink.tryEmitComplete();
                 })

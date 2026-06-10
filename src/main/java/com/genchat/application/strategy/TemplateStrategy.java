@@ -1,6 +1,6 @@
 package com.genchat.application.strategy;
 
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.TemplateSelectionResult;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
@@ -23,7 +23,7 @@ public class TemplateStrategy implements PptStateStrategy {
                         String question,
                         StringBuilder thinkingBuffer,
                         PptStateStrategyContext context) {
-        sink.tryEmitNext(AgentResponse.thinking("Template styling is being designed...\n"));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("Template styling is being designed...\n").toJSON());
 
         var requirement = inst.getRequirement();
         var pptTemplates = context.getPptTemplateService().listAll();
@@ -55,7 +55,7 @@ public class TemplateStrategy implements PptStateStrategy {
             inst.setTemplateCode(result.getTemplateCode());
             inst.setStatus(TARGET_STATUS.getCode());
             context.getPptInstService().updateInst(inst);
-            sink.tryEmitNext(AgentResponse.thinking("✅ Once the template is designed, start generating the outline...\n"));
+            sink.tryEmitNext(new AgentStreamEvent.Thinking("✅ Once the template is designed, start generating the outline...\n").toJSON());
             context.continueStateMachine(inst, sink, question, thinkingBuffer);
         }catch (Exception e) {
             log.error("Template selection prompt failed", e);

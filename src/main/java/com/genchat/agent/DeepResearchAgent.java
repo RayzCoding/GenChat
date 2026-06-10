@@ -1,7 +1,8 @@
 package com.genchat.agent;
 
 import com.alibaba.fastjson2.JSON;
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
+import com.genchat.common.ToolRecord;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.utils.ThinkTagParser;
 import com.genchat.dto.*;
@@ -48,8 +49,8 @@ public class DeepResearchAgent {
     protected Long currentSessionId;
     private ChatMemory chatMemory;
     protected String agentType;
-    protected Set<String> usedTools;
     protected long startTime;
+    private final List<ToolRecord> toolRecords = Collections.synchronizedList(new ArrayList<>());
     private final Semaphore toolSemaphore;
     private int contextCharLimit = 50000;
 
@@ -106,7 +107,7 @@ public class DeepResearchAgent {
             return Flux.error(new IllegalStateException(new IllegalStateException("The conversation is currently in progress, Please try again later")));
         }
         initTimers();
-        clearUsedTools();
+        toolRecords.clear();
         var finished = new AtomicBoolean(false);
 
         // init session and save question
@@ -137,8 +138,8 @@ public class DeepResearchAgent {
                     var totalResponseTime = System.currentTimeMillis() - startTime;
                     sessionService.update(currentSessionId, finalAnswerBuffer
                             , thinkingBuffer, null, totalResponseTime, firstResponseTime,
-                            String.join(",", usedTools), null, agentType,
-                            AgentResponse.reference(JSON.toJSONString(allReferences)));
+                            JSON.toJSONString(toolRecords), null, agentType,
+                            AgentStreamEvent.Reference.of(JSON.toJSONString(allReferences)).toJSON());
                     agentTaskService.stopTask(conversationsId);
                     compositeDisposable.dispose();
                 });
@@ -284,14 +285,14 @@ public class DeepResearchAgent {
                             if (finished.get()) {
                                 return;
                             }
-                            sink.tryEmitNext(AgentResponse.text(segment.content()));
+                            sink.tryEmitNext(new AgentStreamEvent.Text(segment.content()).toJSON());
                         }
                     }
                 })
                 .doOnComplete(() -> {
                     // 在 text 输出后，输出参考来源
                     if (!allReferences.isEmpty()) {
-                        sink.tryEmitNext(AgentResponse.reference(JSON.toJSONString(allReferences)));
+                        sink.tryEmitNext(AgentStreamEvent.Reference.of(JSON.toJSONString(allReferences)).toJSON());
                     }
 
                     if (finished.compareAndSet(false, true)) {
@@ -840,7 +841,7 @@ public class DeepResearchAgent {
         boolean needsMoreInfo = response.contains("【Additional information is needed】");
         if (needsMoreInfo) {
             String pauseMessage = "⏸【Pause for in-depth research】" + response.replace("【Additional information is needed】", "").trim();
-            sink.tryEmitNext(AgentResponse.text(pauseMessage));
+            sink.tryEmitNext(new AgentStreamEvent.Text(pauseMessage).toJSON());
             if (finished.compareAndSet(false, true)) {
                 sink.tryEmitComplete();
             }
@@ -867,12 +868,6 @@ public class DeepResearchAgent {
         return overAllState;
     }
 
-    protected void clearUsedTools() {
-        if (usedTools != null) {
-            usedTools.clear();
-        }
-    }
-
     protected void recordFirstResponse() {
         if (firstResponseTime == 0 && startTime > 0) {
             firstResponseTime = System.currentTimeMillis() - startTime;
@@ -892,6 +887,6 @@ public class DeepResearchAgent {
         if (finished.get()) {
             return;
         }
-        sink.tryEmitNext(AgentResponse.thinking(content));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking(content).toJSON());
     }
 }

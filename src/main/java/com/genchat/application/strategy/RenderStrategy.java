@@ -1,6 +1,6 @@
 package com.genchat.application.strategy;
 
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ public class RenderStrategy implements PptStateStrategy {
                         String question,
                         StringBuilder thinkingBuffer,
                         PptStateStrategyContext context) {
-        sink.tryEmitNext(AgentResponse.thinking("Rendering PPT...\n"));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("Rendering PPT...\n").toJSON());
         var disposable = Mono.fromCallable(() -> {
                     var pptSchemaJson = inst.getPptSchema();
                     return context.getPptPythonRenderService().renderPpt(inst, pptSchemaJson);
@@ -26,7 +26,7 @@ public class RenderStrategy implements PptStateStrategy {
                 .doOnSuccess(fileUrl -> {
                     inst.setFileUrl(fileUrl);
                     inst.setStatus(TARGET_STATUS.getCode());
-                    sink.tryEmitNext(AgentResponse.thinking("✅Rendering PPT Completed...\n"));
+                    sink.tryEmitNext(new AgentStreamEvent.Thinking("✅Rendering PPT Completed...\n").toJSON());
                     context.continueStateMachine(inst, sink, question, thinkingBuffer);
                 })
                 .doOnError(throwable -> {

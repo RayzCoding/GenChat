@@ -1,7 +1,7 @@
 package com.genchat.application.strategy;
 
 import com.alibaba.fastjson2.JSON;
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.dto.PptSchema;
@@ -39,7 +39,7 @@ public class SuccessStrategy implements PptStateStrategy {
                 .stream()
                 .content()
                 .doOnNext(chunk -> {
-                    sink.tryEmitNext(AgentResponse.text(chunk));
+                    sink.tryEmitNext(new AgentStreamEvent.Text(chunk).toJSON());
                     llmResponse.append(chunk);
                 })
                 .doOnComplete(() -> {

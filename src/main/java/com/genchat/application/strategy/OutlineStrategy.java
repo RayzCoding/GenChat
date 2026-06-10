@@ -1,6 +1,6 @@
 package com.genchat.application.strategy;
 
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
@@ -41,7 +41,7 @@ public class OutlineStrategy implements PptStateStrategy {
                 .stream()
                 .content()
                 .doOnNext(chunk -> {
-                    sink.tryEmitNext(AgentResponse.thinking(chunk));
+                    sink.tryEmitNext(new AgentStreamEvent.Thinking(chunk).toJSON());
                     outlineContent.append(chunk);
                 })
                 .doOnComplete(() -> {
@@ -49,7 +49,7 @@ public class OutlineStrategy implements PptStateStrategy {
                     inst.setStatus(TARGET_STATUS.getCode());
                     inst.setOutline(outlineContent.toString());
                     context.getPptInstService().updateInst(inst);
-                    sink.tryEmitNext(AgentResponse.thinking("\n ✅ After the outline is generated, start designing the PPT details\n"));
+                    sink.tryEmitNext(new AgentStreamEvent.Thinking("\n ✅ After the outline is generated, start designing the PPT details\n").toJSON());
                     context.continueStateMachine(inst, sink, question, thinkingBuffer);
                 })
                 .doOnError(err -> {

@@ -1,7 +1,7 @@
 package com.genchat.application.strategy;
 
 import com.genchat.agent.SimpleReactAgent;
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiPptInst;
@@ -26,7 +26,7 @@ public class SearchStrategy implements PptStateStrategy {
                         StringBuilder thinkingBuffer,
                         PptStateStrategyContext context) {
         // Emit thinking status
-        sink.tryEmitNext(AgentResponse.thinking("🔍Information is being collected...\n"));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("🔍Information is being collected...\n").toJSON());
         // Build search prompt
         var searchInfoPrompt = PptBuilderPrompts.getSearchInfoPrompt(inst.getRequirement());
         // Inject tavily tool
@@ -40,7 +40,7 @@ public class SearchStrategy implements PptStateStrategy {
         var disposable = simpleReactAgent.stream(searchInfoPrompt)
                 .doOnNext(chunk -> {
                     searchResultBuffer.append(chunk);
-                    sink.tryEmitNext(AgentResponse.thinking(chunk));
+                    sink.tryEmitNext(new AgentStreamEvent.Thinking(chunk).toJSON());
                 })
                 .doOnComplete(() -> {
                     var searchResult = searchResultBuffer.toString();
@@ -48,7 +48,7 @@ public class SearchStrategy implements PptStateStrategy {
                     inst.setStatus(TARGET_STATUS.getCode());
                     inst.setSearchInfo(searchResult);
                     context.getPptInstService().updateInst(inst);
-                    sink.tryEmitNext(AgentResponse.thinking("\n✅Once the relevant information is gathered, start selecting the template\n"));
+                    sink.tryEmitNext(new AgentStreamEvent.Thinking("\n✅Once the relevant information is gathered, start selecting the template\n").toJSON());
                     context.continueStateMachine(inst, sink, question, thinkingBuffer);
                 })
                 .doOnError(throwable -> {

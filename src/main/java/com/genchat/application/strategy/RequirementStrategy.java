@@ -1,6 +1,6 @@
 package com.genchat.application.strategy;
 
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
@@ -22,7 +22,7 @@ public class RequirementStrategy implements PptStateStrategy {
     @Override
     public void execute(AiPptInst inst, Sinks.Many<String> sink, String question,
                         StringBuilder thinkingBuffer, PptStateStrategyContext context) {
-        sink.tryEmitNext(AgentResponse.thinking("Your needs are being analyzed...\n"));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("Your needs are being analyzed...\n").toJSON());
         var messages = new ArrayList<Message>();
         var requirementPrompt = PptBuilderPrompts.REQUIREMENT_PROMPT;
         messages.add(new SystemMessage(requirementPrompt));
@@ -42,7 +42,7 @@ public class RequirementStrategy implements PptStateStrategy {
                 .content()
                 .doOnNext(chunk -> {
                     responseBuffer.append(chunk);
-                    sink.tryEmitNext(AgentResponse.thinking(chunk));
+                    sink.tryEmitNext(new AgentStreamEvent.Thinking(chunk).toJSON());
                 })
                 .doOnComplete(() -> {
                     log.info("Requirements analysis completed: {}", responseBuffer);
@@ -52,7 +52,7 @@ public class RequirementStrategy implements PptStateStrategy {
                         inst.setRequirement(response);
                         inst.setStatus(TARGET_STATUS.getCode());
                         context.getPptInstService().updateInst(inst);
-                        sink.tryEmitNext(AgentResponse.thinking("\n✅ The requirements are confirmed and the relevant information is being collected\n"));
+                        sink.tryEmitNext(new AgentStreamEvent.Thinking("\n✅ The requirements are confirmed and the relevant information is being collected\n").toJSON());
                         context.continueStateMachine(inst, sink, question, thinkingBuffer);
                     } else {
                         // If the information is insufficient, save the current state and go to the unified output of the FAILED policy

@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.converter.AiChatSessionConverter;
 import com.genchat.dto.*;
 import com.genchat.entity.AgentState;
@@ -344,7 +344,7 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                        String agentType,
                        String referenceJson) {
         if (agentState != null && !agentState.searchResults.isEmpty()) {
-            referenceJson = AgentResponse.reference(JSON.toJSONString(agentState.searchResults));
+            referenceJson = AgentStreamEvent.Reference.of(JSON.toJSONString(agentState.searchResults)).toJSON();
         }
         var wrapper = new LambdaUpdateWrapper<AiChatSessionEntity>();
         wrapper.eq(AiChatSessionEntity::getId, id)

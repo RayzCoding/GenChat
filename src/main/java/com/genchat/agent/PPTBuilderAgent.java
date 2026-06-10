@@ -3,7 +3,7 @@ package com.genchat.agent;
 import com.alibaba.fastjson.JSON;
 import com.genchat.application.strategy.PptStateStrategyContext;
 import com.genchat.application.strategy.PptStateStrategyFactory;
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.dto.AiChatSession;
 import com.genchat.entity.AgentState;
 import com.genchat.entity.PptInstStatus;
@@ -37,7 +37,6 @@ public class PPTBuilderAgent {
     private AgentTaskService agentTaskService;
     protected Long currentSessionId;
     protected String currentRecommendations;
-    protected Set<String> usedTools;
     protected long firstResponseTime;
     private final PptIntentRecognizer recognizer;
     private final AiPptInstService pptInstService;
@@ -62,7 +61,6 @@ public class PPTBuilderAgent {
         this.chatModel = chatModel;
         this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;
-        this.usedTools = new HashSet<>();
         this.pptInstService = pptInstService;
         this.minioService = minioService;
         this.imageGenerationService = imageGenerationService;
@@ -190,12 +188,12 @@ public class PPTBuilderAgent {
         }
         if (latestInst.getStatus().equals(PptInstStatus.SUCCESS.name())) {
             var response = "The current PPT has been successfully generated, if you want to modify, please explain the specific modification requirements.";
-            sink.tryEmitNext(AgentResponse.thinking(response + "\n"));
-            sink.tryEmitNext(AgentResponse.text(response));
+            sink.tryEmitNext(new AgentStreamEvent.Thinking(response + "\n").toJSON());
+            sink.tryEmitNext(new AgentStreamEvent.Text(response).toJSON());
             sink.tryEmitComplete();
             return;
         }
-        sink.tryEmitNext(AgentResponse.thinking("Is from the state " + latestInst.getStatus() + " Proceed to perform PPT generation...\n"));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("Is from the state " + latestInst.getStatus() + " Proceed to perform PPT generation...\n").toJSON());
         PptStateStrategyFactory.getInstance().executeNextState(latestInst, sink, question, thinkingBuffer, strategyContext);
     }
 
@@ -207,7 +205,7 @@ public class PPTBuilderAgent {
         if (Objects.isNull(latestInst)) {
             log.info("No latest inst found for conversation id {}", conversationId);
             var response = "There is no generated PPT in the current session, so it cannot be modified. Please make a PPT.";
-            sink.tryEmitNext(AgentResponse.text(response));
+            sink.tryEmitNext(new AgentStreamEvent.Text(response).toJSON());
             saveSession(currentSessionId, response, thinkingBuffer);
             sink.tryEmitComplete();
             return;
@@ -215,14 +213,14 @@ public class PPTBuilderAgent {
         var pptSchema = latestInst.getPptSchema();
         if (Objects.isNull(pptSchema)) {
             var response = "This PPT does not have Schema data and cannot be modified.";
-            sink.tryEmitNext(AgentResponse.text(response));
+            sink.tryEmitNext(new AgentStreamEvent.Text(response).toJSON());
             saveSession(currentSessionId, response, thinkingBuffer);
             sink.tryEmitComplete();
             return;
         }
-        sink.tryEmitNext(AgentResponse.thinking("The PPT is being modified...\n"));
-        sink.tryEmitNext(AgentResponse.thinking("Modification requirements are being analyzed...\n"));
-        sink.tryEmitNext(AgentResponse.thinking("The content of the PPT is being modified...\n"));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("The PPT is being modified...\n").toJSON());
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("Modification requirements are being analyzed...\n").toJSON());
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("The content of the PPT is being modified...\n").toJSON());
         // Set modification action tags and modification requirements
         strategyContext.setModifyMode(true);
         strategyContext.setModifyQuestion(question);
@@ -248,7 +246,7 @@ public class PPTBuilderAgent {
                                     String question,
                                     Sinks.Many<String> sink,
                                     StringBuilder thinkingBuffer) {
-        sink.tryEmitNext(AgentResponse.thinking("Start creating new PPT...."));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("Start creating new PPT....").toJSON());
         var aiPptInst = pptInstService.create(conversationId, question);
 
         PptStateStrategyFactory.getInstance().executeNextState(aiPptInst, sink, question, thinkingBuffer, strategyContext);

@@ -2,7 +2,6 @@ package com.genchat.agent;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.genchat.common.AgentResponse;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.SimpleReactResult;
@@ -162,6 +161,7 @@ public class SimpleReactAgent {
             Schedulers.boundedElastic().schedule(() -> {
                 if (hasSentFinalResult.get()) {
                     completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                    return;
                 }
                 var toolName = toolCall.name();
                 var argsJson = toolCall.arguments();

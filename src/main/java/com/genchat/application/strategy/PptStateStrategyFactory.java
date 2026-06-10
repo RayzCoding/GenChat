@@ -1,6 +1,6 @@
 package com.genchat.application.strategy;
 
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
@@ -95,7 +95,7 @@ public class PptStateStrategyFactory {
         public void execute(AiPptInst inst, Sinks.Many<String> sink, String question,
                             StringBuilder thinkingBuffer, PptStateStrategyContext context) {
             log.warn("Unknown state: {}", inst.getStatus());
-            sink.tryEmitNext(AgentResponse.thinking("❌ abnormal status, terminate execution\n"));
+            sink.tryEmitNext(new AgentStreamEvent.Thinking("❌ abnormal status, terminate execution\n").toJSON());
             sink.tryEmitComplete();
         }
 

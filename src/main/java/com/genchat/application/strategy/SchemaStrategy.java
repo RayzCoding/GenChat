@@ -1,7 +1,7 @@
 package com.genchat.application.strategy;
 
 import com.alibaba.fastjson.JSON;
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.dto.FieldData;
@@ -33,7 +33,7 @@ public class SchemaStrategy implements PptStateStrategy {
                         String question,
                         StringBuilder thinkingBuffer,
                         PptStateStrategyContext context) {
-        sink.tryEmitNext(AgentResponse.thinking("PPT details are being designed....\n"));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("PPT details are being designed....\n").toJSON());
 
         var templateCode = inst.getTemplateCode();
         var aiPptTemplate = context.getPptTemplateService().getByTemplateCode(templateCode);
@@ -105,13 +105,13 @@ public class SchemaStrategy implements PptStateStrategy {
                 return;
             }
             var size = imageGenerationTasks.size();
-            sink.tryEmitNext(AgentResponse.thinking("✅After the PPT content design is completed, start generating image materials\n"));
-            sink.tryEmitNext(AgentResponse.thinking("A total of " + size + "images need to be generated, start generating...\n"));
+            sink.tryEmitNext(new AgentStreamEvent.Thinking("✅After the PPT content design is completed, start generating image materials\n").toJSON());
+            sink.tryEmitNext(new AgentStreamEvent.Thinking("A total of " + size + "images need to be generated, start generating...\n").toJSON());
 
             for (var i = 0; i < imageGenerationTasks.size(); i++) {
                 var imageGenerationTask = imageGenerationTasks.get(i);
                 int currentTask = i + 1;
-                sink.tryEmitNext(AgentResponse.thinking("Image is being generated (" + currentTask + "/" + size + ")...\n"));
+                sink.tryEmitNext(new AgentStreamEvent.Thinking("Image is being generated (" + currentTask + "/" + size + ")...\n").toJSON());
                 try {
                     var originalImageUrl = context.getImageGenerationService().generateImage(imageGenerationTask.prompt);
                     var imageBytes = downloadImageFromUrl(originalImageUrl);
@@ -124,14 +124,14 @@ public class SchemaStrategy implements PptStateStrategy {
                         String presignedUrl = context.getMinioService().getPresignedUrl(objectName, 3600);
                         imageGenerationTask.fieldData.setUrl(presignedUrl);
 
-                        sink.tryEmitNext(AgentResponse.thinking("✅ The image generation is complete (" + currentTask + "/" + size + ")...\n"));
+                        sink.tryEmitNext(new AgentStreamEvent.Thinking("✅ The image generation is complete (" + currentTask + "/" + size + ")...\n").toJSON());
                         log.info("Images have been uploaded to MinIO: {} -> {}", imageGenerationTask.key, presignedUrl);
                     } else {
                         throw new RuntimeException("Could not download image from url: " + originalImageUrl);
                     }
                 } catch (Exception e) {
                     log.error("Image generation or upload failed: {}", imageGenerationTask.prompt, e);
-                    sink.tryEmitNext(AgentResponse.thinking("⚠ Image generation failed (" + currentTask + "/" + size + "): \n" + imageGenerationTask.key));
+                    sink.tryEmitNext(new AgentStreamEvent.Thinking("⚠ Image generation failed (" + currentTask + "/" + size + "): \n" + imageGenerationTask.key).toJSON());
                     imageGenerationTask.fieldData.setUrl("");
                 }
             }
@@ -150,7 +150,7 @@ public class SchemaStrategy implements PptStateStrategy {
                                         StringBuilder thinkingBuffer,
                                         PptStateStrategyContext context,
                                         String schemaModifyPrompt) {
-        sink.tryEmitNext(AgentResponse.thinking("The PPT details are being regenerated....\n"));
+        sink.tryEmitNext(new AgentStreamEvent.Thinking("The PPT details are being regenerated....\n").toJSON());
 
         var pptSchemaBeanOutputConverter = new BeanOutputConverter<PptSchema>(new ParameterizedTypeReference<>() {
         });

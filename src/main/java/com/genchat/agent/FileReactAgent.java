@@ -4,7 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
+import com.genchat.common.ToolRecord;
 import com.genchat.dto.AiChatSession;
 import com.genchat.entity.AgentState;
 import com.genchat.entity.RoundMode;
@@ -33,6 +34,7 @@ import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,13 +52,14 @@ public class FileReactAgent {
     private AiChatSessionService sessionService;
     private AgentTaskService agentTaskService;
     private int maxRounds;
+    private int maxRetries;
     protected Long currentSessionId;
     protected String currentQuestion;
     protected String currentRecommendations;
-    protected Set<String> usedTools;
     protected long firstResponseTime;
     protected long startTime;
     protected boolean enableRecommendations = true;
+    private final List<ToolRecord> toolRecords = Collections.synchronizedList(new ArrayList<>());
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -69,8 +72,6 @@ public class FileReactAgent {
         this.chatModel = chatModel;
         this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;
-        this.maxRounds = maxRounds;
-        this.usedTools = new HashSet<>();
         initChatClient();
     }
 
@@ -90,7 +91,7 @@ public class FileReactAgent {
             return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later."));
         }
         initTimers();
-        clearUsedTools();
+        toolRecords.clear();
         Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
         // register conversation task
         var taskInfo = agentTaskService.registerTask(conversationId, sink, AGENT_TYPE);
@@ -162,7 +163,7 @@ public class FileReactAgent {
                     // Save result to session
                     sessionService.update(currentSessionId, finalAnswerBuffer,
                             thinkingBuffer, agentState, firstResponseTime,
-                            getTotalResponseTime(), getUsedToolsString(),
+                            getTotalResponseTime(), JSON.toJSONString(toolRecords),
                             currentRecommendations, AGENT_TYPE, null);
                     // Remove task when stream ends
                     agentTaskService.stopTask(conversationId);
@@ -177,7 +178,21 @@ public class FileReactAgent {
                                String conversationId,
                                AgentState agentState,
                                StringBuilder thinkingBuffer) {
+        scheduleRound(messages, sink, roundCounter, hasSentFinalResult, finalAnswerBuffer,
+                conversationId, agentState, thinkingBuffer, 0);
+    }
+
+    private void scheduleRound(List<Message> messages,
+                               Sinks.Many<String> sink,
+                               AtomicInteger roundCounter,
+                               AtomicBoolean hasSentFinalResult,
+                               StringBuilder finalAnswerBuffer,
+                               String conversationId,
+                               AgentState agentState,
+                               StringBuilder thinkingBuffer,
+                               int retryAttempt) {
         roundCounter.incrementAndGet();
+        log.info("Round Counter: {}, message size:{}", roundCounter.get(), messages.size());
         var roundState = new RoundState();
 
         var disposable = chatClient.prompt()
@@ -190,11 +205,25 @@ public class FileReactAgent {
                         roundState, roundCounter,
                         hasSentFinalResult, finalAnswerBuffer,
                         conversationId, agentState, thinkingBuffer))
-                .doOnError(error -> {
-                    if (!hasSentFinalResult.get()) {
+                .onErrorResume(error -> {
+                    if (retryAttempt < maxRounds) {
+                        log.warn("LLM stream error (attempt {}/{}), retrying in {}ms: {}",
+                                retryAttempt + 1, maxRetries, 1000, error.getMessage());
+                        sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED", "LLM call failed, and the attempt is being reattempted ("
+                                + (retryAttempt + 1) + "/" + maxRetries + ")", error.getMessage()).toJSON());
+                        Schedulers.boundedElastic().schedule(() -> scheduleRound(messages, sink, roundCounter,
+                                hasSentFinalResult, finalAnswerBuffer,
+                                conversationId, agentState, thinkingBuffer, retryAttempt + 1));
+                    } else {
+                        log.error("LLM stream error, retries exhausted {}ms: {}", maxRetries, error.getMessage());
+                        sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED",
+                                "LLM call failed, and the attempt is being reattempted (" + maxRetries + ")",
+                                error.getMessage()).toJSON());
+                        sink.tryEmitNext(new AgentStreamEvent.Complete().toJSON());
                         hasSentFinalResult.set(true);
-                        sink.tryEmitError(error);
+                        sink.tryEmitComplete();
                     }
+                    return Flux.empty();
                 })
                 .subscribe();
 
@@ -214,26 +243,22 @@ public class FileReactAgent {
                              StringBuilder thinkingBuffer) {
         // non tool
         if (roundState.mode != RoundMode.TOOL_CALL) {
-            String referenceJson = "";
-            String toolsStr = getUsedToolsString();
             String finalText = roundState.textBuffer.toString();
             // output reference link
             if (!agentState.searchResults.isEmpty()) {
                 String reference = JSON.toJSONString(agentState.searchResults);
-                referenceJson = AgentResponse.reference(reference);
-                sink.tryEmitNext(referenceJson);
+                sink.tryEmitNext(AgentStreamEvent.Reference.of(reference).toJSON());
             }
-            // output recommen question
+            // output recommend question
             if (enableRecommendations) {
                 String recommendations = generateRecommendations(conversationId, currentQuestion, finalText);
                 if (recommendations != null) {
-                    // Save for database storage
                     currentRecommendations = recommendations;
-                    String recommendJson = AgentResponse.recommend(recommendations);
-                    sink.tryEmitNext(recommendJson);
+                    sink.tryEmitNext(AgentStreamEvent.Recommend.of(recommendations).toJSON());
                 }
             }
 
+            sink.tryEmitNext(new AgentStreamEvent.Complete().toJSON());
             sink.tryEmitComplete();
             hasSentFinalResult.set(true);
             return;
@@ -269,47 +294,57 @@ public class FileReactAgent {
                                   Runnable onComplete) {
         var completedCount = new AtomicInteger(0);
         var totalToolCalls = toolCalls.size();
+        Map<String, ToolResponseMessage.ToolResponse> responseMap = new ConcurrentHashMap<>();
 
         for (var toolCall : toolCalls) {
             Schedulers.boundedElastic().schedule(() -> {
                 if (hasSentFinalResult.get()) {
-                    completeToolCall(completedCount, totalToolCalls, onComplete);
+                    completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                    return;
                 }
                 var toolName = toolCall.name();
                 var argsJson = toolCall.arguments();
+                log.info(">>> ToolStart: {} | args: {}", toolName, argsJson);
+                sink.tryEmitNext(new AgentStreamEvent.ToolStart(toolName, toolCall.id(), argsJson).toJSON());
 
                 var toolCallback = findTool(toolName);
                 if (Objects.isNull(toolCallback)) {
-                    addErrorToolResponse(messages, toolCall, "Not Found Tool:" + toolName);
-                    completeToolCall(completedCount, totalToolCalls, onComplete);
+                    String errorMsg = "Tool not found：" + toolName;
+                    log.warn("<<< ToolEnd (NOT_FOUND): {}", toolName);
+                    sink.tryEmitNext(new AgentStreamEvent.ToolEnd(toolName, toolCall.id(), errorMsg).toJSON());
+                    responseMap.put(toolCall.id(), new ToolResponseMessage.ToolResponse(
+                            toolCall.id(),
+                            toolCall.name(),
+                            "{ \"error\": \"" + "Not Found Tool:" + toolName + "\" }"
+                    ));
+                    completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
                     return;
                 }
                 if (toolName.contains("loadContent")) {
-                    // send thinking message
                     var queryThink = "📖 Retrieving the contents of the file, please wait... ";
-                    sink.tryEmitNext(AgentResponse.thinking(queryThink));
+                    sink.tryEmitNext(new AgentStreamEvent.Thinking(queryThink).toJSON());
                 }
 
                 try {
                     var result = toolCallback.call(argsJson);
-                    var tr = new ToolResponseMessage.ToolResponse(
-                            toolCall.id(), toolName, result.toString());
-                    messages.add(ToolResponseMessage.builder()
-                            .responses(List.of(tr))
-                            .build());
+                    toolRecords.add(new ToolRecord(toolName, toolCall.id(), argsJson, result));
+                    log.info("<<< ToolEnd: {}| result: {}", toolName, result);
+                    sink.tryEmitNext(new AgentStreamEvent.ToolEnd(toolName, toolCall.id(), result).toJSON());
+                    responseMap.put(toolCall.id(), new ToolResponseMessage.ToolResponse(toolCall.id(), toolName, result));
 
-                    // Tools used for recording
-                    recordUsedTool(toolName);
-
-                    // Analysis of tavily search results
                     if (toolName.contains("tavily")) {
-                        parseSearchResult(result.toString(), agentState);
+                        parseSearchResult(result, agentState);
                     }
-
                 } catch (Exception ex) {
-                    addErrorToolResponse(messages, toolCall, "Tool execution failed: " + ex.getMessage());
+                    responseMap.put(toolCall.id(), new ToolResponseMessage.ToolResponse(
+                            toolCall.id(),
+                            toolCall.name(),
+                            "{ \"error\": \"" + "Tool Execute failed:" + ex.getMessage() + "\" }"
+                    ));
                 } finally {
-                    completeToolCall(completedCount, totalToolCalls, onComplete);
+                    if (!hasSentFinalResult.get()) {
+                        completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                    }
                 }
             });
         }
@@ -373,9 +408,26 @@ public class FileReactAgent {
                 .orElse(null);
     }
 
-    private void completeToolCall(AtomicInteger completedCount, int total, Runnable onComplete) {
+    private void completeToolCall(AtomicInteger completedCount,
+                                  int total,
+                                  Map<String, ToolResponseMessage.ToolResponse> responseMap,
+                                  List<AssistantMessage.ToolCall> toolCalls,
+                                  List<Message> messages,
+                                  Runnable onComplete) {
         int current = completedCount.incrementAndGet();
         if (current >= total) {
+            List<ToolResponseMessage.ToolResponse> sortedResponses = new ArrayList<>();
+            for (AssistantMessage.ToolCall tc : toolCalls) {
+                ToolResponseMessage.ToolResponse response = responseMap.get(tc.id());
+                if (response != null) {
+                    sortedResponses.add(response);
+                } else {
+                    sortedResponses.add(new ToolResponseMessage.ToolResponse(
+                            tc.id(), tc.name(), "{ \"error\": \"Tool response is missing\" }"));
+                }
+            }
+
+            messages.add(ToolResponseMessage.builder().responses(sortedResponses).build());
             onComplete.run();
         }
     }
@@ -386,6 +438,16 @@ public class FileReactAgent {
                                   RoundState roundState,
                                   String conversationId,
                                   AgentState agentState) {
+        forceFinalStream(messages, sink, hasSentFinalResult, roundState, conversationId, agentState, 0);
+    }
+
+    private void forceFinalStream(List<Message> messages,
+                                  Sinks.Many<String> sink,
+                                  AtomicBoolean hasSentFinalResult,
+                                  RoundState roundState,
+                                  String conversationId,
+                                  AgentState agentState,
+                                  int retryAttempt) {
         var newMessages = new ArrayList<Message>();
         newMessages.add(new SystemMessage(ReactAgentPrompts.getFilePrompt()));
         if (StringUtils.hasLength(systemPrompt)) {
@@ -422,35 +484,46 @@ public class FileReactAgent {
                             .getOutput()
                             .getText();
                     if (StringUtils.hasLength(text) && !hasSentFinalResult.get()) {
-                        sink.tryEmitNext(AgentResponse.text(text));
+                        sink.tryEmitNext(new AgentStreamEvent.Text(text).toJSON());
                         finalTextBuffer.append(text);
                     }
                 })
                 .doOnComplete(() -> {
-                    var referenceJson = "";
                     var finalText = finalTextBuffer.toString();
-                    // output reference link
                     if (!agentState.searchResults.isEmpty()) {
                         var reference = JSON.toJSONString(agentState.searchResults);
-                        referenceJson = AgentResponse.text(reference);
-                        sink.tryEmitNext(referenceJson);
+                        sink.tryEmitNext(AgentStreamEvent.Reference.of(reference).toJSON());
                     }
-                    // output recommend question
                     if (enableRecommendations) {
                         var recommendations = generateRecommendations(conversationId, currentQuestion, finalText);
                         if (recommendations != null) {
                             currentRecommendations = recommendations;
-                            String recommendJson = AgentResponse.recommend(recommendations);
-                            sink.tryEmitNext(recommendJson);
+                            sink.tryEmitNext(AgentStreamEvent.Recommend.of(recommendations).toJSON());
                         }
                     }
 
+                    sink.tryEmitNext(new AgentStreamEvent.Complete().toJSON());
                     hasSentFinalResult.set(true);
                     sink.tryEmitComplete();
                 })
-                .doOnError(error -> {
-                    hasSentFinalResult.set(true);
-                    sink.tryEmitError(error);
+                .onErrorResume(error -> {
+                    if (retryAttempt < maxRounds) {
+                        log.warn("forceFinal stream error (attempt {}/{}), retrying in {}ms: {}",
+                                retryAttempt + 1, maxRetries, 1000, error.getMessage());
+                        sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED", "LLM call failed, and the attempt is being reattempted ("
+                                + (retryAttempt + 1) + "/" + maxRetries + ")", error.getMessage()).toJSON());
+                        Schedulers.boundedElastic().schedule(() -> forceFinalStream(messages, sink,
+                                hasSentFinalResult, roundState, conversationId, agentState, retryAttempt + 1));
+                    } else {
+                        log.error("forceFinal stream error, retries exhausted {}ms: {}", maxRetries, error.getMessage());
+                        sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED",
+                                "LLM call failed, and the attempt is being reattempted (" + maxRetries + ")",
+                                error.getMessage()).toJSON());
+                        sink.tryEmitNext(new AgentStreamEvent.Complete().toJSON());
+                        hasSentFinalResult.set(true);
+                        sink.tryEmitComplete();
+                    }
+                    return Flux.empty();
                 })
                 .subscribe();
 
@@ -516,7 +589,7 @@ public class FileReactAgent {
         }
         // cache text
         if (StringUtils.hasLength(text)) {
-            sink.tryEmitNext(AgentResponse.text(text));
+            sink.tryEmitNext(new AgentStreamEvent.Text(text).toJSON());
             roundState.textBuffer.append(text);
         }
     }
@@ -575,26 +648,6 @@ public class FileReactAgent {
             log.info("Loading history messages, conversationId: {}, recordCount: {}", conversationId, historyMessages.size());
         }
         this.chatMemory = chatMemory;
-    }
-
-    protected void recordUsedTool(String toolName) {
-        if (usedTools != null && toolName != null) {
-            usedTools.add(toolName);
-        }
-    }
-
-    protected String getUsedToolsString() {
-        if (usedTools == null || usedTools.isEmpty()) {
-            return "";
-        }
-        return String.join(",", usedTools);
-    }
-
-
-    protected void clearUsedTools() {
-        if (usedTools != null) {
-            usedTools.clear();
-        }
     }
 
     protected void recordFirstResponse() {

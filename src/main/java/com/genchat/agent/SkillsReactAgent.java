@@ -2,7 +2,8 @@ package com.genchat.agent;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.genchat.common.AgentResponse;
+import com.genchat.common.AgentStreamEvent;
+import com.genchat.common.ToolRecord;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiChatSession;
 import com.genchat.entity.RoundMode;
@@ -48,9 +49,9 @@ public class SkillsReactAgent {
     protected String currentQuestion;
     protected String currentFileId;
     protected String currentRecommendations;
-    protected Set<String> usedTools;
     protected long firstResponseTime;
     protected long startTime;
+    private final List<ToolRecord> toolRecords = Collections.synchronizedList(new ArrayList<>());
 
     public SkillsReactAgent(ChatModel chatModel,
                             AiChatSessionService sessionService,
@@ -63,7 +64,6 @@ public class SkillsReactAgent {
         this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;
         this.maxRounds = maxRounds;
-        this.usedTools = new HashSet<>();
         initChatClient();
     }
 
@@ -83,7 +83,7 @@ public class SkillsReactAgent {
             return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later."));
         }
         initTimers();
-        clearUsedTools();
+        toolRecords.clear();
         Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
         // register conversation task
         var taskInfo = agentTaskService.registerTask(conversationId, sink, AGENT_TYPE);
@@ -151,7 +151,7 @@ public class SkillsReactAgent {
                     // Save result to session
                     sessionService.update(currentSessionId, finalAnswerBuffer,
                             thinkingBuffer, null, firstResponseTime,
-                            getTotalResponseTime(), getUsedToolsString(),
+                            getTotalResponseTime(), JSON.toJSONString(toolRecords),
                             currentRecommendations, AGENT_TYPE, null);
                     // Remove task when stream ends
                     agentTaskService.stopTask(conversationId);
@@ -196,15 +196,17 @@ public class SkillsReactAgent {
                     if (retryAttempt < maxRounds) {
                         log.warn("LLM stream error (attempt {}/{}), retrying in {}ms: {}",
                                 retryAttempt + 1, maxRetries, 1000, error.getMessage());
-                        sink.tryEmitNext(AgentResponse.error("LLM call failed, and the attempt is being reattempted ("
-                                + (retryAttempt + 1) + "/" + maxRetries + ")"));
+                        sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED", "LLM call failed, and the attempt is being reattempted ("
+                                + (retryAttempt + 1) + "/" + maxRetries + ")", error.getMessage()).toJSON());
                         Schedulers.boundedElastic().schedule(() -> scheduleRound(messages, sink, roundCounter,
                                 hasSentFinalResult, finalAnswerBuffer,
                                 conversationId, thinkingBuffer, retryAttempt + 1));
                     } else {
                         log.error("LLM stream error, retries exhausted {}ms: {}", maxRetries, error.getMessage());
-                        sink.tryEmitNext(AgentResponse.error("LLM call failed, and the attempt is being reattempted (" + maxRetries + ")"));
-                        sink.tryEmitNext(AgentResponse.complete());
+                        sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED",
+                                "LLM call failed, and the attempt is being reattempted (" + maxRetries + ")",
+                                error.getMessage()).toJSON());
+                        sink.tryEmitNext(new AgentStreamEvent.Complete().toJSON());
                         hasSentFinalResult.set(true);
                         sink.tryEmitComplete();
                     }
@@ -227,7 +229,7 @@ public class SkillsReactAgent {
                              StringBuilder thinkingBuffer) {
         // non tool
         if (roundState.mode != RoundMode.TOOL_CALL) {
-            sink.tryEmitNext(AgentResponse.complete());
+            sink.tryEmitNext(new AgentStreamEvent.Complete().toJSON());
             sink.tryEmitComplete();
             hasSentFinalResult.set(true);
             return;
@@ -265,12 +267,17 @@ public class SkillsReactAgent {
             Schedulers.boundedElastic().schedule(() -> {
                 if (hasSentFinalResult.get()) {
                     completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                    return;
                 }
                 var toolName = toolCall.name();
                 var argsJson = toolCall.arguments();
-
+                log.info(">>> ToolStart: {} | args: {}", toolName, argsJson);
+                sink.tryEmitNext(new AgentStreamEvent.ToolStart(toolName, toolCall.id(), argsJson).toJSON());
                 var toolCallback = findTool(toolName);
                 if (Objects.isNull(toolCallback)) {
+                    String errorMsg = "Tool not found：" + toolName;
+                    log.warn("<<< ToolEnd (NOT_FOUND): {}", toolName);
+                    sink.tryEmitNext(new AgentStreamEvent.ToolEnd(toolName, toolCall.id(), errorMsg).toJSON());
                     responseMap.put(toolCall.id(), new ToolResponseMessage.ToolResponse(
                             toolCall.id(),
                             toolCall.name(),
@@ -282,7 +289,10 @@ public class SkillsReactAgent {
                 try {
                     var result = toolCallback.call(argsJson);
                     // Tools used for recording
-                    recordUsedTool(toolName);
+                    toolRecords.add(new ToolRecord(toolName, toolCall.id(),argsJson,result));
+                    log.info("<<< ToolEnd: {}| result: {}", toolName, result);
+                    sink.tryEmitNext(new AgentStreamEvent.ToolEnd(toolName, toolCall.id(), result).toJSON());
+
                     responseMap.put(toolCall.id(), new ToolResponseMessage.ToolResponse(toolCall.id(), toolName, result));
                 } catch (Exception ex) {
                     responseMap.put(toolCall.id(), new ToolResponseMessage.ToolResponse(
@@ -378,7 +388,6 @@ public class SkillsReactAgent {
         messages.clear();
         messages.addAll(newMessages);
 
-        var finalTextBuffer = new StringBuilder();
         var disposable = chatClient.prompt()
                 .messages(messages)
                 .stream()
@@ -386,7 +395,7 @@ public class SkillsReactAgent {
                 .publishOn(Schedulers.boundedElastic())
                 .doOnNext(chunk -> processChunk(chunk, sink, roundState))
                 .doOnComplete(() -> {
-                    sink.tryEmitNext(AgentResponse.complete());
+                    sink.tryEmitNext(new AgentStreamEvent.Complete().toJSON());
                     sink.tryEmitComplete();
                     hasSentFinalResult.set(true);
                 })
@@ -394,14 +403,16 @@ public class SkillsReactAgent {
                     if (retryAttempt < maxRounds) {
                         log.warn("forceFinal stream error (attempt {}/{}), retrying in {}ms: {}",
                                 retryAttempt + 1, maxRetries, 1000, error.getMessage());
-                        sink.tryEmitNext(AgentResponse.error("LLM call failed, and the attempt is being reattempted ("
-                                + (retryAttempt + 1) + "/" + maxRetries + ")"));
+                        sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED", "LLM call failed, and the attempt is being reattempted ("
+                                + (retryAttempt + 1) + "/" + maxRetries + ")", error.getMessage()).toJSON());
                         Schedulers.boundedElastic().schedule(() -> forceFinalStream(messages, sink,
                                 hasSentFinalResult, roundState, conversationId, retryAttempt + 1));
                     } else {
                         log.error("forceFinal stream error, retries exhausted {}ms: {}", maxRetries, error.getMessage());
-                        sink.tryEmitNext(AgentResponse.error("LLM call failed, and the attempt is being reattempted (" + maxRetries + ")"));
-                        sink.tryEmitNext(AgentResponse.complete());
+                        sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED",
+                                "LLM call failed, and the attempt is being reattempted (" + maxRetries + ")",
+                                error.getMessage()).toJSON());
+                        sink.tryEmitNext(new AgentStreamEvent.Complete().toJSON());
                         hasSentFinalResult.set(true);
                         sink.tryEmitComplete();
                     }
@@ -429,7 +440,7 @@ public class SkillsReactAgent {
         }
         // cache text
         if (StringUtils.hasLength(text)) {
-            sink.tryEmitNext(AgentResponse.text(text));
+            sink.tryEmitNext(new AgentStreamEvent.Text(text).toJSON());
             roundState.textBuffer.append(text);
         }
     }
@@ -488,26 +499,6 @@ public class SkillsReactAgent {
             log.info("Loading history messages, conversationId: {}, recordCount: {}", conversationId, historyMessages.size());
         }
         this.chatMemory = chatMemory;
-    }
-
-    protected void recordUsedTool(String toolName) {
-        if (usedTools != null && toolName != null) {
-            usedTools.add(toolName);
-        }
-    }
-
-    protected String getUsedToolsString() {
-        if (usedTools == null || usedTools.isEmpty()) {
-            return "";
-        }
-        return String.join(",", usedTools);
-    }
-
-
-    protected void clearUsedTools() {
-        if (usedTools != null) {
-            usedTools.clear();
-        }
     }
 
     protected void recordFirstResponse() {
