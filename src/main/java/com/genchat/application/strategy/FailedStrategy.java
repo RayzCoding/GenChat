@@ -7,12 +7,14 @@ import com.genchat.entity.PptInstStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.util.StringUtils;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Objects;
 
 @Slf4j
+@Component
 public class FailedStrategy implements PptStateStrategy {
     private static final PptInstStatus TARGET_STATUS = PptInstStatus.FAILED;
 

@@ -6,10 +6,12 @@ import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
+@Component
 public class OutlineStrategy implements PptStateStrategy {
     private static final PptInstStatus TARGET_STATUS = PptInstStatus.SCHEMA;
 
@@ -27,7 +29,7 @@ public class OutlineStrategy implements PptStateStrategy {
             inst.setErrorMsg("Template not found for templateCode: " + templateCode);
             inst.setStatus(PptInstStatus.TEMPLATE.getCode());
             context.getPptInstService().updateInst(inst);
-            PptStateStrategyFactory.getInstance().executeFailedStrategy(inst,
+            context.getStrategyFactory().executeFailedStrategy(inst,
                     sink, question, thinkingBuffer, context);
             return;
         }
@@ -57,7 +59,7 @@ public class OutlineStrategy implements PptStateStrategy {
                     inst.setStatus(PptInstStatus.OUTLINE.getCode());
                     inst.setErrorMsg("Outline generate failed: " + err.getMessage());
                     context.getPptInstService().updateInst(inst);
-                    PptStateStrategyFactory.getInstance().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();

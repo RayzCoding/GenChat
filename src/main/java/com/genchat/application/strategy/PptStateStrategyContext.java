@@ -1,6 +1,7 @@
 package com.genchat.application.strategy;
 
 import com.genchat.dto.AiPptInst;
+import com.genchat.service.AgentTaskService;
 import com.genchat.service.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,45 +24,69 @@ import java.util.List;
 @Getter
 @Setter
 public class PptStateStrategyContext {
-    private final AiPptInstService pptInstService;
+
+    private final PptStrategyDependencies dependencies;
     private final ChatMemory chatMemory;
     private final ChatClient chatClient;
-    private final AgentTaskService agentTaskService;
-    private final AiPptTemplateService pptTemplateService;
-    private final Long currentSessionId;
-    private final AiChatSessionService sessionService;
-    private final ChatModel chatModel;
-    private final MinioService minioService;
     private final List<ToolCallback> tools;
-    private final ImageGenerationService imageGenerationService;
-    private final PptPythonRenderService pptPythonRenderService;
+    private final Long currentSessionId;
     private String modifyQuestion;
     private boolean modifyMode;
 
-    public PptStateStrategyContext(AiPptInstService pptInstService,
-                                   ChatModel chatModel,
-                                   ChatMemory chatMemory,
-                                   ChatClient client,
-                                   List<ToolCallback> tools,
-                                   AgentTaskService agentTaskService,
-                                   AiPptTemplateService pptTemplateService,
-                                   Long currentSessionId,
-                                   AiChatSessionService sessionService,
-                                   ImageGenerationService imageGenerationService,
-                                   PptPythonRenderService pptPythonRenderService,
-                                   MinioService minioService) {
-        this.tools = tools;
-        this.chatModel = chatModel;
-        this.pptInstService = pptInstService;
+    private PptStateStrategyContext(PptStrategyDependencies dependencies,
+                                    ChatMemory chatMemory,
+                                    ChatClient chatClient,
+                                    List<ToolCallback> tools,
+                                    Long currentSessionId) {
+        this.dependencies = dependencies;
         this.chatMemory = chatMemory;
-        this.chatClient = client;
-        this.agentTaskService = agentTaskService;
-        this.pptTemplateService = pptTemplateService;
+        this.chatClient = chatClient;
+        this.tools = tools;
         this.currentSessionId = currentSessionId;
-        this.sessionService = sessionService;
-        this.minioService = minioService;
-        this.imageGenerationService = imageGenerationService;
-        this.pptPythonRenderService = pptPythonRenderService;
+    }
+
+    public static PptStateStrategyContext forSession(PptStrategyDependencies dependencies,
+                                                     ChatMemory chatMemory,
+                                                     ChatClient chatClient,
+                                                     List<ToolCallback> tools,
+                                                     Long currentSessionId) {
+        return new PptStateStrategyContext(dependencies, chatMemory, chatClient, tools, currentSessionId);
+    }
+
+    public PptStateStrategyFactory getStrategyFactory() {
+        return dependencies.strategyFactory();
+    }
+
+    public AiPptInstService getPptInstService() {
+        return dependencies.pptInstService();
+    }
+
+    public ChatModel getChatModel() {
+        return dependencies.chatModel();
+    }
+
+    public AgentTaskService getAgentTaskService() {
+        return dependencies.agentTaskService();
+    }
+
+    public AiPptTemplateService getPptTemplateService() {
+        return dependencies.pptTemplateService();
+    }
+
+    public AiChatSessionService getSessionService() {
+        return dependencies.sessionService();
+    }
+
+    public MinioService getMinioService() {
+        return dependencies.minioService();
+    }
+
+    public ImageGenerationService getImageGenerationService() {
+        return dependencies.imageGenerationService();
+    }
+
+    public PptPythonRenderService getPptPythonRenderService() {
+        return dependencies.pptPythonRenderService();
     }
 
     public void loadChatHistory(String conversationId, List<Message> messages, boolean skipSystem, boolean addLabel) {
@@ -78,12 +103,11 @@ public class PptStateStrategyContext {
                     messages.add(msg);
                 }
             }
-
         }
     }
 
     public void setDisposable(String conversationId, Disposable disposable) {
-        agentTaskService.setDisposable(conversationId, disposable);
+        dependencies.agentTaskService().setDisposable(conversationId, disposable);
     }
 
     public boolean shouldContinueToNextStep(String response) {
@@ -97,7 +121,6 @@ public class PptStateStrategyContext {
         if (trimmedResponse.contains("[PAUSE PPT GENERATION]") || trimmedResponse.contains("[PAUSE PPT GENERATION]".toLowerCase())) {
             return false;
         }
-
         return true;
     }
 
@@ -105,6 +128,6 @@ public class PptStateStrategyContext {
                                      Sinks.Many<String> sink,
                                      String question,
                                      StringBuilder thinkingBuffer) {
-        PptStateStrategyFactory.getInstance().executeNextState(inst, sink, question, thinkingBuffer, this);
+        getStrategyFactory().executeNextState(inst, sink, question, thinkingBuffer, this);
     }
 }

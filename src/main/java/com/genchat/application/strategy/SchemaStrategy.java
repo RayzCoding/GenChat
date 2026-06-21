@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
@@ -24,6 +25,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 
 @Slf4j
+@Component
 public class SchemaStrategy implements PptStateStrategy {
     private static final PptInstStatus TARGET_STATUS = PptInstStatus.RENDER;
 
@@ -63,7 +65,7 @@ public class SchemaStrategy implements PptStateStrategy {
                     log.error("Schema generation failed", throwable);
                     inst.setStatus(PptInstStatus.SCHEMA.getCode());
                     context.getPptInstService().updateInst(inst);
-                    PptStateStrategyFactory.getInstance().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();
@@ -177,7 +179,7 @@ public class SchemaStrategy implements PptStateStrategy {
                     log.error("Schema generation failed", throwable);
                     inst.setStatus(PptInstStatus.SCHEMA.getCode());
                     context.getPptInstService().updateInst(inst);
-                    PptStateStrategyFactory.getInstance().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();

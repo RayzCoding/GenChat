@@ -4,33 +4,21 @@ import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Sinks;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
+@Component
+@RequiredArgsConstructor
 public class PptStateStrategyFactory {
 
-    private static final Map<PptInstStatus, PptStateStrategy> STRATEGY_MAP = new HashMap<>();
-
-    private PptStateStrategyFactory() {
-        STRATEGY_MAP.put(PptInstStatus.INIT, new RequirementStrategy());
-        STRATEGY_MAP.put(PptInstStatus.REQUIREMENT, new RequirementStrategy());
-        STRATEGY_MAP.put(PptInstStatus.TEMPLATE, new TemplateStrategy());
-        STRATEGY_MAP.put(PptInstStatus.OUTLINE, new OutlineStrategy());
-        STRATEGY_MAP.put(PptInstStatus.SEARCH, new SearchStrategy());
-        STRATEGY_MAP.put(PptInstStatus.SCHEMA, new SchemaStrategy());
-        STRATEGY_MAP.put(PptInstStatus.RENDER, new RenderStrategy());
-        STRATEGY_MAP.put(PptInstStatus.SUCCESS, new SuccessStrategy());
-        STRATEGY_MAP.put(PptInstStatus.FAILED, new FailedStrategy());
-    }
-
-    public static PptStateStrategyFactory getInstance() {
-        return SingletonHolder.INSTANCE;
-    }
+    private final Map<PptInstStatus, PptStateStrategy> strategyMap;
+    private final SchemaStrategy schemaStrategy;
 
     public void executeNextState(AiPptInst pptInst,
                                  Sinks.Many<String> sink,
@@ -60,7 +48,7 @@ public class PptStateStrategyFactory {
     }
 
     public PptStateStrategy getStrategy(PptInstStatus status) {
-        var strategy = STRATEGY_MAP.get(status);
+        var strategy = strategyMap.get(status);
         if (strategy == null) {
             log.warn("No policy for the status was found: {}", status);
             return new DefaultStrategy();
@@ -73,7 +61,6 @@ public class PptStateStrategyFactory {
                                       String question,
                                       StringBuilder thinkingBuffer,
                                       PptStateStrategyContext strategyContext) {
-        var schemaStrategy = new SchemaStrategy();
         var schemaModifyPrompt = PptBuilderPrompts.getSchemaModifyPrompt(question, latestInst.getPptSchema());
         schemaStrategy.executeWithModifyPrompt(latestInst, sink, question, thinkingBuffer, strategyContext, schemaModifyPrompt);
     }
@@ -84,10 +71,6 @@ public class PptStateStrategyFactory {
                                       StringBuilder thinkingBuffer,
                                       PptStateStrategyContext context) {
         getStrategy(PptInstStatus.FAILED).execute(inst, sink, question, thinkingBuffer, context);
-    }
-
-    private static class SingletonHolder {
-        private static final PptStateStrategyFactory INSTANCE = new PptStateStrategyFactory();
     }
 
     private static class DefaultStrategy implements PptStateStrategy {
