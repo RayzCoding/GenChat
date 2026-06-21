@@ -1,18 +1,8 @@
 package com.genchat.controller;
 
-import com.genchat.agent.*;
-import com.genchat.application.tool.FileContentTool;
-import com.genchat.application.tool.GrepTool;
-import com.genchat.application.tool.SkillsTool;
-import com.genchat.common.utils.ToolMergeUtils;
-import com.genchat.config.WebSearchToolInitConfig;
-import com.genchat.service.*;
+import com.genchat.application.agent.AgentFacade;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.support.ToolCallbacks;
-import org.springframework.ai.tool.ToolCallback;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,8 +11,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -31,18 +19,7 @@ import java.util.Map;
 @Slf4j
 public class AgentController {
 
-    private final ChatModel chatModel;
-    private final AiChatSessionService sessionService;
-    private final AgentTaskService agentTaskService;
-    private final WebSearchToolInitConfig webSearchToolInitConfig;
-    private final AiPptInstService aiPptInstService;
-    private final AiPptTemplateService pptTemplateService;
-    private final MinioService minioService;
-    private final ImageGenerationService imageGenerationService;
-    private final PptPythonRenderService pptPythonRenderService;
-    private final FileContentTool fileContentTool;
-    @Value("${skills.directory:}")
-    private String skillsDirectory;
+    private final AgentFacade agentFacade;
 
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> chat(@RequestParam String conversationId,
@@ -53,18 +30,7 @@ public class AgentController {
             log.warn("conversationId or question is null or empty");
             return Flux.error(new IllegalArgumentException("conversationId or question is null or empty"));
         }
-
-        try {
-            var webSearchReactAgent = new WebSearchReactAgent(chatModel, sessionService,
-                    agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(),
-                    5);
-            webSearchReactAgent.initPersistentChatMemory(conversationId);
-
-            return webSearchReactAgent.stream(conversationId, question);
-        } catch (Exception e) {
-            log.error("error occurred while processing request to chat stream, error:", e);
-            return Flux.error(e);
-        }
+        return agentFacade.chatStream(conversationId, question);
     }
 
     @GetMapping("/deep/stream")
@@ -79,18 +45,7 @@ public class AgentController {
             log.warn("conversationsId is null or empty");
             return Flux.error(new IllegalArgumentException("conversationsId is null or empty"));
         }
-        try {
-            var deepResearchAgent = new DeepResearchAgent(sessionService,
-                    chatModel,
-                    List.of(webSearchToolInitConfig.getWebSearchToolCallbacks()),
-                    agentTaskService,
-                    3);
-            deepResearchAgent.initPersistentChatMemory(conversationsId);
-            return deepResearchAgent.stream(conversationsId, question);
-        } catch (Exception e) {
-            log.error("error occurred while processing deep stream, error:", e);
-            return Flux.error(e);
-        }
+        return agentFacade.deepStream(question, conversationsId);
     }
 
     @GetMapping(value = "/simple/stream", produces = "text/event-stream;charset=UTF-8")
@@ -100,14 +55,7 @@ public class AgentController {
             log.warn("Question is null or empty");
             return Flux.error(new IllegalArgumentException("Question is null or empty"));
         }
-
-        try {
-            var webSearchReactAgent = new SimpleReactAgent(chatModel, List.of(webSearchToolInitConfig.getWebSearchToolCallbacks()));
-            return webSearchReactAgent.stream(question);
-        } catch (Exception e) {
-            log.error("error occurred while processing request to chat stream, error:", e);
-            return Flux.error(e);
-        }
+        return agentFacade.simpleStream(question);
     }
 
     @GetMapping("/file/stream")
@@ -123,16 +71,7 @@ public class AgentController {
             log.warn("conversationId or question is null or empty");
             return Flux.error(new IllegalArgumentException("conversationId or question is null or empty"));
         }
-        try {
-            var fileReactAgent = new FileReactAgent(chatModel, sessionService,
-                    agentTaskService, List.of(ToolCallbacks.from(fileContentTool)));
-            fileReactAgent.initPersistentChatMemory(conversationId);
-
-            return fileReactAgent.stream(conversationId, question, fileId);
-        } catch (Exception e) {
-            log.error("error occurred while processing file stream, error:", e);
-            return Flux.error(e);
-        }
+        return agentFacade.fileStream(conversationId, question, fileId);
     }
 
     @GetMapping("/ppt/stream")
@@ -143,16 +82,7 @@ public class AgentController {
             log.warn("Question is null or empty");
             return Flux.error(new IllegalArgumentException("Question is null or empty"));
         }
-        try {
-            var pptBuilderAgent = new PPTBuilderAgent(chatModel, sessionService,
-                    agentTaskService, webSearchToolInitConfig.getWebSearchToolCallbacks(),
-                    aiPptInstService, pptTemplateService, minioService, imageGenerationService, pptPythonRenderService);
-            pptBuilderAgent.initPersistentChatMemory(conversationsId);
-            return pptBuilderAgent.stream(conversationsId, question);
-        } catch (Exception e) {
-            log.error("Error occurred while processing ppt stream, error:", e);
-            return Flux.error(e);
-        }
+        return agentFacade.pptStream(conversationsId, question);
     }
 
     @GetMapping("/skills/stream")
@@ -164,39 +94,11 @@ public class AgentController {
             log.warn("Question is null or empty");
             return Flux.error(new IllegalArgumentException("Question is null or empty"));
         }
-        var webSearchToolCallbacks = webSearchToolInitConfig.getWebSearchToolCallbacks();
-        var toolCallbacks = ToolMergeUtils.mergeTools(webSearchToolCallbacks,
-                ToolCallbacks.from(fileContentTool), new ToolCallback[]{SkillsTool.builder()
-                        .addSkillsDirectory(skillsDirectory)
-                        .build()},
-                GrepTool.create());
-        var skillsReactAgent = new SkillsReactAgent(chatModel, sessionService,
-                agentTaskService, toolCallbacks, 5);
-        skillsReactAgent.initPersistentChatMemory(conversationsId);
-        return skillsReactAgent.stream(conversationsId, question, fileId);
+        return agentFacade.skillsStream(conversationsId, question, fileId);
     }
 
     @GetMapping("/stop")
     public Map<String, Object> stopAgent(@RequestParam String conversationId) {
-        log.info("received request to stop agent, conversationId: {}", conversationId);
-        var result = new HashMap<String, Object>();
-
-        if (ObjectUtils.isEmpty(conversationId)) {
-            log.warn("conversationId is null or empty");
-            result.put("success", false);
-            result.put("message", "There is no conversation task.");
-            return result;
-        }
-        var success = agentTaskService.stopTask(conversationId);
-        if (!success) {
-            log.warn("stop agent failed, conversationId: {}", conversationId);
-            result.put("success", false);
-            result.put("message", "No task being found or stopped.");
-            return result;
-        }
-        result.put("success", true);
-        result.put("message", "Execution has been discontinued.");
-
-        return result;
+        return agentFacade.stopAgent(conversationId);
     }
 }
