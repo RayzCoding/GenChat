@@ -8,10 +8,12 @@ import com.genchat.dto.PptSchema;
 import com.genchat.entity.PptInstStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
+@Component
 public class SuccessStrategy implements PptStateStrategy {
     private static final PptInstStatus TARGET_STATUS = PptInstStatus.SUCCESS;
 

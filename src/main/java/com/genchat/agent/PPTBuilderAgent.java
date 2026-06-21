@@ -2,7 +2,7 @@ package com.genchat.agent;
 
 import com.alibaba.fastjson.JSON;
 import com.genchat.application.strategy.PptStateStrategyContext;
-import com.genchat.application.strategy.PptStateStrategyFactory;
+import com.genchat.application.strategy.PptStrategyDependencies;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.dto.AiChatSession;
 import com.genchat.entity.AgentState;
@@ -44,6 +44,7 @@ public class PPTBuilderAgent {
     private final AiPptTemplateService pptTemplateService;
     private final MinioService minioService;
     private final PptPythonRenderService pptPythonRenderService;
+    private final PptStrategyDependencies pptStrategyDependencies;
     private PptStateStrategyContext strategyContext;
 
 
@@ -51,20 +52,17 @@ public class PPTBuilderAgent {
                            AiChatSessionService sessionService,
                            AgentTaskService agentTaskService,
                            ToolCallback[] webSearchToolCallbacks,
-                           AiPptInstService pptInstService,
-                           AiPptTemplateService pptTemplateService,
-                           MinioService minioService,
-                           ImageGenerationService imageGenerationService,
-                           PptPythonRenderService pptPythonRenderService) {
-        this.pptTemplateService = pptTemplateService;
+                           PptStrategyDependencies pptStrategyDependencies) {
+        this.pptStrategyDependencies = pptStrategyDependencies;
+        this.pptTemplateService = pptStrategyDependencies.pptTemplateService();
         this.tools = Arrays.asList(webSearchToolCallbacks);
         this.chatModel = chatModel;
         this.agentTaskService = agentTaskService;
         this.sessionService = sessionService;
-        this.pptInstService = pptInstService;
-        this.minioService = minioService;
-        this.imageGenerationService = imageGenerationService;
-        this.pptPythonRenderService = pptPythonRenderService;
+        this.pptInstService = pptStrategyDependencies.pptInstService();
+        this.minioService = pptStrategyDependencies.minioService();
+        this.imageGenerationService = pptStrategyDependencies.imageGenerationService();
+        this.pptPythonRenderService = pptStrategyDependencies.pptPythonRenderService();
         recognizer = new PptIntentRecognizer(chatClient, pptInstService);
         initChatClient();
     }
@@ -160,18 +158,12 @@ public class PPTBuilderAgent {
     }
 
     private void initStrategyContext() {
-        this.strategyContext = new PptStateStrategyContext(pptInstService,
-                chatModel,
+        this.strategyContext = PptStateStrategyContext.forSession(
+                pptStrategyDependencies,
                 chatMemory,
                 chatClient,
                 tools,
-                agentTaskService,
-                pptTemplateService,
-                currentSessionId,
-                sessionService,
-                imageGenerationService,
-                pptPythonRenderService,
-                minioService);
+                currentSessionId);
     }
 
     private void handleResumeIntent(String conversationId,
@@ -195,7 +187,7 @@ public class PPTBuilderAgent {
             return;
         }
         sink.tryEmitNext(new AgentStreamEvent.Thinking("Is from the state " + latestInst.getStatus() + " Proceed to perform PPT generation...\n").toJSON());
-        PptStateStrategyFactory.getInstance().executeNextState(latestInst, sink, question, thinkingBuffer, strategyContext);
+        pptStrategyDependencies.strategyFactory().executeNextState(latestInst, sink, question, thinkingBuffer, strategyContext);
     }
 
     private void handleModifyIntent(String conversationId,
@@ -227,7 +219,7 @@ public class PPTBuilderAgent {
         strategyContext.setModifyMode(true);
         strategyContext.setModifyQuestion(question);
         // Call SchemaStrategy directly to continue execution (it handles image generation, rendering, etc.)
-        PptStateStrategyFactory.getInstance().executeSchemaStrategy(latestInst, sink, question, thinkingBuffer, strategyContext);
+        pptStrategyDependencies.strategyFactory().executeSchemaStrategy(latestInst, sink, question, thinkingBuffer, strategyContext);
     }
 
     private void saveSession(Long currentSessionId, String response, StringBuilder thinkingBuffer) {
@@ -251,7 +243,7 @@ public class PPTBuilderAgent {
         sink.tryEmitNext(new AgentStreamEvent.Thinking("Start creating new PPT....").toJSON());
         var aiPptInst = pptInstService.create(conversationId, question);
 
-        PptStateStrategyFactory.getInstance().executeNextState(aiPptInst, sink, question, thinkingBuffer, strategyContext);
+        pptStrategyDependencies.strategyFactory().executeNextState(aiPptInst, sink, question, thinkingBuffer, strategyContext);
     }
 
     public void initPersistentChatMemory(String conversationId) {

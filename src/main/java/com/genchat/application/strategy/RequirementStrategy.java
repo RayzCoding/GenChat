@@ -9,12 +9,14 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
 
 @Slf4j
+@Component
 public class RequirementStrategy implements PptStateStrategy {
     private static final PptInstStatus TARGET_STATUS = PptInstStatus.SEARCH;
 
@@ -64,7 +66,7 @@ public class RequirementStrategy implements PptStateStrategy {
                             context.getChatMemory().add(conversationId, new AssistantMessage(response));
                         }
                         // Go to FAILED policy
-                        PptStateStrategyFactory.getInstance().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                        context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                     }
 
                 })
@@ -75,7 +77,7 @@ public class RequirementStrategy implements PptStateStrategy {
                     inst.setStatus(PptInstStatus.FAILED.getCode());
                     context.getPptInstService().updateInst(inst);
                     // Go to FAILED policy
-                    PptStateStrategyFactory.getInstance().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();

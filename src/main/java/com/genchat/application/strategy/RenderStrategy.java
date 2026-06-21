@@ -5,10 +5,12 @@ import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
+@Component
 public class RenderStrategy implements PptStateStrategy {
     private static final PptInstStatus TARGET_STATUS = PptInstStatus.SUCCESS;
 
@@ -33,7 +35,7 @@ public class RenderStrategy implements PptStateStrategy {
                     log.error("Rendering PPT Failed", throwable);
                     inst.setStatus(PptInstStatus.RENDER.getCode());
                     inst.setErrorMsg(throwable.getMessage());
-                    PptStateStrategyFactory.getInstance().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();

@@ -9,11 +9,13 @@ import com.genchat.entity.PptInstStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
 
 import java.util.List;
 
 @Slf4j
+@Component
 public class TemplateStrategy implements PptStateStrategy {
     private static final PptInstStatus TARGET_STATUS = PptInstStatus.OUTLINE;
 
@@ -63,7 +65,7 @@ public class TemplateStrategy implements PptStateStrategy {
             inst.setErrorMsg(e.getMessage());
             context.getPptInstService().updateInst(inst);
 
-            PptStateStrategyFactory.getInstance().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+            context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
         }
     }
 

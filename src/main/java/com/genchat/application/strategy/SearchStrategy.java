@@ -10,12 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import reactor.core.publisher.Sinks;
+import org.springframework.stereotype.Component;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
 import java.util.Collections;
 
 @Slf4j
+@Component
 public class SearchStrategy implements PptStateStrategy {
     private static final PptInstStatus TARGET_STATUS = PptInstStatus.TEMPLATE;
 
@@ -56,7 +58,7 @@ public class SearchStrategy implements PptStateStrategy {
                     inst.setErrorMsg(throwable.getMessage());
                     inst.setStatus(PptInstStatus.SEARCH.getCode());
                     context.getPptInstService().updateInst(inst);
-                    PptStateStrategyFactory.getInstance().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();
