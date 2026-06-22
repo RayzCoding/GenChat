@@ -1,6 +1,6 @@
 package com.genchat.agent;
 
-import com.alibaba.fastjson.JSON;
+import com.genchat.common.utils.JacksonJson;
 import com.genchat.agent.core.AbstractReactAgent;
 import com.genchat.agent.core.ReactStreamRequest;
 import com.genchat.common.AgentStreamEvent;
@@ -51,8 +51,8 @@ public class WebSearchReactAgent extends AbstractReactAgent {
     @Override
     protected void emitToolThinking(String toolName, String argsJson, Sinks.Many<String> sink) {
         if (toolName.contains("search")) {
-            var args = JSON.parseObject(argsJson);
-            var query = args.getString("query");
+            var args = JacksonJson.parseTreeLenient(argsJson);
+            var query = args != null ? args.path("query").asText(null) : null;
             var queryThink = org.springframework.util.StringUtils.hasLength(query)
                     ? "🔍 Searching for information: " + query + "\n"
                     : "🔍 Searching for related information\n";

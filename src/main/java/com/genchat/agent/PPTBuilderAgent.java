@@ -1,6 +1,6 @@
 package com.genchat.agent;
 
-import com.alibaba.fastjson.JSON;
+import com.genchat.common.utils.JacksonJson;
 import com.genchat.application.strategy.PptStateStrategyContext;
 import com.genchat.application.strategy.PptStrategyDependencies;
 import com.genchat.common.AgentStreamEvent;
@@ -128,15 +128,18 @@ public class PPTBuilderAgent {
                 .doOnNext(chunk -> {
                     // When parsing JSON, if the type is "text", only the content should be concatenated; if the type is "thinking", then the thinking should be concatenated
                     try {
-                        var json = JSON.parseObject(chunk);
-                        var type = json.getString("type");
-                        if ("text".equals(type)) {
-                            finalAnswerBuffer.append(json.getString("content"));
-                        } else if ("thinking".equals(type)) {
-                            thinkingBuffer.append(json.getString("content"));
+                        var json = JacksonJson.parseTreeLenient(chunk);
+                        if (json != null) {
+                            var type = json.path("type").asText(null);
+                            if ("text".equals(type)) {
+                                finalAnswerBuffer.append(json.path("content").asText(""));
+                            } else if ("thinking".equals(type)) {
+                                thinkingBuffer.append(json.path("content").asText(""));
+                            }
+                        } else {
+                            finalAnswerBuffer.append(chunk);
                         }
                     } catch (Exception e) {
-                        // If the parse fails, it will be spliced directly
                         log.error("Error while parsing JSON.", e);
                         finalAnswerBuffer.append(chunk);
                     }

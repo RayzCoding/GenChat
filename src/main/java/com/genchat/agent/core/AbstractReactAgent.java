@@ -1,7 +1,6 @@
 package com.genchat.agent.core;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.genchat.common.utils.JacksonJson;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.genchat.common.AgentStreamEvent;
@@ -104,7 +103,7 @@ public abstract class AbstractReactAgent {
                                    String conversationId,
                                    AgentState agentState) {
         if (agentState != null && !agentState.searchResults.isEmpty()) {
-            sink.tryEmitNext(AgentStreamEvent.Reference.of(JSON.toJSONString(agentState.searchResults)).toJSON());
+            sink.tryEmitNext(AgentStreamEvent.Reference.of(JacksonJson.toJson(agentState.searchResults)).toJSON());
         }
         if (enableRecommendations) {
             String recommendations = generateRecommendations(conversationId, currentQuestion, finalText);
@@ -184,12 +183,16 @@ public abstract class AbstractReactAgent {
                 .doOnNext(chunk -> {
                     recordFirstResponse();
                     try {
-                        JSONObject json = JSON.parseObject(chunk);
-                        String type = json.getString("type");
-                        if ("text".equals(type)) {
-                            finalAnswerBuffer.append(json.getString("content"));
-                        } else if ("thinking".equals(type)) {
-                            thinkingBuffer.append(json.getString("content"));
+                        var json = JacksonJson.parseTreeLenient(chunk);
+                        if (json != null) {
+                            String type = json.path("type").asText(null);
+                            if ("text".equals(type)) {
+                                finalAnswerBuffer.append(json.path("content").asText(""));
+                            } else if ("thinking".equals(type)) {
+                                thinkingBuffer.append(json.path("content").asText(""));
+                            }
+                        } else {
+                            finalAnswerBuffer.append(chunk);
                         }
                     } catch (Exception e) {
                         finalAnswerBuffer.append(chunk);
@@ -204,7 +207,7 @@ public abstract class AbstractReactAgent {
                     log.info("Thinking process: {}", thinkingBuffer);
                     sessionService.update(currentSessionId, finalAnswerBuffer,
                             thinkingBuffer, agentState, firstResponseTime,
-                            getTotalResponseTime(), JSON.toJSONString(toolRecords),
+                            getTotalResponseTime(), JacksonJson.toJson(toolRecords),
                             currentRecommendations, getAgentType(), null);
                     agentTaskService.stopTask(conversationId);
                 });
@@ -571,7 +574,7 @@ public abstract class AbstractReactAgent {
             if (response != null && !response.isEmpty()) {
                 List<String> recommendations = converter.convert(response);
                 if (!CollectionUtils.isEmpty(recommendations)) {
-                    var jsonStr = JSON.toJSONString(recommendations);
+                    var jsonStr = JacksonJson.toJson(recommendations);
                     log.info("The recommendation question has been successfully generated: {}", jsonStr);
                     return jsonStr;
                 }

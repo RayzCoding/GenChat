@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +28,7 @@ public class AgentFactory {
     private final WebSearchToolInitConfig webSearchToolInitConfig;
     private final FileContentTool fileContentTool;
     private final PptStrategyDependencies pptStrategyDependencies;
+    private final ObjectProvider<DeepResearchAgent> deepResearchAgentProvider;
 
     @Value("${skills.directory:}")
     private String skillsDirectory;
@@ -41,12 +43,7 @@ public class AgentFactory {
     }
 
     public DeepResearchAgent createDeepResearchAgent() {
-        return new DeepResearchAgent(
-                sessionService,
-                chatModel,
-                List.of(webSearchToolInitConfig.getWebSearchToolCallbacks()),
-                agentTaskService,
-                3);
+        return deepResearchAgentProvider.getObject();
     }
 
     public SimpleReactAgent createSimpleReactAgent() {

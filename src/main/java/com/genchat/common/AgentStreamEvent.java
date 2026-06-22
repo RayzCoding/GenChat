@@ -1,10 +1,9 @@
 package com.genchat.common;
 
-import com.alibaba.fastjson.JSON;
+import com.genchat.common.utils.JacksonJson;
 
 /**
- * Agent Stream Incident
- *
+ * Agent stream event payloads serialized as SSE JSON lines.
  */
 public sealed interface AgentStreamEvent permits
         AgentStreamEvent.Thinking,
@@ -16,9 +15,6 @@ public sealed interface AgentStreamEvent permits
         AgentStreamEvent.Error,
         AgentStreamEvent.Complete {
 
-    /**
-     * LLM thinking
-     */
     record Thinking(String content) implements AgentStreamEvent {
         @Override
         public String toJSON() {
@@ -26,9 +22,6 @@ public sealed interface AgentStreamEvent permits
         }
     }
 
-    /**
-     * LLM text output。
-     */
     record Text(String content) implements AgentStreamEvent {
         @Override
         public String toJSON() {
@@ -36,9 +29,6 @@ public sealed interface AgentStreamEvent permits
         }
     }
 
-    /**
-     * start execute tool。
-     */
     record ToolStart(String toolName, String toolCallId, String arguments) implements AgentStreamEvent {
         @Override
         public String toJSON() {
@@ -48,9 +38,6 @@ public sealed interface AgentStreamEvent permits
         }
     }
 
-    /**
-     * completed execute tool
-     */
     record ToolEnd(String toolName, String toolCallId, String result) implements AgentStreamEvent {
         @Override
         public String toJSON() {
@@ -60,21 +47,9 @@ public sealed interface AgentStreamEvent permits
         }
     }
 
-    /**
-     * reference sources。
-     */
     record Reference(String content, Integer count) implements AgentStreamEvent {
         public static Reference of(String content) {
-            Integer count = null;
-            try {
-                var jsonArray = JSON.parseArray(content);
-                if (jsonArray != null) {
-                    count = jsonArray.size();
-                }
-            } catch (Exception ignored) {
-                // count remains null
-            }
-            return new Reference(content, count);
+            return new Reference(content, JacksonJson.arraySize(content));
         }
 
         @Override
@@ -89,9 +64,6 @@ public sealed interface AgentStreamEvent permits
         }
     }
 
-    /**
-     * recommended follow-up questions。
-     */
     record Recommend(String content, Integer count) implements AgentStreamEvent {
         public static Recommend of(String content) {
             return of(content, null);
@@ -99,14 +71,7 @@ public sealed interface AgentStreamEvent permits
 
         public static Recommend of(String content, Integer count) {
             if (count == null) {
-                try {
-                    var jsonArray = JSON.parseArray(content);
-                    if (jsonArray != null) {
-                        count = jsonArray.size();
-                    }
-                } catch (Exception ignored) {
-                    // count remains null
-                }
+                count = JacksonJson.arraySize(content);
             }
             return new Recommend(content, count);
         }
@@ -123,9 +88,6 @@ public sealed interface AgentStreamEvent permits
         }
     }
 
-    /**
-     * error event。
-     */
     record Error(String code, String message, String detail) implements AgentStreamEvent {
         public static Error simple(String message) {
             return new Error("ERROR", message, null);
@@ -140,9 +102,6 @@ public sealed interface AgentStreamEvent permits
         }
     }
 
-    /**
-     * Agent execute complete。
-     */
     record Complete() implements AgentStreamEvent {
         @Override
         public String toJSON() {
@@ -150,50 +109,13 @@ public sealed interface AgentStreamEvent permits
         }
     }
 
-    /**
-     * Serialize to a JSON string
-     */
     String toJSON();
 
-    /**
-     * Serialize reference/recommend content: parse JSON when possible, otherwise escape as string.
-     */
     static String serializeContent(String value) {
-        if (value == null) {
-            return "null";
-        }
-        try {
-            return JSON.toJSONString(JSON.parse(value));
-        } catch (Exception e) {
-            return escapeJson(value);
-        }
+        return JacksonJson.serializeContent(value);
     }
 
-    /**
-     * JSON String escape
-     */
     static String escapeJson(String value) {
-        if (value == null) return "null";
-        StringBuilder sb = new StringBuilder(value.length() + 2);
-        sb.append('"');
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            switch (c) {
-                case '"' -> sb.append("\\\"");
-                case '\\' -> sb.append("\\\\");
-                case '\n' -> sb.append("\\n");
-                case '\r' -> sb.append("\\r");
-                case '\t' -> sb.append("\\t");
-                default -> {
-                    if (c < 0x20) {
-                        sb.append(String.format("\\u%04x", (int) c));
-                    } else {
-                        sb.append(c);
-                    }
-                }
-            }
-        }
-        sb.append('"');
-        return sb.toString();
+        return JacksonJson.quoteJsonString(value);
     }
 }

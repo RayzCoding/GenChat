@@ -5,6 +5,7 @@ import com.genchat.dto.PlanTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -13,6 +14,7 @@ import reactor.core.scheduler.Schedulers;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class DeepResearchPlanLoop {
 

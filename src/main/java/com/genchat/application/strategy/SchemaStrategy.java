@@ -1,6 +1,6 @@
 package com.genchat.application.strategy;
 
-import com.alibaba.fastjson.JSON;
+import com.genchat.common.utils.JacksonJson;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.dto.AiPptInst;
@@ -49,14 +49,14 @@ public class SchemaStrategy implements PptStateStrategy {
         var disposable = Mono.fromCallable(() -> {
                     var text = context.getChatModel().call(new Prompt(schemaGenerationPrompt)).getResult().getOutput().getText();
                     var pptSchema = pptSchemaBeanOutputConverter.convert(text);
-                    var pptSchemaJson = JSON.toJSONString(pptSchema);
+                    var pptSchemaJson = JacksonJson.toJson(pptSchema);
 
                     inst.setPptSchema(pptSchemaJson);
                     inst.setStatus(TARGET_STATUS.getCode());
                     context.getPptInstService().updateInst(inst);
 
                     processImageGeneration(pptSchema, sink, inst.getConversationId(), context);
-                    inst.setPptSchema(JSON.toJSONString(pptSchema));
+                    inst.setPptSchema(JacksonJson.toJson(pptSchema));
                     context.getPptInstService().updateInst(inst);
                     context.continueStateMachine(inst, sink, question, thinkingBuffer);
                     return null;
@@ -163,14 +163,14 @@ public class SchemaStrategy implements PptStateStrategy {
                             .getOutput()
                             .getText();
                     var pptSchema = pptSchemaBeanOutputConverter.convert(text);
-                    var pptSchemaJson = JSON.toJSONString(pptSchema);
+                    var pptSchemaJson = JacksonJson.toJson(pptSchema);
 
                     inst.setPptSchema(pptSchemaJson);
                     inst.setStatus(TARGET_STATUS.getCode());
                     context.getPptInstService().updateInst(inst);
 
                     processImageGeneration(pptSchema, sink, inst.getConversationId(), context);
-                    inst.setPptSchema(JSON.toJSONString(pptSchema));
+                    inst.setPptSchema(JacksonJson.toJson(pptSchema));
                     context.getPptInstService().updateInst(inst);
                     context.continueStateMachine(inst, sink, question, thinkingBuffer);
                     return null;

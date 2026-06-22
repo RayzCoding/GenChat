@@ -1,0 +1,27 @@
+# Copy to application-local.yml and adjust for your machine.
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+spring:
+  datasource:
+    password: your_password
+
+minio:
+  accessKey: ak
+  secretKey: sk
+
+embeddings:
+  store:
+    password: 123456
+
+skills:
+  directory: /path/to/your/skills
+
+# Optional absolute path; leave empty to use classpath:python/render_ppt.py
+ppt:
+  python-script:
+
+app:
+  cors:
+    allowed-origin-patterns: http://localhost:*,http://127.0.0.1:*

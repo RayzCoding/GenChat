@@ -6,6 +6,7 @@ import com.genchat.dto.OverAllState;
 import com.genchat.dto.PlanTask;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.stereotype.Component;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RequiredArgsConstructor
+@Component
 public class DeepResearchPlanner {
 
     private final DeepResearchDependencies deps;

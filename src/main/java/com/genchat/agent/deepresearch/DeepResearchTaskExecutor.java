@@ -7,6 +7,7 @@ import com.genchat.dto.TaskResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class DeepResearchTaskExecutor {
 

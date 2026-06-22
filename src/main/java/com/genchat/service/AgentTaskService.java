@@ -1,7 +1,6 @@
 package com.genchat.service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.genchat.common.utils.JacksonJson;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -131,10 +130,7 @@ public class AgentTaskService implements InitializingBean, DisposableBean {
     }
 
     private String createStopMessage() {
-        JSONObject obj = new JSONObject();
-        obj.put("type", "text");
-        obj.put("content", "⏹ The user has stopped generating\n");
-        return JSON.toJSONString(obj);
+        return JacksonJson.stopMessageJson("⏹ The user has stopped generating\n");
     }
 
     public void setDisposable(String conversationId, Disposable disposable) {

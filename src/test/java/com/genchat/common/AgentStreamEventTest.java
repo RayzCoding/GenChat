@@ -1,5 +1,6 @@
 package com.genchat.common;
 
+import com.genchat.common.utils.JacksonJson;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,5 +32,17 @@ class AgentStreamEventTest {
     void completeEventProducesValidJson() {
         var json = new AgentStreamEvent.Complete().toJSON();
         assertTrue(json.contains("\"type\":\"complete\""));
+    }
+
+    @Test
+    void referenceEventCountsJsonArrayItems() {
+        var json = AgentStreamEvent.Reference.of("[{\"url\":\"https://example.com\"}]").toJSON();
+        assertTrue(json.contains("\"count\":1"));
+    }
+
+    @Test
+    void jacksonJsonStopMessageMatchesLegacyShape() {
+        var json = JacksonJson.stopMessageJson("stop");
+        assertEquals("{\"type\":\"text\",\"content\":\"stop\"}", json);
     }
 }

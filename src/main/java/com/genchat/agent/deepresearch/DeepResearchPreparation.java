@@ -11,6 +11,7 @@ import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Sinks;
@@ -20,13 +21,13 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class DeepResearchPreparation {
 
     private final DeepResearchDependencies deps;
-    private ChatMemory chatMemory;
 
-    public void initPersistentChatMemory(String conversationId) {
+    public ChatMemory buildChatMemory(String conversationId) {
         int maxMessages = 30;
         var historyMessages = deps.sessionService().queryRecentBySessionId(conversationId, maxMessages);
         var memory = MessageWindowChatMemory.builder().maxMessages(maxMessages).build();
@@ -43,10 +44,13 @@ public class DeepResearchPreparation {
             });
             log.info("Loading history messages, conversationId: {}, recordCount: {}", conversationId, historyMessages.size());
         }
-        this.chatMemory = memory;
+        return memory;
     }
 
-    public OverAllState initStateAndSaveQuestion(DeepResearchRunContext ctx, String conversationsId, String question) {
+    public OverAllState initStateAndSaveQuestion(DeepResearchRunContext ctx,
+                                                 String conversationsId,
+                                                 String question,
+                                                 ChatMemory chatMemory) {
         var overAllState = new OverAllState(conversationsId, question);
         var historyMessages = chatMemory.get(conversationsId);
         if (!CollectionUtils.isEmpty(historyMessages)) {
@@ -64,10 +68,10 @@ public class DeepResearchPreparation {
     }
 
     public void clarifyRequirement(DeepResearchRunContext ctx,
-                                     OverAllState overAllState,
-                                     Sinks.Many<String> sink,
-                                     AtomicBoolean finished,
-                                     Runnable onComplete) {
+                                   OverAllState overAllState,
+                                   Sinks.Many<String> sink,
+                                   AtomicBoolean finished,
+                                   Runnable onComplete) {
         DeepResearchStreams.emitThinking(sink, finished, "\n🔍Your needs are being analyzed...\n");
         var messages = new ArrayList<Message>();
         messages.add(new SystemMessage(PlanExecutePrompts.getCurrentTime()

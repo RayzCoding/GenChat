@@ -1,52 +1,34 @@
 package com.genchat.agent;
 
 import com.alibaba.fastjson2.JSON;
-import com.genchat.agent.deepresearch.DeepResearchCritic;
 import com.genchat.agent.deepresearch.DeepResearchDependencies;
 import com.genchat.agent.deepresearch.DeepResearchPlanLoop;
-import com.genchat.agent.deepresearch.DeepResearchPlanner;
 import com.genchat.agent.deepresearch.DeepResearchPreparation;
-import com.genchat.agent.deepresearch.DeepResearchReporter;
 import com.genchat.agent.deepresearch.DeepResearchRunContext;
 import com.genchat.agent.deepresearch.DeepResearchStreams;
-import com.genchat.agent.deepresearch.DeepResearchTaskExecutor;
 import com.genchat.common.AgentStreamEvent;
-import com.genchat.service.AgentTaskService;
-import com.genchat.service.AiChatSessionService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.chat.memory.ChatMemory;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
+@RequiredArgsConstructor
 public class DeepResearchAgent {
 
     private final DeepResearchDependencies deps;
     private final DeepResearchPreparation preparation;
     private final DeepResearchPlanLoop planLoop;
 
-    public DeepResearchAgent(AiChatSessionService sessionService,
-                             ChatModel chatModel,
-                             List<ToolCallback> tools,
-                             AgentTaskService agentTaskService,
-                             int maxRounds) {
-        this.deps = new DeepResearchDependencies(sessionService, chatModel, tools, agentTaskService, maxRounds);
-        this.preparation = new DeepResearchPreparation(deps);
-        var planner = new DeepResearchPlanner(deps);
-        var executor = new DeepResearchTaskExecutor(deps);
-        var critic = new DeepResearchCritic(deps);
-        var reporter = new DeepResearchReporter(deps);
-        this.planLoop = new DeepResearchPlanLoop(deps, planner, executor, critic, reporter);
-    }
+    private ChatMemory chatMemory;
 
     public void initPersistentChatMemory(String conversationId) {
-        preparation.initPersistentChatMemory(conversationId);
+        this.chatMemory = preparation.buildChatMemory(conversationId);
     }
 
     public Flux<String> stream(String conversationsId, String question) {
@@ -68,7 +50,7 @@ public class DeepResearchAgent {
         ctx.getAllReferences().clear();
 
         var finished = new AtomicBoolean(false);
-        var overAllState = preparation.initStateAndSaveQuestion(ctx, conversationsId, question);
+        var overAllState = preparation.initStateAndSaveQuestion(ctx, conversationsId, question, chatMemory);
         var finalAnswerBuffer = new StringBuilder();
         var thinkingBuffer = new StringBuilder();
 

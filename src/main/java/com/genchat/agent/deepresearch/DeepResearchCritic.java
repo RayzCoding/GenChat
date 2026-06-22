@@ -8,6 +8,7 @@ import com.genchat.dto.PlanTask;
 import com.genchat.dto.TaskResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.stereotype.Component;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.converter.BeanOutputConverter;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RequiredArgsConstructor
+@Component
 public class DeepResearchCritic {
 
     private final DeepResearchDependencies deps;

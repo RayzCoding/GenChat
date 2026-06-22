@@ -58,8 +58,7 @@ dependencies {
     // MyBatis-Plus
     implementation 'com.baomidou:mybatis-plus-spring-boot3-starter:3.5.9'
 
-    // JSON (fastjson v1 used by agents; fastjson2 used by session service)
-    implementation 'com.alibaba:fastjson:2.0.43'
+    // JSON (fastjson2 used by session service and deep research streaming)
     implementation 'com.alibaba.fastjson2:fastjson2:2.0.43'
 
     // Spring AI RAG (query expansion for EmbeddingService)

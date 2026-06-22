@@ -76,3 +76,7 @@ skills:
 
 ppt:
   python-script: ${PPT_PYTHON_SCRIPT:}
+
+app:
+  cors:
+    allowed-origin-patterns: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
