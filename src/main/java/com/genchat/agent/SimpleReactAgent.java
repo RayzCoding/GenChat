@@ -1,14 +1,12 @@
 package com.genchat.agent;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.genchat.agent.core.ReactToolSupport;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.SimpleReactResult;
 import com.genchat.entity.AgentState;
 import com.genchat.entity.RoundMode;
 import com.genchat.entity.RoundState;
-import com.genchat.entity.SearchResult;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -28,8 +26,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.genchat.common.utils.JsonUtil.getSafe;
 
 /**
  * It does not contain any conversational memory and only answers the current question
@@ -160,16 +156,16 @@ public class SimpleReactAgent {
         for (var toolCall : toolCalls) {
             Schedulers.boundedElastic().schedule(() -> {
                 if (hasSentFinalResult.get()) {
-                    completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                    ReactToolSupport.completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
                     return;
                 }
                 var toolName = toolCall.name();
                 var argsJson = toolCall.arguments();
 
-                var toolCallback = findTool(toolName);
+                var toolCallback = ReactToolSupport.findTool(tools, toolName);
                 if (Objects.isNull(toolCallback)) {
-                    addErrorToolResponse(messages, toolCall, "Not Found Tool:" + toolName);
-                    completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                    ReactToolSupport.addErrorToolResponse(messages, toolCall, "Not Found Tool:" + toolName);
+                    ReactToolSupport.completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
                     return;
                 }
                 try {
@@ -180,57 +176,11 @@ public class SimpleReactAgent {
                     responseMap.put(toolCall.id(), tr);
                 } catch (Exception ex) {
                     responseMap.put(toolCall.id(), new ToolResponseMessage.ToolResponse(toolCall.id(), toolName,
-                            "{ \"error\": \"Tool execution failed：" + ex.getMessage() + "\" }"));
+                            ReactToolSupport.toolErrorPayload("Tool execution failed: " + ex.getMessage())));
                 } finally {
-                    completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                    ReactToolSupport.completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
                 }
             });
-        }
-    }
-
-    private void addErrorToolResponse(List<Message> messages, AssistantMessage.ToolCall toolCall, String errMsg) {
-        ToolResponseMessage.ToolResponse tr = new ToolResponseMessage.ToolResponse(
-                toolCall.id(),
-                toolCall.name(),
-                "{ \"error\": \"" + errMsg + "\" }"
-        );
-
-        messages.add(ToolResponseMessage.builder()
-                .responses(List.of(tr))
-                .build());
-    }
-
-    private ToolCallback findTool(String name) {
-        return tools.stream()
-                .filter(t -> t.getToolDefinition().name().equals(name))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private void completeToolCall(AtomicInteger completedCount, int total,
-                                  Map<String, ToolResponseMessage.ToolResponse> responseMap,
-                                  List<AssistantMessage.ToolCall> originalToolCalls,
-                                  List<Message> messages,
-                                  Runnable onComplete) {
-        int current = completedCount.incrementAndGet();
-        if (current >= total) {
-            // Reorganize the results in the order of the original toolCalls
-            var sortedResponses = new ArrayList<ToolResponseMessage.ToolResponse>();
-            for (AssistantMessage.ToolCall tc : originalToolCalls) {
-                ToolResponseMessage.ToolResponse response = responseMap.get(tc.id());
-                if (response != null) {
-                    sortedResponses.add(response);
-                } else {
-                    // If a tool call is unresponsive, add an error response
-                    sortedResponses.add(new ToolResponseMessage.ToolResponse(
-                            tc.id(), tc.name(), "{ \"error\": \"Tool response is missing\" }"));
-                }
-            }
-            // Add all tool responses at once (in original order)
-            messages.add(ToolResponseMessage.builder()
-                    .responses(sortedResponses)
-                    .build());
-            onComplete.run();
         }
     }
 
@@ -371,9 +321,9 @@ public class SimpleReactAgent {
                 String toolName = toolCall.name();
                 String argsJson = toolCall.arguments();
 
-                ToolCallback callback = findTool(toolName);
+                ToolCallback callback = ReactToolSupport.findTool(tools, toolName);
                 if (callback == null) {
-                    addErrorToolResponse(messages, toolCall, "Tool not found: " + toolName);
+                    ReactToolSupport.addErrorToolResponse(messages, toolCall, "Tool not found: " + toolName);
                     continue;
                 }
 
@@ -381,9 +331,8 @@ public class SimpleReactAgent {
                     Object result = callback.call(argsJson);
                     String resultStr = Objects.toString(result, "");
 
-                    // Parse search results
                     if (agentState != null) {
-                        parseSearchResult(resultStr, agentState);
+                        ReactToolSupport.parseTavilySearchResult(resultStr, agentState);
                     }
 
                     ToolResponseMessage.ToolResponse tr = new ToolResponseMessage.ToolResponse(
@@ -392,52 +341,9 @@ public class SimpleReactAgent {
                             .responses(List.of(tr))
                             .build());
                 } catch (Exception ex) {
-                    addErrorToolResponse(messages, toolCall, "Tool execution failed: " + ex.getMessage());
+                    ReactToolSupport.addErrorToolResponse(messages, toolCall, "Tool execution failed: " + ex.getMessage());
                 }
             }
-        }
-    }
-
-    private void parseSearchResult(String resultJson, AgentState state) {
-        try {
-            var objectMapper = new ObjectMapper();
-            JsonNode root = objectMapper.readTree(resultJson);
-
-            // Tavily search result format: [{ "text": { "results": [...] } }]
-            if (!root.isArray() || root.isEmpty()) {
-                return;
-            }
-
-            JsonNode first = root.get(0);
-            JsonNode textNode = first.get("text");
-
-            if (textNode == null || textNode.isNull()) {
-                return;
-            }
-
-            JsonNode textJson;
-            if (textNode.isTextual()) {
-                textJson = objectMapper.readTree(textNode.asText());
-            } else {
-                textJson = textNode;
-            }
-
-            JsonNode results = textJson.get("results");
-            if (results == null || !results.isArray()) {
-                return;
-            }
-
-            for (JsonNode item : results) {
-                String url = getSafe(item, "url");
-                String title = getSafe(item, "title");
-                String content = getSafe(item, "content");
-
-                if (url != null && !url.isBlank()) {
-                    state.searchResults.add(new SearchResult(url, title, content));
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to parse search results: {}", e.getMessage());
         }
     }
 }

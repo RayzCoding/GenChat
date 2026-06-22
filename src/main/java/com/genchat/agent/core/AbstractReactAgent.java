@@ -1,8 +1,7 @@
 package com.genchat.agent.core;
 
+import com.genchat.application.agent.PersistentChatAgent;
 import com.genchat.common.utils.JacksonJson;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.ToolRecord;
 import com.genchat.common.prompts.ReactAgentPrompts;
@@ -10,8 +9,6 @@ import com.genchat.dto.AiChatSession;
 import com.genchat.entity.AgentState;
 import com.genchat.entity.RoundMode;
 import com.genchat.entity.RoundState;
-import com.genchat.entity.SearchResult;
-import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -37,16 +34,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.genchat.common.utils.JsonUtil.getSafe;
+import com.genchat.service.AgentTaskService;
 
 /**
  * Shared ReAct loop engine for conversation agents with persistent memory.
  */
 @Slf4j
 @Setter
-public abstract class AbstractReactAgent {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+public abstract class AbstractReactAgent implements PersistentChatAgent {
 
     protected final ChatModel chatModel;
     protected final AiChatSessionService sessionService;
@@ -94,7 +89,7 @@ public abstract class AbstractReactAgent {
 
     protected void handleToolResult(String toolName, String result, AgentState agentState) {
         if (toolName.contains("tavily") && agentState != null) {
-            parseSearchResult(result, agentState);
+            ReactToolSupport.parseTavilySearchResult(result, agentState);
         }
     }
 
@@ -357,7 +352,7 @@ public abstract class AbstractReactAgent {
         for (var toolCall : toolCalls) {
             Schedulers.boundedElastic().schedule(() -> {
                 if (hasSentFinalResult.get()) {
-                    completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                    ReactToolSupport.completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
                     return;
                 }
                 var toolName = toolCall.name();
@@ -365,7 +360,7 @@ public abstract class AbstractReactAgent {
                 log.info(">>> ToolStart: {} | args: {}", toolName, argsJson);
                 sink.tryEmitNext(new AgentStreamEvent.ToolStart(toolName, toolCall.id(), argsJson).toJSON());
 
-                var toolCallback = findTool(toolName);
+                var toolCallback = ReactToolSupport.findTool(tools, toolName);
                 if (Objects.isNull(toolCallback)) {
                     String errorMsg = "Tool not found：" + toolName;
                     log.warn("<<< ToolEnd (NOT_FOUND): {}", toolName);
@@ -375,7 +370,7 @@ public abstract class AbstractReactAgent {
                             toolCall.name(),
                             "{ \"error\": \"" + "Not Found Tool:" + toolName + "\" }"
                     ));
-                    completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                    ReactToolSupport.completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
                     return;
                 }
 
@@ -396,78 +391,10 @@ public abstract class AbstractReactAgent {
                     ));
                 } finally {
                     if (!hasSentFinalResult.get()) {
-                        completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
+                        ReactToolSupport.completeToolCall(completedCount, totalToolCalls, responseMap, toolCalls, messages, onComplete);
                     }
                 }
             });
-        }
-    }
-
-    private void parseSearchResult(String resultJson, AgentState state) {
-        try {
-            JsonNode root = MAPPER.readTree(resultJson);
-            if (!root.isArray() || root.isEmpty()) {
-                return;
-            }
-            JsonNode first = root.get(0);
-            JsonNode textNode = first.get("text");
-            if (textNode == null || textNode.isNull()) {
-                return;
-            }
-
-            JsonNode textJson;
-            if (textNode.isTextual()) {
-                textJson = MAPPER.readTree(textNode.asText());
-            } else {
-                textJson = textNode;
-            }
-
-            JsonNode results = textJson.get("results");
-            if (results == null || !results.isArray()) {
-                return;
-            }
-
-            for (JsonNode item : results) {
-                String url = getSafe(item, "url");
-                String title = getSafe(item, "title");
-                String content = getSafe(item, "content");
-
-                if (url != null && !url.isBlank()) {
-                    state.searchResults.add(new SearchResult(url, title, content));
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to parse tavily search results: {}", e.getMessage());
-        }
-    }
-
-    private ToolCallback findTool(String name) {
-        return tools.stream()
-                .filter(t -> t.getToolDefinition().name().equals(name))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private void completeToolCall(AtomicInteger completedCount,
-                                  int total,
-                                  Map<String, ToolResponseMessage.ToolResponse> responseMap,
-                                  List<AssistantMessage.ToolCall> toolCalls,
-                                  List<Message> messages,
-                                  Runnable onComplete) {
-        int current = completedCount.incrementAndGet();
-        if (current >= total) {
-            List<ToolResponseMessage.ToolResponse> sortedResponses = new ArrayList<>();
-            for (AssistantMessage.ToolCall tc : toolCalls) {
-                ToolResponseMessage.ToolResponse response = responseMap.get(tc.id());
-                if (response != null) {
-                    sortedResponses.add(response);
-                } else {
-                    sortedResponses.add(new ToolResponseMessage.ToolResponse(
-                            tc.id(), tc.name(), "{ \"error\": \"Tool response is missing\" }"));
-                }
-            }
-            messages.add(ToolResponseMessage.builder().responses(sortedResponses).build());
-            onComplete.run();
         }
     }
 
