@@ -4,6 +4,12 @@ export interface SearchResult {
   content?: string
 }
 
+export interface ApiResult<T> {
+  code: number
+  message: string
+  data: T
+}
+
 export type MessageStatus = 'streaming' | 'complete' | 'error' | 'stopped'
 
 export type ToolCallStatus = 'running' | 'done' | 'failed'

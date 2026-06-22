@@ -3,13 +3,14 @@ package com.genchat.config;
 import com.genchat.common.ResourceNotFoundException;
 import com.genchat.common.Result;
 import com.genchat.controller.FileController;
+import com.genchat.controller.SessionController;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = FileController.class)
+@RestControllerAdvice(assignableTypes = {FileController.class, SessionController.class})
 @Slf4j
 public class GlobalExceptionHandler {
 

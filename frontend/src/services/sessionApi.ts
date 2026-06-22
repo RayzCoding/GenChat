@@ -1,4 +1,4 @@
-import type { PageResult, SessionDetail, SessionSummary } from '../types'
+import type { ApiResult, PageResult, SessionDetail, SessionSummary } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
@@ -14,16 +14,17 @@ function buildUrl(path: string, params?: Record<string, string | number | undefi
   return url.toString()
 }
 
-async function getJson<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
+async function getResult<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
   const response = await fetch(buildUrl(path, params))
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`)
+  const result = (await response.json()) as ApiResult<T>
+  if (!response.ok || result.code !== 200) {
+    throw new Error(result.message || `HTTP ${response.status}`)
   }
-  return response.json() as Promise<T>
+  return result.data as T
 }
 
 export function listSessions(page = 1, pageSize = 30): Promise<PageResult<SessionSummary>> {
-  return getJson('/agent/sessions', { page, pageSize })
+  return getResult('/agent/sessions', { page, pageSize })
 }
 
 export function searchSessions(
@@ -31,11 +32,11 @@ export function searchSessions(
   page = 1,
   pageSize = 30,
 ): Promise<PageResult<SessionSummary>> {
-  return getJson('/agent/sessions/search', { q, page, pageSize })
+  return getResult('/agent/sessions/search', { q, page, pageSize })
 }
 
 export function getSessionDetail(conversationId: string): Promise<SessionDetail> {
-  return getJson(`/agent/sessions/${encodeURIComponent(conversationId)}`)
+  return getResult(`/agent/sessions/${encodeURIComponent(conversationId)}`)
 }
 
 export async function deleteSession(conversationId: string): Promise<void> {
@@ -43,7 +44,8 @@ export async function deleteSession(conversationId: string): Promise<void> {
     buildUrl(`/agent/sessions/${encodeURIComponent(conversationId)}`),
     { method: 'DELETE' },
   )
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`)
+  const result = (await response.json()) as ApiResult<null>
+  if (!response.ok || result.code !== 200) {
+    throw new Error(result.message || `Delete failed (${response.status})`)
   }
 }
