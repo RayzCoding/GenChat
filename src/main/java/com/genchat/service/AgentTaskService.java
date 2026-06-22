@@ -83,10 +83,10 @@ public class AgentTaskService implements InitializingBean, DisposableBean {
     public boolean stopTask(String conversationId) {
         try {
             var localTaskInfo = taskMap.get(conversationId);
-            if (Objects.isNull(localTaskInfo)) {
-                log.warn("Conversation {} has no task being executed", conversationId);
+            if (!Objects.isNull(localTaskInfo)) {
+                log.warn("Conversation {} has task being executed", conversationId);
                 doStopTask(conversationId, localTaskInfo);
-                return true;
+                return false;
             }
             var taskBucket = getTaskBucket(conversationId);
             if (!taskBucket.isExists()) {
