@@ -1,5 +1,6 @@
 package com.genchat.agent;
 
+import com.genchat.application.agent.PersistentChatAgent;
 import com.alibaba.fastjson2.JSON;
 import com.genchat.agent.deepresearch.DeepResearchDependencies;
 import com.genchat.agent.deepresearch.DeepResearchPlanLoop;
@@ -19,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @RequiredArgsConstructor
-public class DeepResearchAgent {
+public class DeepResearchAgent implements PersistentChatAgent {
 
     private final DeepResearchDependencies deps;
     private final DeepResearchPreparation preparation;

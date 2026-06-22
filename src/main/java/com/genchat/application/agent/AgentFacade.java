@@ -9,6 +9,7 @@ import reactor.core.publisher.Flux;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -19,62 +20,32 @@ public class AgentFacade {
     private final AgentTaskService agentTaskService;
 
     public Flux<String> chatStream(String conversationId, String question) {
-        try {
-            var agent = agentFactory.createWebSearchAgent();
-            agent.initPersistentChatMemory(conversationId);
-            return agent.stream(conversationId, question);
-        } catch (Exception e) {
-            log.error("error occurred while processing request to chat stream, error:", e);
-            return Flux.error(e);
-        }
+        return streamWithMemory(conversationId, "chat stream", () -> agentFactory.createWebSearchAgent(),
+                agent -> agent.stream(conversationId, question));
     }
 
     public Flux<String> deepStream(String question, String conversationsId) {
-        try {
-            var agent = agentFactory.createDeepResearchAgent();
-            agent.initPersistentChatMemory(conversationsId);
-            return agent.stream(conversationsId, question);
-        } catch (Exception e) {
-            log.error("error occurred while processing deep stream, error:", e);
-            return Flux.error(e);
-        }
+        return streamWithMemory(conversationsId, "deep stream", agentFactory::createDeepResearchAgent,
+                agent -> agent.stream(conversationsId, question));
     }
 
     public Flux<String> simpleStream(String question) {
-        try {
-            return agentFactory.createSimpleReactAgent().stream(question);
-        } catch (Exception e) {
-            log.error("error occurred while processing request to chat stream, error:", e);
-            return Flux.error(e);
-        }
+        return streamSafely("simple stream", () -> agentFactory.createSimpleReactAgent().stream(question));
     }
 
     public Flux<String> fileStream(String conversationId, String question, String fileId) {
-        try {
-            var agent = agentFactory.createFileReactAgent();
-            agent.initPersistentChatMemory(conversationId);
-            return agent.stream(conversationId, question, fileId);
-        } catch (Exception e) {
-            log.error("error occurred while processing file stream, error:", e);
-            return Flux.error(e);
-        }
+        return streamWithMemory(conversationId, "file stream", agentFactory::createFileReactAgent,
+                agent -> agent.stream(conversationId, question, fileId));
     }
 
     public Flux<String> pptStream(String conversationsId, String question) {
-        try {
-            var agent = agentFactory.createPptBuilderAgent();
-            agent.initPersistentChatMemory(conversationsId);
-            return agent.stream(conversationsId, question);
-        } catch (Exception e) {
-            log.error("Error occurred while processing ppt stream, error:", e);
-            return Flux.error(e);
-        }
+        return streamWithMemory(conversationsId, "ppt stream", agentFactory::createPptBuilderAgent,
+                agent -> agent.stream(conversationsId, question));
     }
 
     public Flux<String> skillsStream(String conversationsId, String question, String fileId) {
-        var agent = agentFactory.createSkillsReactAgent();
-        agent.initPersistentChatMemory(conversationsId);
-        return agent.stream(conversationsId, question, fileId);
+        return streamWithMemory(conversationsId, "skills stream", agentFactory::createSkillsReactAgent,
+                agent -> agent.stream(conversationsId, question, fileId));
     }
 
     public Map<String, Object> stopAgent(String conversationId) {
@@ -97,5 +68,31 @@ public class AgentFacade {
         result.put("success", true);
         result.put("message", "Execution has been discontinued.");
         return result;
+    }
+
+    private <T extends PersistentChatAgent> Flux<String> streamWithMemory(
+            String conversationId,
+            String context,
+            Supplier<T> agentSupplier,
+            AgentStream<T> streamFn) {
+        return streamSafely(context, () -> {
+            T agent = agentSupplier.get();
+            agent.initPersistentChatMemory(conversationId);
+            return streamFn.apply(agent);
+        });
+    }
+
+    private Flux<String> streamSafely(String context, Supplier<Flux<String>> supplier) {
+        try {
+            return supplier.get();
+        } catch (Exception e) {
+            log.error("Error occurred while processing {}", context, e);
+            return Flux.error(e);
+        }
+    }
+
+    @FunctionalInterface
+    private interface AgentStream<T extends PersistentChatAgent> {
+        Flux<String> apply(T agent);
     }
 }

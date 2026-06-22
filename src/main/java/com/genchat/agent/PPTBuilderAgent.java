@@ -1,5 +1,6 @@
 package com.genchat.agent;
 
+import com.genchat.application.agent.PersistentChatAgent;
 import com.genchat.common.utils.JacksonJson;
 import com.genchat.application.strategy.PptStateStrategyContext;
 import com.genchat.application.strategy.PptStrategyDependencies;
@@ -27,7 +28,7 @@ import java.util.*;
 
 @Slf4j
 @Setter
-public class PPTBuilderAgent {
+public class PPTBuilderAgent implements PersistentChatAgent {
     public static final String AGENT_TYPE = "pptBuilderAgent";
     private final ChatModel chatModel;
     private ChatMemory chatMemory;
