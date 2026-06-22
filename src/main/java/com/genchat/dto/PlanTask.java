@@ -1,7 +1,7 @@
 package com.genchat.dto;
 
 /**
- * 计划任务记录
+ * Planned task record.
  */
 public record PlanTask(
         String id,

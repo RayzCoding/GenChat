@@ -13,7 +13,7 @@ public final class PlanExecutePrompts {
     }
 
     public static String getCurrentTime() {
-        return "当前正确的系统时间：" + LocalDateTime.now(ZoneId.of("Asia/Shanghai"))
+        return "Current system time: " + LocalDateTime.now(ZoneId.of("Asia/Shanghai"))
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 

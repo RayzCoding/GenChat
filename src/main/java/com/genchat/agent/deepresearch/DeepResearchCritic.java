@@ -32,38 +32,38 @@ public class DeepResearchCritic {
         BeanOutputConverter<CritiqueResult> converter = new BeanOutputConverter<>(new ParameterizedTypeReference<>() {
         });
 
-        DeepResearchStreams.emitThinking(sink, hasSentFinal, "\n🔍 正在评估当前研究结果...\n");
+        DeepResearchStreams.emitThinking(sink, hasSentFinal, "\n🔍 Evaluating current research results...\n");
 
         if (ctx.isStopped(hasSentFinal)) {
-            return new CritiqueResult(true, "任务已取消");
+            return new CritiqueResult(true, "Task cancelled");
         }
 
         StringBuilder userMessage = new StringBuilder();
-        userMessage.append("【用户原始问题】\n");
+        userMessage.append("【Original User Question】\n");
         userMessage.append(state.getQuestion());
-        userMessage.append("\n\n【研究主题】\n");
+        userMessage.append("\n\n【Research Topic】\n");
         userMessage.append(state.getRefinedResearchTopic() != null ?
-                state.getRefinedResearchTopic() : "未生成研究主题");
-        userMessage.append("\n\n【当前轮次的执行计划】\n");
+                state.getRefinedResearchTopic() : "Research topic not generated");
+        userMessage.append("\n\n【Current Round Execution Plan】\n");
         if (currentPlan != null && !currentPlan.isEmpty()) {
             for (PlanTask task : currentPlan) {
                 userMessage.append(String.format("- %s\n", task.instruction()));
             }
         } else {
-            userMessage.append("无\n");
+            userMessage.append("None\n");
         }
-        userMessage.append("\n\n【当前轮次的工具结果】\n");
+        userMessage.append("\n\n【Current Round Tool Results】\n");
         if (currentResults != null && !currentResults.isEmpty()) {
             for (Map.Entry<String, TaskResult> entry : currentResults.entrySet()) {
                 TaskResult result = entry.getValue();
                 if (result != null && result.success() && result.output() != null) {
-                    userMessage.append(String.format("任务 %s: %s\n\n", entry.getKey(), result.output()));
+                    userMessage.append(String.format("Task %s: %s\n\n", entry.getKey(), result.output()));
                 } else if (result != null && !result.success() && result.error() != null) {
-                    userMessage.append(String.format("任务 %s: 执行失败 - %s\n\n", entry.getKey(), result.error()));
+                    userMessage.append(String.format("Task %s: execution failed - %s\n\n", entry.getKey(), result.error()));
                 }
             }
         } else {
-            userMessage.append("无\n");
+            userMessage.append("None\n");
         }
 
         String prom = PlanExecutePrompts.CRITIQUE + "\n" + converter.getFormat();
@@ -76,9 +76,11 @@ public class DeepResearchCritic {
         var result = converter.convert(ThinkTagParser.stripThinkTags(raw));
 
         if (result.passed()) {
-            DeepResearchStreams.emitThinking(sink, hasSentFinal, "\n✅ 研究结果评估通过，准备生成最终报告\n");
+            DeepResearchStreams.emitThinking(sink, hasSentFinal,
+                    "\n✅ Research evaluation passed, preparing final report\n");
         } else {
-            DeepResearchStreams.emitThinking(sink, hasSentFinal, "\n⚠️ 研究结果评估未通过，原因分析：" + result.feedback() + "\n");
+            DeepResearchStreams.emitThinking(sink, hasSentFinal,
+                    "\n⚠️ Research evaluation did not pass. Analysis: " + result.feedback() + "\n");
         }
         return result;
     }

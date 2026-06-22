@@ -180,8 +180,8 @@ export function parseTerminalLines(
     const timestamp = ts.toLocaleTimeString([], { hour12: false })
 
     let tone: ThinkingTerminalLine['tone'] = 'default'
-    if (/✅|completed|完成|passed/i.test(text)) tone = 'success'
-    else if (/🔍|initialized|Analyzing|正在|generating|Executing|⚙️|📋|🔄|📝/i.test(text))
+    if (/✅|completed|passed/i.test(text)) tone = 'success'
+    else if (/🔍|initialized|Analyzing|generating|Executing|⚙️|📋|🔄|📝/i.test(text))
       tone = index === slice.length - 1 ? 'active' : 'system'
     else if (/System|initialized/i.test(text)) tone = 'system'
 

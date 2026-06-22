@@ -8,20 +8,19 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * SimpleReactAgent 执行结果
- * 包含最终答案和搜索结果列表
+ * SimpleReactAgent execution result containing the final answer and search results.
  */
 @Data
 @Builder
 @AllArgsConstructor
 public class SimpleReactResult {
     /**
-     * 最终答案（纯文本）
+     * Final answer (plain text).
      */
     private String answer;
 
     /**
-     * 搜索结果列表
+     * Search result list.
      */
     private List<SearchResult> searchResults;
 

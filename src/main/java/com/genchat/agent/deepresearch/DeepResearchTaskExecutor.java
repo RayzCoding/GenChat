@@ -80,13 +80,13 @@ public class DeepResearchTaskExecutor {
                                 state.add(new AssistantMessage(resultMessage.toString()));
 
                             } catch (InterruptedException e) {
-                                log.info("Task {} 执行被中断", task.id());
+                                log.info("Task {} execution interrupted", task.id());
                                 Thread.currentThread().interrupt();
                                 results.put(task.id(), new TaskResult(task.id(), false, null, "Task execution interrupted"));
                             } catch (Exception e) {
                                 if (ctx.getCompositeDisposable().isDisposed() || Thread.currentThread().isInterrupted()
                                         || (e.getMessage() != null && e.getMessage().contains("interrupted"))) {
-                                    log.info("Task {} 执行被用户停止: {}", task.id(), e.getMessage());
+                                    log.info("Task {} stopped by user: {}", task.id(), e.getMessage());
                                     results.put(task.id(), new TaskResult(task.id(), false, null, "Task execution interrupted by user"));
                                 } else {
                                     log.error("Task execution error", e);
@@ -122,10 +122,11 @@ public class DeepResearchTaskExecutor {
                                 AtomicBoolean hasSentFinal) {
 
         Throwable lastError = null;
-        DeepResearchStreams.emitThinking(sink, hasSentFinal, "⚙️ 正在执行任务 " + task.id() + " : " + task.instruction() + "\n");
+        DeepResearchStreams.emitThinking(sink, hasSentFinal,
+                "⚙️ Executing task " + task.id() + " : " + task.instruction() + "\n");
 
         if (ctx.isStopped(hasSentFinal)) {
-            return new TaskResult(task.id(), false, null, "任务被用户停止");
+            return new TaskResult(task.id(), false, null, "Task stopped by user");
         }
         try {
             String fullContext = """
@@ -142,7 +143,7 @@ public class DeepResearchTaskExecutor {
             var result = simpleReactAgent.executeInternal(null, fullContext, true);
 
             if (ctx.getCompositeDisposable().isDisposed()) {
-                return new TaskResult(task.id(), false, null, "任务被用户停止");
+                return new TaskResult(task.id(), false, null, "Task stopped by user");
             }
 
             if (result.getSearchResults() != null && !result.getSearchResults().isEmpty()) {
@@ -152,26 +153,27 @@ public class DeepResearchTaskExecutor {
             }
 
             String answer = result.getAnswer();
-            DeepResearchStreams.emitThinking(sink, hasSentFinal, "执行结果: " + answer + "\n\n");
+            DeepResearchStreams.emitThinking(sink, hasSentFinal, "Execution result: " + answer + "\n\n");
             return new TaskResult(task.id(), true, answer, null);
         } catch (Exception e) {
             if (ctx.getCompositeDisposable().isDisposed() || Thread.currentThread().isInterrupted()
                     || (e.getMessage() != null && e.getMessage().contains("interrupted"))) {
-                log.info("Task {} 执行被用户停止: {}", task.id(), e.getMessage());
-                return new TaskResult(task.id(), false, null, "任务被用户停止");
+                log.info("Task {} stopped by user: {}", task.id(), e.getMessage());
+                return new TaskResult(task.id(), false, null, "Task stopped by user");
             }
             lastError = e;
             log.warn("Task {} failed: {}", task.id(), e.getMessage());
         }
 
-        DeepResearchStreams.emitThinking(sink, hasSentFinal, "\n❌ 任务 " + task.id() + " 执行失败: " + (lastError == null ? "unknown error" : lastError.getMessage()) + "\n\n");
+        DeepResearchStreams.emitThinking(sink, hasSentFinal,
+                "\n❌ Task " + task.id() + " failed: " + (lastError == null ? "unknown error" : lastError.getMessage()) + "\n\n");
         return new TaskResult(task.id(), false, null, lastError == null ? "unknown error" : lastError.getMessage());
     }
 
     private String buildDependencyContext(Map<String, String> results, List<PlanTask> plan, int currentOrder) {
         StringBuilder context = new StringBuilder();
         if (currentOrder == 1) {
-            return context.append("无\n").toString();
+            return context.append("None\n").toString();
         }
 
         boolean hasDependencies = false;
@@ -183,7 +185,7 @@ public class DeepResearchTaskExecutor {
 
             if (task != null && task.order() == currentOrder - 1) {
                 if (!hasDependencies) {
-                    context.append("任务 ");
+                    context.append("Task ");
                     hasDependencies = true;
                 }
                 context.append(String.format("%s: %s\n\n", entry.getKey(), entry.getValue()));
@@ -191,7 +193,7 @@ public class DeepResearchTaskExecutor {
         }
 
         if (!hasDependencies) {
-            context.append("无\n");
+            context.append("None\n");
         }
         return context.toString();
     }

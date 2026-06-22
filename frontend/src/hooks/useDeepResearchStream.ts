@@ -45,7 +45,7 @@ export function useDeepResearchStream(conversationId: string) {
 
       const isResume = state.phase === 'awaiting_clarification'
       const apiQuestion = isResume
-        ? `${state.question}\n\n【用户补充】\n${trimmed}`
+        ? `${state.question}\n\n【User Supplement】\n${trimmed}`
         : trimmed
 
       setState((prev) =>

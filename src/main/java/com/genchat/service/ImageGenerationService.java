@@ -117,46 +117,46 @@ public class ImageGenerationService {
 
     private String generateWithNanoBanana(String prompt) {
         try {
-            // 构建请求参数
+            // Build request body
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", "nano-banana-pro");
             requestBody.put("prompt", prompt);
             requestBody.put("aspectRatio", "16:9");
             requestBody.put("imageSize", "1K");
 
-            // 设置请求头
+            // Set request headers
             Map<String, String> headers = new HashMap<>();
             headers.put("Content-Type", "application/json");
             headers.put("Authorization", "Bearer " + grsAiApiKey);
 
-            // 创建HTTP请求
+            // Create HTTP request
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(GRS_AI_GENERATION_URL))
                     .timeout(Duration.ofMinutes(5));
 
-            // 添加请求头
+            // Add request headers
             for (Map.Entry<String, String> header : headers.entrySet()) {
                 requestBuilder.header(header.getKey(), header.getValue());
             }
 
-            // 添加请求体
+            // Add request body
             String bodyStr = JSON.toJSONString(requestBody);
             requestBuilder.POST(HttpRequest.BodyPublishers.ofString(bodyStr));
 
             HttpRequest request = requestBuilder.build();
 
-            // 发送请求并接收流式响应
+            // Send request and receive streaming response
             HttpResponse<java.io.InputStream> response = HTTP_CLIENT.send(request,
                     HttpResponse.BodyHandlers.ofInputStream());
 
             if (response.statusCode() == 200) {
-                // 处理Server-Sent Events (SSE) 格式的流响应
+                // Handle Server-Sent Events (SSE) stream response
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(response.body()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         line = line.trim();
 
-                        // 检查是否是数据行 (data: ...)
+                        // Check for data lines (data: ...)
                         if (line.startsWith("data: ")) {
                             String jsonData = line.substring(6).trim();
 
@@ -164,45 +164,45 @@ public class ImageGenerationService {
                                 try {
                                     JSONObject jsonObject = JSON.parseObject(jsonData);
 
-                                    // 检查是否完成
+                                    // Check for completion
                                     if ("succeeded".equals(jsonObject.getString("status"))) {
                                         if (jsonObject.containsKey("results") &&
                                                 !jsonObject.getJSONArray("results").isEmpty()) {
                                             JSONObject result = jsonObject.getJSONArray("results").getJSONObject(0);
                                             if (result.containsKey("url")) {
                                                 String imageUrl = result.getString("url");
-                                                log.info("nano-banana图像生成成功，URL: {}", imageUrl);
+                                                log.info("nano-banana image generation succeeded, URL: {}", imageUrl);
                                                 return imageUrl;
                                             }
                                         }
                                     } else if ("failed".equals(jsonObject.getString("status")) ||
                                             "error".equals(jsonObject.getString("status"))) {
-                                        log.error("nano-banana图像生成失败: {}", jsonObject.getString("error"));
+                                        log.error("nano-banana image generation failed: {}", jsonObject.getString("error"));
                                         return null;
                                     }
 
-                                    // 输出进度信息
+                                    // Log progress
                                     if (jsonObject.containsKey("progress")) {
                                         int progress = jsonObject.getIntValue("progress");
-                                        log.info("nano-banana图像生成进度: {}%", progress);
+                                        log.info("nano-banana image generation progress: {}%", progress);
                                     }
                                 } catch (Exception e) {
-                                    log.error("解析SSE数据失败: {}", jsonData, e);
+                                    log.error("Failed to parse SSE data: {}", jsonData, e);
                                 }
                             }
                         }
                     }
                 }
 
-                log.warn("流式响应结束，但未收到成功的图像生成结果");
+                log.warn("Stream ended without a successful image generation result");
                 return null;
             } else {
-                log.error("HTTP请求失败，状态码: {}", response.statusCode());
+                log.error("HTTP request failed, status code: {}", response.statusCode());
                 return null;
             }
 
         } catch (Exception e) {
-            log.error("nano-banana图像生成失败", e);
+            log.error("nano-banana image generation failed", e);
         }
 
         return null;

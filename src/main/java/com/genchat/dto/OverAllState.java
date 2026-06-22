@@ -25,7 +25,7 @@ public class OverAllState {
     }
 
     public String renderFullContext() {
-        // 先找到最近一次 Critique Feedback 的索引
+        // Find the index of the most recent Critique Feedback
         int lastCritiqueIndex = findLastCritiqueIndex();
 
         StringBuilder sb = new StringBuilder();
@@ -33,7 +33,7 @@ public class OverAllState {
             Message m = messages.get(i);
             String text = m.getText();
 
-            // 如果这是之前轮次的 Critique Feedback，跳过
+            // Skip Critique Feedback from earlier rounds
             if (i < lastCritiqueIndex && text != null && text.contains("【Critique Feedback】")) {
                 continue;
             }
@@ -61,8 +61,7 @@ public class OverAllState {
     }
 
     /**
-     * 提取所有工具执行结果
-     * 用于 summarize 阶段生成报告
+     * Extract all tool execution results for the summarize phase report.
      */
     public String extractToolResults() {
         StringBuilder sb = new StringBuilder();

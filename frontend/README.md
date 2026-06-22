@@ -1,23 +1,23 @@
 # GenChat Frontend
 
-联网对话问答前端，对接后端 `AgentController` 与 `SessionController`。
+Web-connected chat frontend integrated with backend `AgentController` and `SessionController`.
 
-## 本地开发
+## Local development
 
 ```bash
-# 1. 启动后端（项目根目录，端口 8080）
+# 1. Start the backend (project root, port 8080)
 ./gradlew bootRun
 
-# 2. 安装依赖并启动前端
+# 2. Install dependencies and start the frontend
 cd frontend
-rm -rf node_modules package-lock.json   # 若 esbuild 报错，先清理再安装
+rm -rf node_modules package-lock.json   # If esbuild fails, clean before reinstall
 npm install
 npm run dev
 ```
 
-浏览器访问 http://localhost:5173 ，Vite 会将 `/agent/*` 代理到 `http://localhost:8080`。
+Open http://localhost:5173 in your browser. Vite proxies `/agent/*` to `http://localhost:8080`.
 
-## 生产构建
+## Production build
 
 ```bash
 cd frontend
@@ -25,24 +25,24 @@ npm install
 npm run build
 ```
 
-构建产物在 `frontend/dist/`，可独立部署到 Nginx 等静态服务器。
+Build output is in `frontend/dist/` and can be deployed to Nginx or any static host.
 
-生产环境通过环境变量指定 API 地址：
+Set the API base URL for production:
 
 ```bash
 VITE_API_BASE_URL=https://api.example.com npm run build
 ```
 
-## 主要 API
+## Main APIs
 
-| 接口 | 说明 |
-|------|------|
-| `GET /agent/chat/stream` | SSE 流式对话 |
-| `GET /agent/stop` | 停止生成 |
-| `GET /agent/sessions` | 会话列表 |
-| `GET /agent/sessions/search?q=` | 搜索历史 |
-| `GET /agent/sessions/{conversationId}` | 会话详情 |
+| Endpoint | Description |
+|----------|-------------|
+| `GET /agent/chat/stream` | SSE streaming chat |
+| `GET /agent/stop` | Stop generation |
+| `GET /agent/sessions` | Session list |
+| `GET /agent/sessions/search?q=` | Search history |
+| `GET /agent/sessions/{conversationId}` | Session detail |
 
-## 国际化
+## Internationalization
 
-支持 `zh-CN` / `en-US`，语言偏好保存在 `localStorage`（key: `genchat-lang`）。
+Supports `zh-CN` / `en-US`. Language preference is stored in `localStorage` (key: `genchat-lang`).

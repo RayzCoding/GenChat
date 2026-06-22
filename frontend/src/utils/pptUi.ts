@@ -54,7 +54,7 @@ export function extractFileUrl(text: string): string | null {
 }
 
 export function extractSlideCount(text: string): number | null {
-  const match = text.match(/(\d+)\s*pages?/i) || text.match(/共\s*(\d+)\s*页/) || text.match(/totaling\s*(\d+)/i)
+  const match = text.match(/(\d+)\s*pages?/i) || text.match(/totaling\s*(\d+)/i)
   return match ? Number(match[1]) : null
 }
 

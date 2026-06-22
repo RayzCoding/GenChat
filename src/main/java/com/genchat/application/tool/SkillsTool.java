@@ -20,51 +20,51 @@ import java.util.stream.Collectors;
 
 public class SkillsTool {
     private static final String TOOL_DESCRIPTION_TEMPLATE = """
-			在当前会话中加载一个技能（Skill）。本工具的唯一作用是：传入技能名称，获取该技能的完整提示词和工作目录。
+			Load a skill in the current session. This tool's only purpose is to accept a skill name and return its full prompt and working directory.
 
-			<什么是技能>
-			技能是一段专业的提示词，包含特定领域的知识、工作流程和操作指令。
-			每个技能通常还附带参考文件、模板、脚本等资源，存放在技能工作目录中。
-			</什么是技能>
+			<What is a skill>
+			A skill is a specialized prompt containing domain knowledge, workflows, and operating instructions.
+			Each skill may also include reference files, templates, scripts, and other resources in its working directory.
+			</What is a skill>
 
-			<技能的完整使用流程>
-			第一步 — 判断是否需要技能：
-			  当用户要求完成某项任务时，先检查下方 <可用技能列表> 中是否有匹配的技能。
-			  如果有匹配的技能，进入第二步；如果没有，直接用你自身能力回答即可。
+			<Full skill workflow>
+			Step 1 — Decide whether a skill is needed:
+			  When the user asks you to complete a task, check whether a matching skill exists in <Available Skills> below.
+			  If a match exists, proceed to step 2; otherwise answer using your own capabilities.
 
-			第二步 — 通过本工具加载技能：
-			  调用本工具，传入技能的 name 字段值（仅传名称，不含任何参数）。
-			  调用后你会收到：技能工作目录路径 + 技能的完整提示词内容。
+			Step 2 — Load the skill via this tool:
+			  Call this tool with the skill's name field value (name only, no extra parameters).
+			  You will receive the skill working directory path and the full skill prompt content.
 
-			第三步 — 阅读并理解技能提示词：
-			  仔细阅读技能返回的完整提示词，理解该技能的工作流程和要求。
+			Step 3 — Read and understand the skill prompt:
+			  Read the returned prompt carefully and understand its workflow and requirements.
 
-			第四步 — 按技能提示词执行任务：
-			  严格按照技能提示词中的指令和流程来完成任务。
-			  你需要像"演员进入角色"一样，完全遵照技能提示词的指引行动。
-			  如果技能工作目录中有参考文件、模板、脚本，根据需要读取和使用它们。
-			  使用其他工具来完成技能要求的具体操作。
-			</技能的完整使用流程>
+			Step 4 — Execute according to the skill prompt:
+			  Follow the skill prompt's instructions and workflow strictly.
+			  Act as if stepping into a role defined by the skill prompt.
+			  Read and use reference files, templates, and scripts from the skill directory when needed.
+			  Use other tools to perform the concrete operations required by the skill.
+			</Full skill workflow>
 
-			<关键概念：技能不是工具>
-			技能（Skill）和工具（Tool）是两个不同的概念：
-			- 工具：你可以直接调用的能力，如搜索、文件读取等
-			- 技能：是一段提示词/指令，通过本工具加载后，你按照其中的指引去行动
-			技能本身不是工具，不能被当作工具调用。技能的正确使用方式是：
-			用本工具加载 → 阅读提示词 → 按提示词中的指令，使用真正的工具来完成任务
-			</关键概念：技能不是工具>
+			<Key concept: skills are not tools>
+			Skills and tools are different concepts:
+			- Tools: capabilities you can invoke directly, such as search or file reading
+			- Skills: prompts/instructions loaded via this tool; you then act according to their guidance
+			A skill is not a tool and must not be invoked as one. The correct flow is:
+			load via this tool → read the prompt → follow its instructions using real tools
+			</Key concept: skills are not tools>
 
-			<严格禁止>
-			- 禁止将技能名称当作独立的工具来调用
-			- 禁止在未通过本工具加载的情况下，假装已经知道技能的内容
-			- 禁止编造或猜测 <可用技能列表> 中不存在的技能名称
-			- 禁止重复加载同一个技能（同一技能在一次对话中只需加载一次）
-			- 禁止加载技能后忽略其提示词内容，自行发挥
-			</严格禁止>
+			<Strict prohibitions>
+			- Do not invoke a skill name as if it were a standalone tool
+			- Do not pretend to know a skill's content without loading it through this tool
+			- Do not invent or guess skill names that are not listed in <Available Skills>
+			- Do not reload the same skill repeatedly (load once per conversation)
+			- Do not ignore the skill prompt after loading and improvise on your own
+			</Strict prohibitions>
 
-			<可用技能列表>
+			<Available Skills>
 			%s
-			</可用技能列表>
+			</Available Skills>
 			""";
 
     public record SkillsInput(
@@ -87,7 +87,7 @@ public class SkillsTool {
             }
 
             String availableNames = String.join(", ", this.skillsMap.keySet());
-            return "Not found skills: " + input.command() + "。Currently available skills: " + availableNames;
+            return "Not found skills: " + input.command() + ". Currently available skills: " + availableNames;
         }
 
     }

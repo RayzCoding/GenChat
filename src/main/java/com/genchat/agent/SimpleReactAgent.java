@@ -317,26 +317,26 @@ public class SimpleReactAgent {
 
         AgentState agentState = withReference ? new AgentState() : null;
 
-        // 合并为单个 SystemMessage（部分模型不支持多个）
+        // Merge into a single SystemMessage (some models do not support multiple system messages)
         messages.add(new SystemMessage(PlanExecutePrompts.getCurrentTime() + "\n\n"
                 + ReactAgentPrompts.getReactAgentSystemPrompt() + "\n\n" + systemPrompt));
 
 
         messages.add(new UserMessage("<question>" + question + "</question>"));
 
-        // 迭代轮次
+        // Iteration rounds
         int round = 0;
 
         while (true) {
             round++;
             if (maxRounds > 0 && round > maxRounds) {
-                log.warn("=== 达到 maxRounds（{}），强制生成最终答案 ===", maxRounds);
+                log.warn("=== Reached maxRounds ({}), forcing final answer ===", maxRounds);
                 messages.add(new UserMessage("""
-                        你已达到最大推理轮次限制。
-                        请基于当前已有的上下文信息，
-                        直接给出最终答案。
-                        禁止再调用任何工具。
-                        如果信息不完整，请合理总结和说明。
+                        You have reached the maximum reasoning round limit.
+                        Based on the context available so far,
+                        provide the final answer directly.
+                        Do not call any more tools.
+                        If information is incomplete, summarize reasonably and explain the gaps.
                         """));
 
                 String forcedAnswer = chatClient.prompt().messages(messages).call().content();
@@ -354,7 +354,7 @@ public class SimpleReactAgent {
 
             AssistantMessage.Builder builder = AssistantMessage.builder().content(chatResponse.chatResponse().getResult().getOutput().getText());
 
-            // ===== 没有工具调用，视为最终答案 =====
+            // ===== No tool calls: treat as final answer =====
             if (!chatResponse.chatResponse().hasToolCalls()) {
                 String finalText = chatResponse.chatResponse().getResult().getOutput().getText();
                 return SimpleReactResult.builder()
@@ -363,7 +363,7 @@ public class SimpleReactAgent {
                         .build();
             }
 
-            // ===== 有工具调用：执行工具 =====
+            // ===== Tool calls present: execute tools =====
             List<AssistantMessage.ToolCall> toolCalls = chatResponse.chatResponse().getResult().getOutput().getToolCalls();
             messages.add(builder.toolCalls(toolCalls).build());
 
@@ -373,7 +373,7 @@ public class SimpleReactAgent {
 
                 ToolCallback callback = findTool(toolName);
                 if (callback == null) {
-                    addErrorToolResponse(messages, toolCall, "工具未找到：" + toolName);
+                    addErrorToolResponse(messages, toolCall, "Tool not found: " + toolName);
                     continue;
                 }
 
@@ -381,7 +381,7 @@ public class SimpleReactAgent {
                     Object result = callback.call(argsJson);
                     String resultStr = Objects.toString(result, "");
 
-                    // 解析搜索结果
+                    // Parse search results
                     if (agentState != null) {
                         parseSearchResult(resultStr, agentState);
                     }
@@ -392,7 +392,7 @@ public class SimpleReactAgent {
                             .responses(List.of(tr))
                             .build());
                 } catch (Exception ex) {
-                    addErrorToolResponse(messages, toolCall, "工具执行失败：" + ex.getMessage());
+                    addErrorToolResponse(messages, toolCall, "Tool execution failed: " + ex.getMessage());
                 }
             }
         }
@@ -403,7 +403,7 @@ public class SimpleReactAgent {
             var objectMapper = new ObjectMapper();
             JsonNode root = objectMapper.readTree(resultJson);
 
-            // tavily 搜索结果格式: [{ "text": { "results": [...] } }]
+            // Tavily search result format: [{ "text": { "results": [...] } }]
             if (!root.isArray() || root.isEmpty()) {
                 return;
             }
@@ -437,7 +437,7 @@ public class SimpleReactAgent {
                 }
             }
         } catch (Exception e) {
-            log.warn("解析搜索结果失败: {}", e.getMessage());
+            log.warn("Failed to parse search results: {}", e.getMessage());
         }
     }
 }

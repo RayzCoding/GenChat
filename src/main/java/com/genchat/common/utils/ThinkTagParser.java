@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * &lt;think/&gt; 标签解析器。
+ * &lt;think/&gt; tag parser.
  *
- * 无状态工具类，将 LLM 流式输出的文本 chunk 拆分为思考内容和正常文本。
- * 支持跨 chunk 的标签状态追踪（通过 inThink 参数）。
+ * Stateless utility that splits LLM streaming text chunks into thinking content and normal text.
+ * Supports cross-chunk tag state tracking via the inThink parameter.
  *
  * @author bigchui
  */
@@ -20,38 +20,38 @@ public final class ThinkTagParser {
     }
 
     /**
-     * 去除文本中的 think标签及其内容。
+     * Strip think tags and their content from text.
      *
-     * @param input 可能包含 think 标签的文本
-     * @return 去除 think 标签后的文本
+     * @param input text that may contain think tags
+     * @return text with think tags removed
      */
     public static String stripThinkTags(String input) {
         if (input == null || input.isEmpty()) {
             return input;
         }
-        // 通用正则：匹配 <think...>...</think...>（兼容空格、属性、自闭合等变体）
+        // Generic regex: match <think...>...</think...> (spaces, attributes, self-closing variants)
         String result = input.replaceAll("(?s)<think[^>]*>.*?</think[^>]*>", "").trim();
         return result;
     }
 
     /**
-     * 内容段，标识是思考内容还是正常文本。
+     * Content segment indicating thinking content or normal text.
      */
     public record Segment(boolean thinking, String content) {
     }
 
     /**
-     * 解析结果。
+     * Parse result.
      */
     public record ParseResult(List<Segment> segments, boolean inThink) {
     }
 
     /**
-     * 解析一个文本 chunk。
+     * Parse one text chunk.
      *
-     * @param chunk   当前文本 chunk
-     * @param inThink 上一个 chunk 结束时的 think 标签内状态
-     * @return 解析结果，包含拆分后的内容段和更新后的 inThink 状态
+     * @param chunk   current text chunk
+     * @param inThink whether the previous chunk ended inside a think tag
+     * @return parse result with split segments and updated inThink state
      */
     public static ParseResult parse(String chunk, boolean inThink) {
         if (chunk == null || chunk.isEmpty()) {

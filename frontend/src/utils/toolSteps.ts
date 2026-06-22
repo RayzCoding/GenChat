@@ -2,7 +2,7 @@ import type { ToolCallStep } from '../types'
 
 export function isToolResultFailed(result?: string): boolean {
   if (!result) return false
-  return /"error"|not found|failed|失败/i.test(result)
+  return /"error"|not found|failed/i.test(result)
 }
 
 export function formatToolLabel(step: ToolCallStep): string {

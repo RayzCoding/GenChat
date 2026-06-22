@@ -19,7 +19,7 @@ i18n.use(initReactI18next).init({
     'en-US': { translation: enUS },
   },
   lng: detectLanguage(),
-  fallbackLng: 'zh-CN',
+  fallbackLng: 'en-US',
   interpolation: { escapeValue: false },
 })
 

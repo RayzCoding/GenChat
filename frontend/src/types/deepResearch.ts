@@ -1,6 +1,6 @@
 import type { SearchResult } from './index'
 
-/** 与后端 DeepResearchAgent 阶段一一对应 */
+/** Maps 1:1 to backend DeepResearchAgent phases */
 export type DeepResearchPhase =
   | 'idle'
   | 'clarifying'
@@ -34,10 +34,10 @@ export interface DeepResearchState {
   thinkingLog: string
   report: string
   references: SearchResult[]
-  /** 需求不足时后端 text 中的追问内容 */
+  /** Follow-up content from backend text when requirements are insufficient */
   clarificationPrompt: string
   critiquePassed: boolean | null
-  /** 当前正在执行的任务 id（并行时仅跟踪日志顺序） */
+  /** Currently executing task id (log order only when tasks run in parallel) */
   activeTaskId: string | null
 }
 

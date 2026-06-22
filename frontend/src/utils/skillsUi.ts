@@ -28,12 +28,12 @@ export function parseSkillsThinkingSteps(thinking: string): SkillsThinkingStep[]
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      const failed = /❌|失败|failed|error/i.test(line)
-      const success = /✅|成功|completed|done/i.test(line)
+      const failed = /❌|failed|error/i.test(line)
+      const success = /✅|completed|done|success/i.test(line)
       const lower = line.toLowerCase()
       const isTool =
         TOOL_KEYWORDS.some((kw) => lower.includes(kw)) ||
-        /工具|tool|invoke|calling|execut/i.test(line)
+        /tool|invoke|calling|execut/i.test(line)
 
       if (isTool) {
         return {

@@ -14,7 +14,7 @@ export default defineConfig({
         target: 'http://localhost:8081',
         changeOrigin: true,
         bypass(req) {
-          // /file-qa 是前端路由，不能走 /file API 代理
+          // /file-qa is a frontend route and must not use the /file API proxy
           const url = req.url ?? ''
           if (url === '/file-qa' || url.startsWith('/file-qa?')) {
             return '/index.html'

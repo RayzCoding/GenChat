@@ -29,27 +29,27 @@ public class DeepResearchPlanner {
         });
         Prompt prompt = new Prompt(List.of(
                 new SystemMessage(PlanExecutePrompts.getCurrentTime() + "\n\n" + PlanExecutePrompts.PLAN + """
-                                                ## 当前上下文
-                                                当前轮次: %s
+                                                ## Current context
+                                                Current round: %s
                         
-                                                ## 可用工具说明（仅用于规划参考）
+                                                ## Available tools (planning reference only)
                                                 %s
                         
-                                                ## 输出格式
+                                                ## Output format
                                                 %s
                         """.formatted(overAllState.getRound(), toolDescriptions, converter.getFormat())),
                 new UserMessage("""
-                        【研究主题】
+                        【Research Topic】
                         %s
                         
-                        【对话历史】
+                        【Conversation History】
                         %s
                         
-                        ## 重要约束
-                        如果会话历史中存在【Critique Feedback】，你必须：
-                        1. 仔细分析反馈中指出的不足
-                        2. 新的计划必须直接解决这些问题
-                        3. 不要重复之前失败的尝试
+                        ## Important constraints
+                        If 【Critique Feedback】 exists in the conversation history, you must:
+                        1. Analyze the gaps identified in the feedback
+                        2. Ensure the new plan directly addresses those gaps
+                        3. Do not repeat previously failed attempts
                         """.formatted(
                         overAllState.getRefinedResearchTopic() != null ?
                                 overAllState.getRefinedResearchTopic() : overAllState.getQuestion(),
@@ -64,10 +64,11 @@ public class DeepResearchPlanner {
                 .call()
                 .content();
         var planTasks = converter.convert(ThinkTagParser.stripThinkTags(content));
-        DeepResearchStreams.emitThinking(sink, finished, "\n✅ 执行计划已生成，共 " + planTasks.size() + " 个任务\n");
+        DeepResearchStreams.emitThinking(sink, finished,
+                "\n✅ Execution plan generated with " + planTasks.size() + " task(s)\n");
 
         if (!planTasks.isEmpty()) {
-            var planText = new StringBuilder("\n📋 执行计划表：\n");
+            var planText = new StringBuilder("\n📋 Execution plan:\n");
             for (var planTask : planTasks) {
                 planText.append(String.format("  🟠 %s \n", planTask.instruction()));
             }

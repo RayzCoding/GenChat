@@ -1,7 +1,7 @@
 package com.genchat.dto;
 
 /**
- * 批评结果记录
+ * Critique result record.
  */
 public record CritiqueResult(
         boolean passed,

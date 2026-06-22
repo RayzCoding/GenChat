@@ -14,7 +14,7 @@ export function SkillsAssistantMessage({ turn }: SkillsAssistantMessageProps) {
   const isStreaming = turn.status === 'streaming'
   const thinking = turn.thinking ?? ''
   const fileLinks = extractFileLinks(turn.content)
-  const showSuccess = !isStreaming && /成功|successfully|created|完成/i.test(turn.content)
+  const showSuccess = !isStreaming && /successfully|created|completed|done/i.test(turn.content)
 
   return (
     <div className="flex flex-col items-start gap-3 duration-700 animate-in fade-in slide-in-from-left-4">

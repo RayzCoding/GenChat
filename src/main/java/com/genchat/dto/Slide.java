@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.util.Map;
 
 /**
- * PPT单页数据结构
+ * Single PPT slide data structure.
  */
 @Data
 @Builder
@@ -17,22 +17,22 @@ import java.util.Map;
 public class Slide {
 
     /**
-     * 页面类型
+     * Page type.
      */
     private String pageType;
 
     /**
-     * 页面描述
+     * Page description.
      */
     private String pageDesc;
 
     /**
-     * 页面索引（模板页码）
+     * Template page index (1-based template page number).
      */
     private Integer templatePageIndex;
 
     /**
-     * 页面数据（字段名 -> 字段数据）
+     * Page data (field name -> field data).
      */
     private Map<String, FieldData> data;
 }

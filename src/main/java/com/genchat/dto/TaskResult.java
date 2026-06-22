@@ -1,7 +1,7 @@
 package com.genchat.dto;
 
 /**
- * 任务执行结果
+ * Task execution result.
  */
 public record TaskResult(
         String taskId,

@@ -28,7 +28,7 @@ public class DeepResearchReporter {
                                 Sinks.Many<String> sink,
                                 AtomicBoolean finished,
                                 StringBuilder finalAnswerBuffer) {
-        DeepResearchStreams.emitThinking(sink, finished, "\n📝 正在生成最终研究报告...\n\n");
+        DeepResearchStreams.emitThinking(sink, finished, "\n📝 Generating final research report...\n\n");
 
         final boolean[] summarizeInThinkHolder = {false};
         String toolResults = state.extractToolResults();
@@ -36,18 +36,18 @@ public class DeepResearchReporter {
         Prompt prompt = new Prompt(List.of(
                 new SystemMessage(PlanExecutePrompts.getCurrentTime() + "\n\n" + PlanExecutePrompts.SUMMARIZE),
                 new UserMessage("""
-                                        【用户原始问题】
+                                        【Original User Question】
                                         %s
                         
-                                        【研究主题】
+                                        【Research Topic】
                                         %s
                         
-                                        【工具检索结果】
+                                        【Tool Retrieval Results】
                                         %s
                         """.formatted(
                         state.getQuestion(),
-                        state.getRefinedResearchTopic() != null ? state.getRefinedResearchTopic() : "未生成研究主题",
-                        toolResults.isEmpty() ? "（未检索到相关结果）" : toolResults
+                        state.getRefinedResearchTopic() != null ? state.getRefinedResearchTopic() : "Research topic not generated",
+                        toolResults.isEmpty() ? "(No relevant results retrieved)" : toolResults
                 ))
         ));
 
@@ -107,8 +107,8 @@ public class DeepResearchReporter {
             return;
         }
 
-        log.warn("===== Context too large, compressing ,size is {} =====", state.currentChars());
-        DeepResearchStreams.emitThinking(sink, hasSentFinal, "📦 上下文过长，正在压缩...\n");
+        log.warn("===== Context too large, compressing, size is {} =====", state.currentChars());
+        DeepResearchStreams.emitThinking(sink, hasSentFinal, "📦 Context too large, compressing...\n");
 
         if (ctx.isStopped(hasSentFinal)) {
             return;
@@ -116,11 +116,11 @@ public class DeepResearchReporter {
 
         Prompt prompt = new Prompt(List.of(
                 new SystemMessage(PlanExecutePrompts.getCurrentTime() + "\n\n" + """
-                        ##最大压缩限制（必须遵守）
-                        -你输出的最终内容【总字符数（包含所有标签、空格、换行）】
-                        不得超过：%s
-                                - 这是硬性上限，不是建议
-                                - 如超过该限制，视为压缩失败
+                        ## Maximum compression limit (mandatory)
+                        - Total character count of your output (including tags, spaces, newlines)
+                        must not exceed: %s
+                        - This is a hard limit, not a suggestion
+                        - Exceeding it is considered compression failure
                         
                         """.formatted(ctx.getContextCharLimit()) + PlanExecutePrompts.COMPRESS),
                 new UserMessage(state.renderFullContext())
@@ -133,7 +133,7 @@ public class DeepResearchReporter {
 
         state.getMessages().clear();
         state.add(new SystemMessage("【Compressed Agent State】\n" + snapshot));
-        log.warn("===== Context compress has completed, size is {} =====", state.currentChars());
-        DeepResearchStreams.emitThinking(sink, hasSentFinal, "✅ 上下文压缩完成\n");
+        log.warn("===== Context compression completed, size is {} =====", state.currentChars());
+        DeepResearchStreams.emitThinking(sink, hasSentFinal, "✅ Context compression completed\n");
     }
 }
