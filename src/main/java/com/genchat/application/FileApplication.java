@@ -1,5 +1,6 @@
 package com.genchat.application;
 
+import com.genchat.common.ResourceNotFoundException;
 import com.genchat.common.OverlapParagraphTextSplitter;
 import com.genchat.common.utils.FileUtil;
 import com.genchat.dto.FileInfo;
@@ -20,6 +21,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MimeTypeUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
@@ -68,7 +70,7 @@ public class FileApplication {
                     log.error("File parsing failed, file id:{}, error: {}", fileInfo.getId(), e.getMessage());
                     fileInfo.setStatus(FileStatus.FAILED);
                     fileService.updateFileInfo(fileInfo);
-                    throw new RuntimeException("File Pase failed:" + e.getMessage(), e);
+                    throw new RuntimeException("File parse failed:" + e.getMessage(), e);
                 }
                 return fileInfo;
             }
@@ -83,7 +85,7 @@ public class FileApplication {
                     log.error("Error while handling image file, file id: {}, error: {}", fileInfo.getId(), e.getMessage());
                     fileInfo.setStatus(FileStatus.FAILED);
                     fileService.updateFileInfo(fileInfo);
-                    throw new RuntimeException("File Pase failed:" + e.getMessage(), e);
+                    throw new RuntimeException("File parse failed:" + e.getMessage(), e);
                 }
                 return fileInfo;
             }
@@ -97,7 +99,7 @@ public class FileApplication {
                 fileInfo.setStatus(FileStatus.FAILED);
                 fileService.updateFileInfo(fileInfo);
             }
-            throw new RuntimeException("File Pase failed:" + e.getMessage(), e);
+            throw new RuntimeException("File parse failed:" + e.getMessage(), e);
         }
 
     }
@@ -153,8 +155,21 @@ public class FileApplication {
         log.info("Large file embedding completed: fileId={}, chunk count: {}", fileId, chunks.size());
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void deleteFileById(Long id) {
+        var fileInfo = fileService.getFileInfoById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("File not found: " + id));
+
+        if (StringUtils.hasText(fileInfo.getPath())) {
+            minioService.delete(fileInfo.getPath());
+        }
+
+        if (Boolean.TRUE.equals(fileInfo.getEmbed())) {
+            embeddingService.deleteByFileId(id);
+        }
+
         fileService.deleteFileInfoById(id);
+        log.info("File deleted completely: id={}, path={}", id, fileInfo.getPath());
     }
 
     public List<FileInfo> listFiles() {

@@ -5,17 +5,20 @@ server:
       charset: UTF-8
       force: true
       enabled: true
+
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   datasource:
-    url: jdbc:mysql://localhost:3306/chat_agent?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-    username: root
-    password: your_password
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/chat_agent?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:your_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
-      host: localhost
-      port: 6379
-      database: 0
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
       timeout: 5
 
   ai:
@@ -37,8 +40,6 @@ spring:
         options:
           model: qwen3-vl-plus
           temperature: 0.2
-  profiles:
-    active: local
 
   flyway:
     enabled: true
@@ -50,27 +51,28 @@ spring:
 
 mybatis-plus:
   mapper-locations: classpath:/mapper/**/*.xml
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 tavily:
-  api-key: test
-  mcp-url: https://mcp.tavily.com/mcp/
+  api-key: ${TAVILY_API_KEY:test}
+  mcp-url: ${TAVILY_MCP_URL:https://mcp.tavily.com/mcp/}
 
 minio:
-  url: localhost:19000/
-  accessKey: ak
-  secretKey: sk
-  bucketName: test
-  endpoint: localhost:19000/
+  url: ${MINIO_URL:localhost:19000/}
+  accessKey: ${MINIO_ACCESS_KEY:ak}
+  secretKey: ${MINIO_SECRET_KEY:sk}
+  bucketName: ${MINIO_BUCKET:test}
+  endpoint: ${MINIO_ENDPOINT:localhost:19000/}
 
 embeddings:
   store:
-    host: 127.0.0.1
-    port: 5433
-    database: vectordb
-    user: vectoruser
-    password: 123456
+    host: ${PGVECTOR_HOST:127.0.0.1}
+    port: ${PGVECTOR_PORT:5433}
+    database: ${PGVECTOR_DATABASE:vectordb}
+    user: ${PGVECTOR_USER:vectoruser}
+    password: ${PGVECTOR_PASSWORD:123456}
 
 skills:
-  directory: /Users/xx/xx/AI/xx/skills
+  directory: ${SKILLS_DIRECTORY:}
+
+ppt:
+  python-script: ${PPT_PYTHON_SCRIPT:}

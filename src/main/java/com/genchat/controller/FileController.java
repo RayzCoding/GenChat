@@ -27,20 +27,16 @@ public class FileController {
     @PostMapping("/upload")
     public Result<FileInfo> upload(@RequestParam("file") MultipartFile file) {
         log.debug("Uploading file name: {}, file size: {}", file.getOriginalFilename(), file.getSize());
-        try {
-            if (file.isEmpty()) {
-                return Result.fail("File is not null.");
-            }
-            return Result.success(fileApplication.upload(file));
-        } catch (Exception ex) {
-            log.error("Upload file failed.", ex);
-            return Result.fail("Upload file failed" + ex.getMessage());
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File must not be empty.");
         }
+        return Result.success(fileApplication.upload(file));
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable("id") Long id) {
+    public Result<Void> delete(@PathVariable("id") Long id) {
         log.debug("Deleting file: {}", id);
         fileApplication.deleteFileById(id);
+        return Result.success();
     }
 }

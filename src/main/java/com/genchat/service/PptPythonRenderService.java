@@ -3,7 +3,10 @@ package com.genchat.service;
 import com.genchat.dto.AiPptInst;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -12,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -24,7 +28,9 @@ import java.util.Map;
 public class PptPythonRenderService {
     private final AiPptTemplateService templateService;
     private final MinioService minioService;
-    private final static String PYTHON_SCRIPT_PATH="/Users/baoruizhang/myProject/AI/GenChat/src/main/resources/python/render_ppt.py";
+
+    @Value("${ppt.python-script:}")
+    private String configuredPythonScriptPath;
 
     /**
      * Detect available Python command
@@ -79,9 +85,10 @@ public class PptPythonRenderService {
 
         // ---------- Build command ----------
         String pythonCmd = getPythonCommand();
+        String pythonScriptPath = resolvePythonScriptPath();
         List<String> command = List.of(
                 pythonCmd,
-                PYTHON_SCRIPT_PATH,
+                pythonScriptPath,
                 "--template", templateFilePath,
                 "--output", outputFilePath
         );
@@ -202,5 +209,21 @@ public class PptPythonRenderService {
             log.error("Failed to create output directory: {}", outputDir, e);
         }
         return outputDir;
+    }
+
+    private String resolvePythonScriptPath() throws java.io.IOException {
+        if (StringUtils.hasText(configuredPythonScriptPath)) {
+            return configuredPythonScriptPath;
+        }
+        var resource = new ClassPathResource("python/render_ppt.py");
+        if (resource.isFile()) {
+            return resource.getFile().getAbsolutePath();
+        }
+        Path temp = Files.createTempFile("render_ppt_", ".py");
+        try (var in = resource.getInputStream()) {
+            Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
+        }
+        temp.toFile().deleteOnExit();
+        return temp.toAbsolutePath().toString();
     }
 }

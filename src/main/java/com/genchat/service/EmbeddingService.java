@@ -124,4 +124,21 @@ public class EmbeddingService {
             return Collections.singletonList("RAG retrieval failed: " + e.getMessage());
         }
     }
+
+    /**
+     * Delete all vector chunks associated with a file.
+     */
+    public void deleteByFileId(Long fileId) {
+        if (fileId == null) {
+            return;
+        }
+        try {
+            var filter = new FilterExpressionBuilder().eq("fileid", fileId).build();
+            vectorStore.delete(filter);
+            log.info("Deleted vector embeddings for fileId={}", fileId);
+        } catch (Exception e) {
+            log.error("Failed to delete vector embeddings for fileId={}", fileId, e);
+            throw new RuntimeException("Failed to delete vector embeddings: " + e.getMessage(), e);
+        }
+    }
 }
