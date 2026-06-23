@@ -1,7 +1,6 @@
 package com.genchat.service;
 
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONArray;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -13,6 +12,7 @@ import com.genchat.dto.*;
 import com.genchat.entity.AgentState;
 import com.genchat.entity.AiChatSessionEntity;
 import com.genchat.repository.AiChatSessionRepository;
+import com.genchat.service.session.SessionPayloadParser;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -250,87 +250,11 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                 .question(entity.getQuestion())
                 .answer(entity.getAnswer())
                 .thinking(entity.getThinking())
-                .reference(parseReference(entity.getReference()))
-                .recommend(parseRecommend(entity.getRecommend()))
+                .reference(SessionPayloadParser.parseReference(entity.getReference()))
+                .recommend(SessionPayloadParser.parseRecommend(entity.getRecommend()))
                 .createTime(entity.getCreateTime())
                 .totalResponseTime(entity.getTotalResponseTime())
                 .build();
-    }
-
-    private List<SearchResultDTO> parseReference(String referenceJson) {
-        if (!StringUtils.hasLength(referenceJson)) {
-            return Collections.emptyList();
-        }
-        try {
-            var root = JSON.parseObject(referenceJson);
-            if (root == null) {
-                return Collections.emptyList();
-            }
-            Object content = root.get("content");
-            if (content == null) {
-                content = root.get("data");
-            }
-            if (content instanceof JSONArray array) {
-                return parseSearchResultArray(array);
-            }
-            if (content instanceof String contentStr) {
-                var array = JSON.parseArray(contentStr);
-                if (array != null) {
-                    return parseSearchResultArray(array);
-                }
-            }
-            var directArray = JSON.parseArray(referenceJson);
-            if (directArray != null) {
-                return parseSearchResultArray(directArray);
-            }
-        } catch (Exception ignored) {
-            // fall through
-        }
-        return Collections.emptyList();
-    }
-
-    private List<SearchResultDTO> parseSearchResultArray(JSONArray array) {
-        var results = new ArrayList<SearchResultDTO>();
-        for (int i = 0; i < array.size(); i++) {
-            var item = array.getJSONObject(i);
-            if (item == null) {
-                continue;
-            }
-            results.add(SearchResultDTO.builder()
-                    .url(item.getString("url"))
-                    .title(item.getString("title"))
-                    .content(item.getString("content"))
-                    .build());
-        }
-        return results;
-    }
-
-    private List<String> parseRecommend(String recommendJson) {
-        if (!StringUtils.hasLength(recommendJson)) {
-            return Collections.emptyList();
-        }
-        try {
-            var root = JSON.parseObject(recommendJson);
-            if (root != null) {
-                Object content = root.get("content");
-                if (content instanceof JSONArray array) {
-                    return array.toJavaList(String.class);
-                }
-                if (content instanceof String contentStr) {
-                    var array = JSON.parseArray(contentStr);
-                    if (array != null) {
-                        return array.toJavaList(String.class);
-                    }
-                }
-            }
-            var directArray = JSON.parseArray(recommendJson);
-            if (directArray != null) {
-                return directArray.toJavaList(String.class);
-            }
-        } catch (Exception ignored) {
-            // fall through
-        }
-        return Collections.emptyList();
     }
 
     public void update(Long id,
