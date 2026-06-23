@@ -29,8 +29,8 @@ public class DeepResearchAgent implements PersistentChatAgent {
 
     private ChatMemory chatMemory;
 
-    public void initPersistentChatMemory(String conversationId) {
-        this.chatMemory = PersistentChatMemoryLoader.load(deps.sessionService(), conversationId);
+    public void initPersistentChatMemory(String conversationId, int maxMessages) {
+        this.chatMemory = PersistentChatMemoryLoader.load(deps.sessionService(), conversationId, maxMessages);
     }
 
     public Flux<String> stream(String conversationsId, String question) {

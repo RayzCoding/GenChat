@@ -1,5 +1,6 @@
 package com.genchat.application;
 
+import com.genchat.config.GenChatProperties;
 import com.genchat.common.ResourceNotFoundException;
 import com.genchat.common.OverlapParagraphTextSplitter;
 import com.genchat.common.utils.FileUtil;
@@ -36,6 +37,7 @@ public class FileApplication {
     private final FileParserService fileParserService;
     private final OpenAiChatModel multimodalChatModel;
     private final EmbeddingService embeddingService;
+    private final GenChatProperties genChatProperties;
 
     @Transactional(rollbackFor = Exception.class)
     public FileInfo upload(MultipartFile file) {
@@ -138,8 +140,8 @@ public class FileApplication {
         var document = new Document(text);
         var documents = List.of(document);
 
-        // 2. Split document (500 chars per chunk, 50 overlap)
-        var splitter = new OverlapParagraphTextSplitter(500, 50);
+        var fileConfig = genChatProperties.getFile();
+        var splitter = new OverlapParagraphTextSplitter(fileConfig.getChunkSize(), fileConfig.getChunkOverlap());
         var chunks = splitter.apply(documents);
         log.info("Document splitting completed: fileId={}, chunk count: {}", fileId, chunks.size());
 

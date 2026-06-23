@@ -1,5 +1,6 @@
 package com.genchat.application.agent;
 
+import com.genchat.config.GenChatProperties;
 import com.genchat.dto.StopAgentResponse;
 import com.genchat.service.AgentTaskService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ public class AgentFacade {
 
     private final AgentFactory agentFactory;
     private final AgentTaskService agentTaskService;
+    private final GenChatProperties genChatProperties;
 
     public Flux<String> chatStream(String conversationId, String question) {
         return streamWithMemory(conversationId, "chat stream", () -> agentFactory.createWebSearchAgent(),
@@ -69,7 +71,7 @@ public class AgentFacade {
             AgentStream<T> streamFn) {
         return streamSafely(context, () -> {
             T agent = agentSupplier.get();
-            agent.initPersistentChatMemory(conversationId);
+            agent.initPersistentChatMemory(conversationId, genChatProperties.getAgent().getChatMemorySize());
             return streamFn.apply(agent);
         });
     }

@@ -38,7 +38,7 @@ public class SchemaStrategy implements PptStateStrategy {
         sink.tryEmitNext(new AgentStreamEvent.Thinking("PPT details are being designed....\n").toJSON());
 
         var templateCode = inst.getTemplateCode();
-        var aiPptTemplate = context.getPptTemplateService().getByTemplateCode(templateCode);
+        var aiPptTemplate = context.getDependencies().pptTemplateService().getByTemplateCode(templateCode);
         var pptTemplate = aiPptTemplate.get();
         var templateSchema = pptTemplate.getTemplateSchema();
         var outline = inst.getOutline();
@@ -47,25 +47,25 @@ public class SchemaStrategy implements PptStateStrategy {
         });
 
         var disposable = Mono.fromCallable(() -> {
-                    var text = context.getChatModel().call(new Prompt(schemaGenerationPrompt)).getResult().getOutput().getText();
+                    var text = context.getDependencies().chatModel().call(new Prompt(schemaGenerationPrompt)).getResult().getOutput().getText();
                     var pptSchema = pptSchemaBeanOutputConverter.convert(text);
                     var pptSchemaJson = JacksonJson.toJson(pptSchema);
 
                     inst.setPptSchema(pptSchemaJson);
                     inst.setStatus(TARGET_STATUS.getCode());
-                    context.getPptInstService().updateInst(inst);
+                    context.getDependencies().pptInstService().updateInst(inst);
 
                     processImageGeneration(pptSchema, sink, inst.getConversationId(), context);
                     inst.setPptSchema(JacksonJson.toJson(pptSchema));
-                    context.getPptInstService().updateInst(inst);
+                    context.getDependencies().pptInstService().updateInst(inst);
                     context.continueStateMachine(inst, sink, question, thinkingBuffer);
                     return null;
                 })
                 .doOnError(throwable -> {
                     log.error("Schema generation failed", throwable);
                     inst.setStatus(PptInstStatus.SCHEMA.getCode());
-                    context.getPptInstService().updateInst(inst);
-                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getDependencies().pptInstService().updateInst(inst);
+                    context.getDependencies().strategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();
@@ -115,15 +115,15 @@ public class SchemaStrategy implements PptStateStrategy {
                 int currentTask = i + 1;
                 sink.tryEmitNext(new AgentStreamEvent.Thinking("Image is being generated (" + currentTask + "/" + size + ")...\n").toJSON());
                 try {
-                    var originalImageUrl = context.getImageGenerationService().generateImage(imageGenerationTask.prompt);
+                    var originalImageUrl = context.getDependencies().imageGenerationService().generateImage(imageGenerationTask.prompt);
                     var imageBytes = downloadImageFromUrl(originalImageUrl);
                     if (imageBytes != null) {
                         // upload to MinIO
                         String objectName = "ppt/" + conversationId + "/images/" + System.currentTimeMillis() + "_" + (i + 1) + ".png";
-                        context.getMinioService().uploadFile(objectName, imageBytes, "image/png");
+                        context.getDependencies().minioService().uploadFile(objectName, imageBytes, "image/png");
 
                         // Generate presigned URL for Python script to download
-                        String presignedUrl = context.getMinioService().getPresignedUrl(objectName, 3600);
+                        String presignedUrl = context.getDependencies().minioService().getPresignedUrl(objectName, 3600);
                         imageGenerationTask.fieldData.setUrl(presignedUrl);
 
                         sink.tryEmitNext(new AgentStreamEvent.Thinking("✅ The image generation is complete (" + currentTask + "/" + size + ")...\n").toJSON());
@@ -158,7 +158,7 @@ public class SchemaStrategy implements PptStateStrategy {
         });
 
         var disposable = Mono.fromCallable(() -> {
-                    var text = context.getChatModel().call(new Prompt(schemaModifyPrompt))
+                    var text = context.getDependencies().chatModel().call(new Prompt(schemaModifyPrompt))
                             .getResult()
                             .getOutput()
                             .getText();
@@ -167,19 +167,19 @@ public class SchemaStrategy implements PptStateStrategy {
 
                     inst.setPptSchema(pptSchemaJson);
                     inst.setStatus(TARGET_STATUS.getCode());
-                    context.getPptInstService().updateInst(inst);
+                    context.getDependencies().pptInstService().updateInst(inst);
 
                     processImageGeneration(pptSchema, sink, inst.getConversationId(), context);
                     inst.setPptSchema(JacksonJson.toJson(pptSchema));
-                    context.getPptInstService().updateInst(inst);
+                    context.getDependencies().pptInstService().updateInst(inst);
                     context.continueStateMachine(inst, sink, question, thinkingBuffer);
                     return null;
                 })
                 .doOnError(throwable -> {
                     log.error("Schema generation failed", throwable);
                     inst.setStatus(PptInstStatus.SCHEMA.getCode());
-                    context.getPptInstService().updateInst(inst);
-                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getDependencies().pptInstService().updateInst(inst);
+                    context.getDependencies().strategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();

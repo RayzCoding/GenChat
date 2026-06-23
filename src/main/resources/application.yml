@@ -80,3 +80,15 @@ ppt:
 app:
   cors:
     allowed-origin-patterns: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*}
+
+genchat:
+  agent:
+    max-rounds: 5
+    max-retries: 0
+    chat-memory-size: 30
+  file:
+    chunk-size: 500
+    chunk-overlap: 50
+  deep-research:
+    max-rounds: 3
+    tool-semaphore-permits: 3

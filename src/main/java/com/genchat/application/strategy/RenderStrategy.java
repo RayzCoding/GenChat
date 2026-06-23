@@ -23,7 +23,7 @@ public class RenderStrategy implements PptStateStrategy {
         sink.tryEmitNext(new AgentStreamEvent.Thinking("Rendering PPT...\n").toJSON());
         var disposable = Mono.fromCallable(() -> {
                     var pptSchemaJson = inst.getPptSchema();
-                    return context.getPptPythonRenderService().renderPpt(inst, pptSchemaJson);
+                    return context.getDependencies().pptPythonRenderService().renderPpt(inst, pptSchemaJson);
                 })
                 .doOnSuccess(fileUrl -> {
                     inst.setFileUrl(fileUrl);
@@ -35,7 +35,7 @@ public class RenderStrategy implements PptStateStrategy {
                     log.error("Rendering PPT Failed", throwable);
                     inst.setStatus(PptInstStatus.RENDER.getCode());
                     inst.setErrorMsg(throwable.getMessage());
-                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getDependencies().strategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();

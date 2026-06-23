@@ -61,8 +61,8 @@ public class PPTBuilderAgent implements PersistentChatAgent {
         this.minioService = pptStrategyDependencies.minioService();
         this.imageGenerationService = pptStrategyDependencies.imageGenerationService();
         this.pptPythonRenderService = pptStrategyDependencies.pptPythonRenderService();
-        recognizer = new PptIntentRecognizer(chatClient, pptInstService);
         initChatClient();
+        this.recognizer = new PptIntentRecognizer(chatClient, pptInstService);
     }
 
     private void initChatClient() {
@@ -224,7 +224,7 @@ public class PPTBuilderAgent implements PersistentChatAgent {
         pptStrategyDependencies.strategyFactory().executeNextState(aiPptInst, sink, question, thinkingBuffer, strategyContext);
     }
 
-    public void initPersistentChatMemory(String conversationId) {
-        this.chatMemory = PersistentChatMemoryLoader.load(sessionService, conversationId);
+    public void initPersistentChatMemory(String conversationId, int maxMessages) {
+        this.chatMemory = PersistentChatMemoryLoader.load(sessionService, conversationId, maxMessages);
     }
 }

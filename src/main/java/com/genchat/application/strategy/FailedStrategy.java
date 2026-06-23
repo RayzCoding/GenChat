@@ -70,7 +70,7 @@ public class FailedStrategy implements PptStateStrategy {
                                    String response,
                                    StringBuilder thinkingBuffer) {
         var currentSessionId = context.getCurrentSessionId();
-        var sessionService = context.getSessionService();
+        var sessionService = context.getDependencies().sessionService();
         if (currentSessionId == null) {
             return;
         }

@@ -7,5 +7,5 @@ import reactor.core.publisher.Flux;
  */
 public interface PersistentChatAgent {
 
-    void initPersistentChatMemory(String conversationId);
+    void initPersistentChatMemory(String conversationId, int maxMessages);
 }

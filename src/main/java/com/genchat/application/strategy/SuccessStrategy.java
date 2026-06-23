@@ -62,7 +62,7 @@ public class SuccessStrategy implements PptStateStrategy {
     }
 
     private static void updateSession(StringBuilder thinkingBuffer, PptStateStrategyContext context, StringBuilder llmResponse) {
-        var aiChatSessionOptional = context.getSessionService().queryById(context.getCurrentSessionId());
+        var aiChatSessionOptional = context.getDependencies().sessionService().queryById(context.getCurrentSessionId());
         if (aiChatSessionOptional.isEmpty()) {
             log.error("Session id {} not found", context.getCurrentSessionId());
             return;
@@ -70,7 +70,7 @@ public class SuccessStrategy implements PptStateStrategy {
         var aiChatSession = aiChatSessionOptional.get();
         aiChatSession.setAnswer(llmResponse.toString());
         aiChatSession.setThinking(thinkingBuffer.toString());
-        context.getSessionService().updateSession(aiChatSession);
+        context.getDependencies().sessionService().updateSession(aiChatSession);
     }
 
     @Override

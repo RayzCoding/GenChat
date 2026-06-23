@@ -23,7 +23,8 @@ public record DeepResearchDependencies(
                                     ChatModel chatModel,
                                     List<ToolCallback> tools,
                                     AgentTaskService agentTaskService,
-                                    int maxRounds) {
+                                    int maxRounds,
+                                    int toolSemaphorePermits) {
         this(
                 sessionService,
                 chatModel,
@@ -31,7 +32,7 @@ public record DeepResearchDependencies(
                 agentTaskService,
                 maxRounds,
                 ChatClient.builder(chatModel).build(),
-                new Semaphore(3),
+                new Semaphore(toolSemaphorePermits),
                 "DeepResearchAgent"
         );
     }

@@ -7,6 +7,7 @@ import com.genchat.application.tool.GrepTool;
 import com.genchat.application.tool.SkillsTool;
 import com.genchat.common.utils.ToolMergeUtils;
 import com.genchat.config.WebSearchToolInitConfig;
+import com.genchat.config.GenChatProperties;
 import com.genchat.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatModel;
@@ -29,17 +30,20 @@ public class AgentFactory {
     private final FileContentTool fileContentTool;
     private final PptStrategyDependencies pptStrategyDependencies;
     private final ObjectProvider<DeepResearchAgent> deepResearchAgentProvider;
+    private final GenChatProperties genChatProperties;
 
     @Value("${skills.directory:}")
     private String skillsDirectory;
 
     public WebSearchReactAgent createWebSearchAgent() {
-        return new WebSearchReactAgent(
+        var agent = new WebSearchReactAgent(
                 chatModel,
                 sessionService,
                 agentTaskService,
                 webSearchToolInitConfig.getWebSearchToolCallbacks(),
-                5);
+                genChatProperties.getAgent().getMaxRounds());
+        agent.setMaxRetries(genChatProperties.getAgent().getMaxRetries());
+        return agent;
     }
 
     public DeepResearchAgent createDeepResearchAgent() {
@@ -80,11 +84,13 @@ public class AgentFactory {
                         .addSkillsDirectory(skillsDirectory)
                         .build()},
                 GrepTool.create());
-        return new SkillsReactAgent(
+        var agent = new SkillsReactAgent(
                 chatModel,
                 sessionService,
                 agentTaskService,
                 toolCallbacks,
-                5);
+                genChatProperties.getAgent().getMaxRounds());
+        agent.setMaxRetries(genChatProperties.getAgent().getMaxRetries());
+        return agent;
     }
 }

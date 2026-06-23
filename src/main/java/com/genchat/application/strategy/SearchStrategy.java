@@ -53,7 +53,7 @@ public class SearchStrategy implements PptStateStrategy {
                     log.info("Search result: {}", searchResult);
                     inst.setStatus(TARGET_STATUS.getCode());
                     inst.setSearchInfo(searchResult);
-                    context.getPptInstService().updateInst(inst);
+                    context.getDependencies().pptInstService().updateInst(inst);
                     sink.tryEmitNext(new AgentStreamEvent.Thinking("\n✅Once the relevant information is gathered, start selecting the template\n").toJSON());
                     context.continueStateMachine(inst, sink, question, thinkingBuffer);
                 })
@@ -61,8 +61,8 @@ public class SearchStrategy implements PptStateStrategy {
                     log.error("Search result: {}", searchResultBuffer, throwable);
                     inst.setErrorMsg(throwable.getMessage());
                     inst.setStatus(PptInstStatus.SEARCH.getCode());
-                    context.getPptInstService().updateInst(inst);
-                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getDependencies().pptInstService().updateInst(inst);
+                    context.getDependencies().strategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();

@@ -167,8 +167,8 @@ public abstract class AbstractReactAgent implements PersistentChatAgent {
                 });
     }
 
-    public void initPersistentChatMemory(String conversationId) {
-        this.chatMemory = PersistentChatMemoryLoader.load(sessionService, conversationId);
+    public void initPersistentChatMemory(String conversationId, int maxMessages) {
+        this.chatMemory = PersistentChatMemoryLoader.load(sessionService, conversationId, maxMessages);
     }
 
     private ReactRoundScheduler createRoundScheduler() {

@@ -53,7 +53,7 @@ public class RequirementStrategy implements PptStateStrategy {
                         // The information is complete, continue to the next step: information collection
                         inst.setRequirement(response);
                         inst.setStatus(TARGET_STATUS.getCode());
-                        context.getPptInstService().updateInst(inst);
+                        context.getDependencies().pptInstService().updateInst(inst);
                         sink.tryEmitNext(new AgentStreamEvent.Thinking("\n✅ The requirements are confirmed and the relevant information is being collected\n").toJSON());
                         context.continueStateMachine(inst, sink, question, thinkingBuffer);
                     } else {
@@ -61,12 +61,12 @@ public class RequirementStrategy implements PptStateStrategy {
                         inst.setRequirement(response);
                         inst.setStatus(PptInstStatus.REQUIREMENT.getCode());
                         inst.setErrorMsg(response);
-                        context.getPptInstService().updateInst(inst);
+                        context.getDependencies().pptInstService().updateInst(inst);
                         if (context.getChatMemory() != null) {
                             context.getChatMemory().add(conversationId, new AssistantMessage(response));
                         }
                         // Go to FAILED policy
-                        context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                        context.getDependencies().strategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                     }
 
                 })
@@ -75,9 +75,9 @@ public class RequirementStrategy implements PptStateStrategy {
                     // When it fails, it does not fall back to the state, only updates the error message, and goes to FAILED
                     inst.setErrorMsg(throwable.getMessage());
                     inst.setStatus(PptInstStatus.FAILED.getCode());
-                    context.getPptInstService().updateInst(inst);
+                    context.getDependencies().pptInstService().updateInst(inst);
                     // Go to FAILED policy
-                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getDependencies().strategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();

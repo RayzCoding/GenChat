@@ -23,13 +23,13 @@ public class OutlineStrategy implements PptStateStrategy {
                         PptStateStrategyContext context) {
         // loading template by code
         var templateCode = inst.getTemplateCode();
-        var templateOptional = context.getPptTemplateService().getByTemplateCode(templateCode);
+        var templateOptional = context.getDependencies().pptTemplateService().getByTemplateCode(templateCode);
         if (templateOptional.isEmpty()) {
             log.info("Template not found for templateCode {}", templateCode);
             inst.setErrorMsg("Template not found for templateCode: " + templateCode);
             inst.setStatus(PptInstStatus.TEMPLATE.getCode());
-            context.getPptInstService().updateInst(inst);
-            context.getStrategyFactory().executeFailedStrategy(inst,
+            context.getDependencies().pptInstService().updateInst(inst);
+            context.getDependencies().strategyFactory().executeFailedStrategy(inst,
                     sink, question, thinkingBuffer, context);
             return;
         }
@@ -50,7 +50,7 @@ public class OutlineStrategy implements PptStateStrategy {
                     log.info("Outline generate completed.");
                     inst.setStatus(TARGET_STATUS.getCode());
                     inst.setOutline(outlineContent.toString());
-                    context.getPptInstService().updateInst(inst);
+                    context.getDependencies().pptInstService().updateInst(inst);
                     sink.tryEmitNext(new AgentStreamEvent.Thinking("\n ✅ After the outline is generated, start designing the PPT details\n").toJSON());
                     context.continueStateMachine(inst, sink, question, thinkingBuffer);
                 })
@@ -58,8 +58,8 @@ public class OutlineStrategy implements PptStateStrategy {
                     log.info("Outline generate failed.", err);
                     inst.setStatus(PptInstStatus.OUTLINE.getCode());
                     inst.setErrorMsg("Outline generate failed: " + err.getMessage());
-                    context.getPptInstService().updateInst(inst);
-                    context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+                    context.getDependencies().pptInstService().updateInst(inst);
+                    context.getDependencies().strategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();

@@ -2,6 +2,7 @@ package com.genchat.agent.deepresearch;
 
 import com.genchat.agent.DeepResearchAgent;
 import com.genchat.config.WebSearchToolInitConfig;
+import com.genchat.config.GenChatProperties;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
 import org.springframework.ai.chat.model.ChatModel;
@@ -20,13 +21,16 @@ public class DeepResearchConfiguration {
             AiChatSessionService sessionService,
             ChatModel chatModel,
             WebSearchToolInitConfig webSearchToolInitConfig,
-            AgentTaskService agentTaskService) {
+            AgentTaskService agentTaskService,
+            GenChatProperties genChatProperties) {
+        var deepResearch = genChatProperties.getDeepResearch();
         return new DeepResearchDependencies(
                 sessionService,
                 chatModel,
                 List.of(webSearchToolInitConfig.getWebSearchToolCallbacks()),
                 agentTaskService,
-                3);
+                deepResearch.getMaxRounds(),
+                deepResearch.getToolSemaphorePermits());
     }
 
     @Bean

@@ -28,7 +28,7 @@ public class TemplateStrategy implements PptStateStrategy {
         sink.tryEmitNext(new AgentStreamEvent.Thinking("Template styling is being designed...\n").toJSON());
 
         var requirement = inst.getRequirement();
-        var pptTemplates = context.getPptTemplateService().listAll();
+        var pptTemplates = context.getDependencies().pptTemplateService().listAll();
         var templatesInfo = new StringBuilder();
         pptTemplates.forEach(template -> {
             templatesInfo.append(String.format("""
@@ -56,16 +56,16 @@ public class TemplateStrategy implements PptStateStrategy {
             log.info("Template selection result: {}", result);
             inst.setTemplateCode(result.getTemplateCode());
             inst.setStatus(TARGET_STATUS.getCode());
-            context.getPptInstService().updateInst(inst);
+            context.getDependencies().pptInstService().updateInst(inst);
             sink.tryEmitNext(new AgentStreamEvent.Thinking("✅ Once the template is designed, start generating the outline...\n").toJSON());
             context.continueStateMachine(inst, sink, question, thinkingBuffer);
         }catch (Exception e) {
             log.error("Template selection prompt failed", e);
             inst.setStatus(PptInstStatus.TEMPLATE.getCode());
             inst.setErrorMsg(e.getMessage());
-            context.getPptInstService().updateInst(inst);
+            context.getDependencies().pptInstService().updateInst(inst);
 
-            context.getStrategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
+            context.getDependencies().strategyFactory().executeFailedStrategy(inst, sink, question, thinkingBuffer, context);
         }
     }
 

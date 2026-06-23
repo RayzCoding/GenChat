@@ -26,7 +26,7 @@ public class PptStateStrategyFactory {
                                  StringBuilder thinkingBuffer,
                                  PptStateStrategyContext strategyContext) {
         try {
-            var pptInstService = strategyContext.getPptInstService();
+            var pptInstService = strategyContext.getDependencies().pptInstService();
             var latestInst = pptInstService.getInstById(pptInst.getId());
             if (latestInst.isPresent()) {
                 pptInst = latestInst.get();
