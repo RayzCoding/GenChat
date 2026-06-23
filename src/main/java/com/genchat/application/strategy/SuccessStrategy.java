@@ -1,8 +1,8 @@
 package com.genchat.application.strategy;
 
-import com.alibaba.fastjson2.JSON;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
+import com.genchat.common.utils.JacksonJson;
 import com.genchat.dto.AiPptInst;
 import com.genchat.dto.PptSchema;
 import com.genchat.entity.PptInstStatus;
@@ -24,7 +24,7 @@ public class SuccessStrategy implements PptStateStrategy {
                         StringBuilder thinkingBuffer,
                         PptStateStrategyContext context) {
         var fileUrl = inst.getFileUrl();
-        var pptSchema = JSON.parseObject(inst.getPptSchema(), PptSchema.class);
+        var pptSchema = JacksonJson.fromJson(inst.getPptSchema(), PptSchema.class);
         var size = pptSchema.getSlides().size();
         String prompt;
 

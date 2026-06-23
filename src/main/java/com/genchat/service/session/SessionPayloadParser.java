@@ -1,7 +1,7 @@
 package com.genchat.service.session;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONArray;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.genchat.common.utils.JacksonJson;
 import com.genchat.dto.SearchResultDTO;
 import org.springframework.util.StringUtils;
 
@@ -22,26 +22,27 @@ public final class SessionPayloadParser {
             return Collections.emptyList();
         }
         try {
-            var root = JSON.parseObject(referenceJson);
-            if (root == null) {
+            var root = JacksonJson.parseTreeLenient(referenceJson.trim());
+            if (root == null || root.isArray()) {
                 return Collections.emptyList();
             }
-            Object content = root.get("content");
-            if (content == null) {
+            if (!root.isObject()) {
+                return Collections.emptyList();
+            }
+            JsonNode content = root.get("content");
+            if (content == null || content.isNull()) {
                 content = root.get("data");
             }
-            if (content instanceof JSONArray array) {
-                return parseSearchResultArray(array);
-            }
-            if (content instanceof String contentStr) {
-                var parsedArray = JSON.parseArray(contentStr);
-                if (parsedArray != null) {
-                    return parseSearchResultArray(parsedArray);
+            if (content != null && !content.isNull()) {
+                if (content.isArray()) {
+                    return parseSearchResultArray(content);
                 }
-            }
-            var directArray = JSON.parseArray(referenceJson);
-            if (directArray != null) {
-                return parseSearchResultArray(directArray);
+                if (content.isTextual()) {
+                    var parsedArray = JacksonJson.parseTreeLenient(content.asText());
+                    if (parsedArray != null && parsedArray.isArray()) {
+                        return parseSearchResultArray(parsedArray);
+                    }
+                }
             }
         } catch (Exception ignored) {
             // fall through
@@ -54,22 +55,23 @@ public final class SessionPayloadParser {
             return Collections.emptyList();
         }
         try {
-            var root = JSON.parseObject(recommendJson);
-            if (root != null) {
-                Object content = root.get("content");
-                if (content instanceof JSONArray array) {
-                    return array.toJavaList(String.class);
-                }
-                if (content instanceof String contentStr) {
-                    var parsedArray = JSON.parseArray(contentStr);
-                    if (parsedArray != null) {
-                        return parsedArray.toJavaList(String.class);
+            var root = JacksonJson.parseTreeLenient(recommendJson.trim());
+            if (root == null || root.isArray()) {
+                return Collections.emptyList();
+            }
+            if (root.isObject()) {
+                JsonNode content = root.get("content");
+                if (content != null && !content.isNull()) {
+                    if (content.isArray()) {
+                        return parseStringArray(content);
+                    }
+                    if (content.isTextual()) {
+                        var parsedArray = JacksonJson.parseTreeLenient(content.asText());
+                        if (parsedArray != null && parsedArray.isArray()) {
+                            return parseStringArray(parsedArray);
+                        }
                     }
                 }
-            }
-            var directArray = JSON.parseArray(recommendJson);
-            if (directArray != null) {
-                return directArray.toJavaList(String.class);
             }
         } catch (Exception ignored) {
             // fall through
@@ -77,18 +79,27 @@ public final class SessionPayloadParser {
         return Collections.emptyList();
     }
 
-    private static List<SearchResultDTO> parseSearchResultArray(JSONArray array) {
+    private static List<SearchResultDTO> parseSearchResultArray(JsonNode array) {
         var results = new ArrayList<SearchResultDTO>();
-        for (int i = 0; i < array.size(); i++) {
-            var item = array.getJSONObject(i);
-            if (item == null) {
+        for (JsonNode item : array) {
+            if (item == null || item.isNull()) {
                 continue;
             }
             results.add(SearchResultDTO.builder()
-                    .url(item.getString("url"))
-                    .title(item.getString("title"))
-                    .content(item.getString("content"))
+                    .url(JacksonJson.getSafe(item, "url"))
+                    .title(JacksonJson.getSafe(item, "title"))
+                    .content(JacksonJson.getSafe(item, "content"))
                     .build());
+        }
+        return results;
+    }
+
+    private static List<String> parseStringArray(JsonNode array) {
+        var results = new ArrayList<String>();
+        for (JsonNode item : array) {
+            if (item != null && !item.isNull()) {
+                results.add(item.asText());
+            }
         }
         return results;
     }

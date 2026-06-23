@@ -1,6 +1,6 @@
 package com.genchat.service;
 
-import com.alibaba.fastjson2.JSON;
+import com.genchat.common.utils.JacksonJson;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -268,7 +268,7 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                        String agentType,
                        String referenceJson) {
         if (agentState != null && !agentState.searchResults.isEmpty()) {
-            referenceJson = AgentStreamEvent.Reference.of(JSON.toJSONString(agentState.searchResults)).toJSON();
+            referenceJson = AgentStreamEvent.Reference.of(JacksonJson.toJson(agentState.searchResults)).toJSON();
         }
         var wrapper = new LambdaUpdateWrapper<AiChatSessionEntity>();
         wrapper.eq(AiChatSessionEntity::getId, id)

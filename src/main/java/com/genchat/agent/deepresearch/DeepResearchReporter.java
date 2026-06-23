@@ -1,6 +1,6 @@
 package com.genchat.agent.deepresearch;
 
-import com.alibaba.fastjson2.JSON;
+import com.genchat.common.utils.JacksonJson;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.utils.ThinkTagParser;
@@ -85,7 +85,7 @@ public class DeepResearchReporter {
                 })
                 .doOnComplete(() -> {
                     if (!ctx.getAllReferences().isEmpty()) {
-                        sink.tryEmitNext(AgentStreamEvent.Reference.of(JSON.toJSONString(ctx.getAllReferences())).toJSON());
+                        sink.tryEmitNext(AgentStreamEvent.Reference.of(JacksonJson.toJson(ctx.getAllReferences())).toJSON());
                     }
                     if (finished.compareAndSet(false, true)) {
                         sink.tryEmitComplete();

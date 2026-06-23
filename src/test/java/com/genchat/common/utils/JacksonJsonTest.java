@@ -58,6 +58,26 @@ class JacksonJsonTest {
     }
 
     @Test
+    void fromJsonParsesTypedObjects() {
+        record Sample(String name) {
+        }
+        var sample = JacksonJson.fromJson("{\"name\":\"genchat\"}", Sample.class);
+        assertEquals("genchat", sample.name());
+    }
+
+    @Test
+    void fromJsonLenientReturnsNullOnInvalidJson() {
+        assertNull(JacksonJson.fromJsonLenient("{bad", String.class));
+    }
+
+    @Test
+    void getSafeReadsFieldFromJsonNode() {
+        var node = JacksonJson.parseTree("{\"field\":\"value\"}");
+        assertEquals("value", JacksonJson.getSafe(node, "field"));
+        assertNull(JacksonJson.getSafe(node, "missing"));
+    }
+
+    @Test
     void quoteJsonStringEscapesControlCharacters() {
         assertEquals("\"a\\nb\"", JacksonJson.quoteJsonString("a\nb"));
     }

@@ -3,7 +3,7 @@ package com.genchat.agent;
 import com.genchat.application.agent.PersistentChatAgent;
 import com.genchat.application.stream.AgentStreamLifecycle;
 import com.genchat.application.stream.PersistentChatMemoryLoader;
-import com.alibaba.fastjson2.JSON;
+import com.genchat.common.utils.JacksonJson;
 import com.genchat.agent.deepresearch.DeepResearchDependencies;
 import com.genchat.agent.deepresearch.DeepResearchPlanLoop;
 import com.genchat.agent.deepresearch.DeepResearchPreparation;
@@ -79,10 +79,10 @@ public class DeepResearchAgent implements PersistentChatAgent {
                             null,
                             totalResponseTime,
                             ctx.getFirstResponseTime(),
-                            JSON.toJSONString(ctx.getToolRecords()),
+                            JacksonJson.toJson(ctx.getToolRecords()),
                             null,
                             deps.agentType(),
-                            AgentStreamEvent.Reference.of(JSON.toJSONString(ctx.getAllReferences())).toJSON());
+                            AgentStreamEvent.Reference.of(JacksonJson.toJson(ctx.getAllReferences())).toJSON());
                     ctx.getCompositeDisposable().dispose();
                 });
     }

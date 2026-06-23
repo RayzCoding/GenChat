@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.genchat.common.utils.JsonUtil.getSafe;
+import static com.genchat.common.utils.JacksonJson.getSafe;
 
 /**
  * Shared ReAct tool execution helpers used by streaming and blocking agents.

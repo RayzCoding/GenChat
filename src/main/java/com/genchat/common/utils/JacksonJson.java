@@ -1,6 +1,7 @@
 package com.genchat.common.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -30,6 +31,33 @@ public final class JacksonJson {
         }
     }
 
+    public static <T> T fromJson(String json, Class<T> type) {
+        try {
+            return MAPPER.readValue(json, type);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Failed to parse JSON", e);
+        }
+    }
+
+    public static <T> T fromJsonLenient(String json, Class<T> type) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return MAPPER.readValue(json, type);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    public static <T> T fromJson(String json, TypeReference<T> typeReference) {
+        try {
+            return MAPPER.readValue(json, typeReference);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Failed to parse JSON", e);
+        }
+    }
+
     public static JsonNode parseTree(String json) {
         try {
             return MAPPER.readTree(json);
@@ -39,6 +67,9 @@ public final class JacksonJson {
     }
 
     public static JsonNode parseTreeLenient(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
         try {
             return MAPPER.readTree(json);
         } catch (JsonProcessingException e) {
@@ -56,6 +87,13 @@ public final class JacksonJson {
 
     public static String textField(String json, String field) {
         JsonNode node = parseTreeLenient(json);
+        if (node == null) {
+            return null;
+        }
+        return getSafe(node, field);
+    }
+
+    public static String getSafe(JsonNode node, String field) {
         if (node == null) {
             return null;
         }

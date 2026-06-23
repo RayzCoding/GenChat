@@ -1,7 +1,7 @@
 package com.genchat.service;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.genchat.common.utils.JacksonJson;
 import com.genchat.dto.ImageProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -73,7 +73,7 @@ public class ImageGenerationService {
             requestBuilder.header("Authorization", "Bearer " + apiKey);
 
             // add request body
-            String bodyStr = JSON.toJSONString(requestBody);
+            String bodyStr = JacksonJson.toJson(requestBody);
             requestBuilder.POST(HttpRequest.BodyPublishers.ofString(bodyStr));
 
             HttpRequest request = requestBuilder.build();
@@ -83,26 +83,17 @@ public class ImageGenerationService {
                     HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                JSONObject jsonResponse = JSON.parseObject(response.body());
+                JsonNode jsonResponse = JacksonJson.parseTreeLenient(response.body());
                 log.info("Qwen image generation response: {}", jsonResponse);
 
-                // Get the image URL directly from the response
-                JSONObject output = jsonResponse.getJSONObject("output");
-                if (output != null && output.containsKey("choices")) {
-                    com.alibaba.fastjson2.JSONArray choices = output.getJSONArray("choices");
-                    if (choices != null && choices.size() > 0) {
-                        JSONObject choice = choices.getJSONObject(0);
-                        JSONObject message = choice.getJSONObject("message");
-                        if (message != null && message.containsKey("content")) {
-                            com.alibaba.fastjson2.JSONArray contents = message.getJSONArray("content");
-                            if (contents != null && contents.size() > 0) {
-                                JSONObject content = contents.getJSONObject(0);
-                                if (content.containsKey("image")) {
-                                    String imageUrl = content.getString("image");
-                                    log.info("Qwen image generation is successful，URL: {}", imageUrl);
-                                    return imageUrl;
-                                }
-                            }
+                JsonNode contents = jsonResponse.path("output").path("choices");
+                if (contents.isArray() && !contents.isEmpty()) {
+                    JsonNode contentArray = contents.get(0).path("message").path("content");
+                    if (contentArray.isArray() && !contentArray.isEmpty()) {
+                        String imageUrl = JacksonJson.getSafe(contentArray.get(0), "image");
+                        if (imageUrl != null) {
+                            log.info("Qwen image generation is successful，URL: {}", imageUrl);
+                            return imageUrl;
                         }
                     }
                 }
@@ -140,7 +131,7 @@ public class ImageGenerationService {
             }
 
             // Add request body
-            String bodyStr = JSON.toJSONString(requestBody);
+            String bodyStr = JacksonJson.toJson(requestBody);
             requestBuilder.POST(HttpRequest.BodyPublishers.ofString(bodyStr));
 
             HttpRequest request = requestBuilder.build();
@@ -162,29 +153,32 @@ public class ImageGenerationService {
 
                             if (!jsonData.isEmpty() && !"[DONE]".equals(jsonData)) {
                                 try {
-                                    JSONObject jsonObject = JSON.parseObject(jsonData);
+                                    JsonNode jsonObject = JacksonJson.parseTreeLenient(jsonData);
+                                    if (jsonObject == null) {
+                                        continue;
+                                    }
 
                                     // Check for completion
-                                    if ("succeeded".equals(jsonObject.getString("status"))) {
-                                        if (jsonObject.containsKey("results") &&
-                                                !jsonObject.getJSONArray("results").isEmpty()) {
-                                            JSONObject result = jsonObject.getJSONArray("results").getJSONObject(0);
-                                            if (result.containsKey("url")) {
-                                                String imageUrl = result.getString("url");
+                                    if ("succeeded".equals(JacksonJson.getSafe(jsonObject, "status"))) {
+                                        JsonNode results = jsonObject.get("results");
+                                        if (results != null && results.isArray() && !results.isEmpty()) {
+                                            String imageUrl = JacksonJson.getSafe(results.get(0), "url");
+                                            if (imageUrl != null) {
                                                 log.info("nano-banana image generation succeeded, URL: {}", imageUrl);
                                                 return imageUrl;
                                             }
                                         }
-                                    } else if ("failed".equals(jsonObject.getString("status")) ||
-                                            "error".equals(jsonObject.getString("status"))) {
-                                        log.error("nano-banana image generation failed: {}", jsonObject.getString("error"));
+                                    } else if ("failed".equals(JacksonJson.getSafe(jsonObject, "status"))
+                                            || "error".equals(JacksonJson.getSafe(jsonObject, "status"))) {
+                                        log.error("nano-banana image generation failed: {}",
+                                                JacksonJson.getSafe(jsonObject, "error"));
                                         return null;
                                     }
 
                                     // Log progress
-                                    if (jsonObject.containsKey("progress")) {
-                                        int progress = jsonObject.getIntValue("progress");
-                                        log.info("nano-banana image generation progress: {}%", progress);
+                                    JsonNode progress = jsonObject.get("progress");
+                                    if (progress != null && progress.isNumber()) {
+                                        log.info("nano-banana image generation progress: {}%", progress.asInt());
                                     }
                                 } catch (Exception e) {
                                     log.error("Failed to parse SSE data: {}", jsonData, e);
