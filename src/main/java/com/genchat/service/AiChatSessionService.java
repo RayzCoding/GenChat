@@ -2,32 +2,22 @@ package com.genchat.service;
 
 import com.genchat.common.utils.JacksonJson;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.converter.AiChatSessionConverter;
-import com.genchat.dto.*;
+import com.genchat.dto.AiChatSession;
 import com.genchat.entity.AgentState;
 import com.genchat.entity.AiChatSessionEntity;
 import com.genchat.repository.AiChatSessionRepository;
-import com.genchat.service.session.SessionPayloadParser;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, AiChatSessionEntity> {
-
-    private static final int MAX_TITLE_LENGTH = 80;
 
     public List<AiChatSession> queryRecentBySessionId(String sessionId, int maxMessages) {
         var wrapper = new LambdaQueryWrapper<AiChatSessionEntity>()
@@ -53,208 +43,6 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
     public void updateSession(AiChatSession session) {
         var entity = AiChatSessionConverter.INSTANCE.toEntity(session);
         updateById(entity);
-    }
-
-    public PageResult<SessionSummaryDTO> listSessions(int page, int pageSize) {
-        return querySessionSummaries(null, page, pageSize);
-    }
-
-    public PageResult<SessionSummaryDTO> searchSessions(String keyword, int page, int pageSize) {
-        if (!StringUtils.hasLength(keyword)) {
-            return listSessions(page, pageSize);
-        }
-        return querySessionSummaries(keyword.trim(), page, pageSize);
-    }
-
-    public boolean deleteSession(String conversationId) {
-        if (!StringUtils.hasLength(conversationId)) {
-            return false;
-        }
-        var wrapper = new LambdaQueryWrapper<AiChatSessionEntity>()
-                .eq(AiChatSessionEntity::getSessionId, conversationId);
-        if (count(wrapper) == 0) {
-            return false;
-        }
-        return remove(wrapper);
-    }
-
-    public Optional<SessionDetailDTO> getSessionDetail(String conversationId) {
-        var wrapper = new LambdaQueryWrapper<AiChatSessionEntity>()
-                .eq(AiChatSessionEntity::getSessionId, conversationId)
-                .orderByAsc(AiChatSessionEntity::getCreateTime);
-
-        var entities = list(wrapper);
-        if (entities.isEmpty()) {
-            return Optional.empty();
-        }
-
-        var messages = entities.stream()
-                .map(this::toMessageDto)
-                .toList();
-
-        return Optional.of(SessionDetailDTO.builder()
-                .conversationId(conversationId)
-                .messages(messages)
-                .build());
-    }
-
-    private PageResult<SessionSummaryDTO> querySessionSummaries(String keyword,
-                                                                int page,
-                                                                int pageSize) {
-        var safePage = Math.max(page, 1);
-        var safePageSize = Math.min(Math.max(pageSize, 1), 100);
-
-        var total = countDistinctSessions(keyword);
-
-        var groupWrapper = buildGroupQueryWrapper(keyword);
-        var mpPage = new Page<Map<String, Object>>(safePage, safePageSize);
-        mpPage.setSearchCount(false);
-
-        var pageResult = baseMapper.selectMapsPage(mpPage, groupWrapper);
-        var sessionIds = pageResult.getRecords().stream()
-                .map(row -> (String) row.get("session_id"))
-                .toList();
-
-        var firstQuestions = loadFirstQuestions(sessionIds);
-        var lastQuestions = loadLastQuestions(sessionIds);
-
-        var items = pageResult.getRecords().stream()
-                .map(row -> toSummaryDto(row, firstQuestions, lastQuestions))
-                .toList();
-
-        return PageResult.<SessionSummaryDTO>builder()
-                .total(total)
-                .items(items)
-                .build();
-    }
-
-    private QueryWrapper<AiChatSessionEntity> buildGroupQueryWrapper(String keyword) {
-        var wrapper = new QueryWrapper<AiChatSessionEntity>()
-                .select("session_id",
-                        "MAX(update_time) AS update_time",
-                        "COUNT(*) AS message_count",
-                        "MAX(agent_type) AS agent_type")
-                .groupBy("session_id")
-                .orderByDesc("update_time");
-
-        applyKeywordFilter(wrapper, keyword);
-        return wrapper;
-    }
-
-    private long countDistinctSessions(String keyword) {
-        var countWrapper = new QueryWrapper<AiChatSessionEntity>()
-                .select("COUNT(DISTINCT session_id) AS total");
-        applyKeywordFilter(countWrapper, keyword);
-
-        var rows = baseMapper.selectMaps(countWrapper);
-        if (rows.isEmpty()) {
-            return 0L;
-        }
-        return toLong(rows.getFirst().get("total"));
-    }
-
-    private void applyKeywordFilter(QueryWrapper<AiChatSessionEntity> wrapper, String keyword) {
-        if (StringUtils.hasLength(keyword)) {
-            wrapper.and(w -> w.like("question", keyword).or().like("answer", keyword));
-        }
-    }
-
-    private Map<String, String> loadFirstQuestions(List<String> sessionIds) {
-        if (sessionIds.isEmpty()) {
-            return Map.of();
-        }
-        var wrapper = new LambdaQueryWrapper<AiChatSessionEntity>()
-                .in(AiChatSessionEntity::getSessionId, sessionIds)
-                .select(AiChatSessionEntity::getSessionId, AiChatSessionEntity::getQuestion)
-                .orderByAsc(AiChatSessionEntity::getCreateTime);
-
-        var result = new LinkedHashMap<String, String>();
-        for (var entity : list(wrapper)) {
-            result.putIfAbsent(entity.getSessionId(), entity.getQuestion());
-        }
-        return result;
-    }
-
-    private Map<String, String> loadLastQuestions(List<String> sessionIds) {
-        if (sessionIds.isEmpty()) {
-            return Map.of();
-        }
-        var wrapper = new LambdaQueryWrapper<AiChatSessionEntity>()
-                .in(AiChatSessionEntity::getSessionId, sessionIds)
-                .select(AiChatSessionEntity::getSessionId, AiChatSessionEntity::getQuestion)
-                .orderByDesc(AiChatSessionEntity::getCreateTime);
-
-        var result = new LinkedHashMap<String, String>();
-        for (var entity : list(wrapper)) {
-            result.putIfAbsent(entity.getSessionId(), entity.getQuestion());
-        }
-        return result;
-    }
-
-    private SessionSummaryDTO toSummaryDto(Map<String, Object> row,
-                                           Map<String, String> firstQuestions,
-                                           Map<String, String> lastQuestions) {
-        var sessionId = (String) row.get("session_id");
-        var title = truncateTitle(firstQuestions.get(sessionId));
-
-        return SessionSummaryDTO.builder()
-                .conversationId(sessionId)
-                .title(title)
-                .lastQuestion(lastQuestions.get(sessionId))
-                .messageCount(toInteger(row.get("message_count")))
-                .agentType((String) row.get("agent_type"))
-                .updatedAt(toLocalDateTime(row.get("update_time")))
-                .build();
-    }
-
-    private String truncateTitle(String title) {
-        if (!StringUtils.hasLength(title)) {
-            return "";
-        }
-        if (title.length() <= MAX_TITLE_LENGTH) {
-            return title;
-        }
-        return title.substring(0, MAX_TITLE_LENGTH) + "...";
-    }
-
-    private long toLong(Object value) {
-        if (value == null) {
-            return 0L;
-        }
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-        return Long.parseLong(value.toString());
-    }
-
-    private int toInteger(Object value) {
-        if (value == null) {
-            return 0;
-        }
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        return Integer.parseInt(value.toString());
-    }
-
-    private LocalDateTime toLocalDateTime(Object value) {
-        if (value instanceof LocalDateTime dateTime) {
-            return dateTime;
-        }
-        return null;
-    }
-
-    private SessionMessageDTO toMessageDto(AiChatSessionEntity entity) {
-        return SessionMessageDTO.builder()
-                .id(entity.getId())
-                .question(entity.getQuestion())
-                .answer(entity.getAnswer())
-                .thinking(entity.getThinking())
-                .reference(SessionPayloadParser.parseReference(entity.getReference()))
-                .recommend(SessionPayloadParser.parseRecommend(entity.getRecommend()))
-                .createTime(entity.getCreateTime())
-                .totalResponseTime(entity.getTotalResponseTime())
-                .build();
     }
 
     public void update(Long id,

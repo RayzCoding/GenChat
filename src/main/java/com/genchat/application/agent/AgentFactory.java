@@ -47,9 +47,11 @@ public class AgentFactory {
     }
 
     public SimpleReactAgent createSimpleReactAgent() {
-        return new SimpleReactAgent(
-                chatModel,
-                List.of(webSearchToolInitConfig.getWebSearchToolCallbacks()));
+        return createSimpleReactAgent(List.of(webSearchToolInitConfig.getWebSearchToolCallbacks()));
+    }
+
+    public SimpleReactAgent createSimpleReactAgent(List<ToolCallback> tools) {
+        return new SimpleReactAgent(chatModel, tools);
     }
 
     public FileReactAgent createFileReactAgent() {

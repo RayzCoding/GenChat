@@ -1,5 +1,6 @@
 package com.genchat.agent;
 
+import com.genchat.agent.core.ReactChunkProcessor;
 import com.genchat.agent.core.ReactToolSupport;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.prompts.ReactAgentPrompts;
@@ -13,10 +14,8 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.messages.*;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
@@ -101,7 +100,7 @@ public class SimpleReactAgent {
                 .stream()
                 .chatResponse()
                 .publishOn(Schedulers.boundedElastic())
-                .doOnNext(chunk -> processChunk(chunk, sink, roundState))
+                .doOnNext(chunk -> ReactChunkProcessor.processChunk(chunk, sink, roundState, false))
                 .doOnComplete(() -> finishRound(messages, sink,
                         roundState, roundCounter, hasSentFinalResult, finalAnswerBuffer))
                 .doOnError(error -> {
@@ -201,18 +200,8 @@ public class SimpleReactAgent {
                 .stream()
                 .chatResponse()
                 .publishOn(Schedulers.boundedElastic())
-                .doOnNext(chunk -> {
-                    if (chunk == null || chunk.getResult() == null || chunk.getResult().getOutput() == null) {
-                        return;
-                    }
-                    var text = chunk.getResult()
-                            .getOutput()
-                            .getText();
-                    if (StringUtils.hasLength(text) && !hasSentFinalResult.get()) {
-                        sink.tryEmitNext(text);
-                        finalTextBuffer.append(text);
-                    }
-                })
+                .doOnNext(chunk -> ReactChunkProcessor.processForceFinalChunk(
+                        chunk, sink, hasSentFinalResult, finalTextBuffer, false))
                 .doOnComplete(() -> {
                     hasSentFinalResult.set(true);
                     sink.tryEmitComplete();
@@ -222,44 +211,6 @@ public class SimpleReactAgent {
                     sink.tryEmitError(error);
                 })
                 .subscribe();
-    }
-
-    private void processChunk(ChatResponse chunk, Sinks.Many<String> sink, RoundState roundState) {
-        if (Objects.isNull(chunk)) {
-            return;
-        }
-        var gen = chunk.getResult();
-        var text = gen.getOutput().getText();
-        var toolCalls = gen.getOutput().getToolCalls();
-        // into Tool call model
-        if (!ObjectUtils.isEmpty(toolCalls)) {
-            roundState.mode = RoundMode.TOOL_CALL;
-            toolCalls.forEach(toolCall -> mergeToolCall(roundState, toolCall));
-            return;
-        }
-        // cache text
-        if (StringUtils.hasLength(text)) {
-            sink.tryEmitNext(text);
-            roundState.textBuffer.append(text);
-        }
-    }
-
-    private void mergeToolCall(RoundState state, AssistantMessage.ToolCall incoming) {
-        for (int i = 0; i < state.toolCalls.size(); i++) {
-            AssistantMessage.ToolCall existing = state.toolCalls.get(i);
-
-            if (existing.id().equals(incoming.id())) {
-                String mergedArgs = Objects.toString(existing.arguments(), "") + Objects.toString(incoming.arguments(), "");
-
-                state.toolCalls.set(i,
-                        new AssistantMessage.ToolCall(existing.id(), "function", existing.name(), mergedArgs)
-                );
-                return;
-            }
-        }
-
-        // New tool call
-        state.toolCalls.add(incoming);
     }
 
     public SimpleReactResult executeInternal(String conversationId, String question, boolean withReference) {

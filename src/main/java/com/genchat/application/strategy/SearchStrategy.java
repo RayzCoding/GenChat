@@ -1,11 +1,12 @@
 package com.genchat.application.strategy;
 
-import com.genchat.agent.SimpleReactAgent;
+import com.genchat.application.agent.AgentFactory;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.PptBuilderPrompts;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiPptInst;
 import com.genchat.entity.PptInstStatus;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -18,8 +19,11 @@ import java.util.Collections;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class SearchStrategy implements PptStateStrategy {
     private static final PptInstStatus TARGET_STATUS = PptInstStatus.TEMPLATE;
+
+    private final AgentFactory agentFactory;
 
     @Override
     public void execute(AiPptInst inst,
@@ -38,7 +42,7 @@ public class SearchStrategy implements PptStateStrategy {
 
         var searchResultBuffer = new StringBuilder();
         // Execute strategy
-        var simpleReactAgent = new SimpleReactAgent(context.getChatModel(), context.getTools());
+        var simpleReactAgent = agentFactory.createSimpleReactAgent(context.getTools());
         var disposable = simpleReactAgent.stream(searchInfoPrompt)
                 .doOnNext(chunk -> {
                     searchResultBuffer.append(chunk);

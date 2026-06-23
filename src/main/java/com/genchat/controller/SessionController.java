@@ -5,7 +5,7 @@ import com.genchat.common.Result;
 import com.genchat.dto.PageResult;
 import com.genchat.dto.SessionDetailDTO;
 import com.genchat.dto.SessionSummaryDTO;
-import com.genchat.service.AiChatSessionService;
+import com.genchat.service.SessionQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
@@ -22,14 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class SessionController {
 
-    private final AiChatSessionService sessionService;
+    private final SessionQueryService sessionQueryService;
 
     @GetMapping
     public Result<PageResult<SessionSummaryDTO>> listSessions(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {
         log.info("List sessions, page: {}, pageSize: {}", page, pageSize);
-        return Result.success(sessionService.listSessions(page, pageSize));
+        return Result.success(sessionQueryService.listSessions(page, pageSize));
     }
 
     @GetMapping("/search")
@@ -39,15 +39,15 @@ public class SessionController {
             @RequestParam(defaultValue = "20") int pageSize) {
         log.info("Search sessions, q: {}", q);
         if (!StringUtils.hasLength(q)) {
-            return Result.success(sessionService.listSessions(page, pageSize));
+            return Result.success(sessionQueryService.listSessions(page, pageSize));
         }
-        return Result.success(sessionService.searchSessions(q.trim(), page, pageSize));
+        return Result.success(sessionQueryService.searchSessions(q.trim(), page, pageSize));
     }
 
     @GetMapping("/{conversationId}")
     public Result<SessionDetailDTO> getSessionDetail(@PathVariable String conversationId) {
         log.info("Get session detail, conversationId: {}", conversationId);
-        return sessionService.getSessionDetail(conversationId)
+        return sessionQueryService.getSessionDetail(conversationId)
                 .map(Result::success)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Session not found: " + conversationId));
@@ -56,7 +56,7 @@ public class SessionController {
     @DeleteMapping("/{conversationId}")
     public Result<Void> deleteSession(@PathVariable String conversationId) {
         log.info("Delete session, conversationId: {}", conversationId);
-        if (!sessionService.deleteSession(conversationId)) {
+        if (!sessionQueryService.deleteSession(conversationId)) {
             throw new ResourceNotFoundException(
                     "Session not found: " + conversationId);
         }

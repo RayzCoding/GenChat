@@ -1,5 +1,6 @@
 package com.genchat.agent.deepresearch;
 
+import com.genchat.application.agent.AgentFactory;
 import com.genchat.agent.SimpleReactAgent;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.dto.PlanTask;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 public class DeepResearchTaskExecutor {
 
     private final DeepResearchDependencies deps;
+    private final AgentFactory agentFactory;
 
     public Map<String, TaskResult> executePlan(DeepResearchRunContext ctx,
                                                List<PlanTask> plan,
@@ -139,7 +141,7 @@ public class DeepResearchTaskExecutor {
                                 %s
                     """.formatted(dependencyContext, task.instruction());
 
-            var simpleReactAgent = new SimpleReactAgent(deps.chatModel(), deps.tools());
+            var simpleReactAgent = agentFactory.createSimpleReactAgent(deps.tools());
             simpleReactAgent.setMaxRounds(5);
             simpleReactAgent.setSystemPrompt(PlanExecutePrompts.EXECUTE);
             var result = simpleReactAgent.executeInternal(null, fullContext, true);

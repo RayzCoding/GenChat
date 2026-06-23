@@ -5,13 +5,11 @@ import com.genchat.agent.core.ReactStreamRequest;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiChatSession;
 import com.genchat.entity.AgentState;
-import com.genchat.entity.RoundState;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -19,7 +17,6 @@ import reactor.core.publisher.Sinks;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SkillsReactAgent extends AbstractReactAgent {
 
@@ -83,15 +80,6 @@ public class SkillsReactAgent extends AbstractReactAgent {
     @Override
     protected String getForceFinalSystemPrompt() {
         return ReactAgentPrompts.getFilePrompt();
-    }
-
-    @Override
-    protected void processForceFinalChunk(ChatResponse chunk,
-                                          Sinks.Many<String> sink,
-                                          RoundState roundState,
-                                          AtomicBoolean hasSentFinalResult,
-                                          StringBuilder finalTextBuffer) {
-        processChunk(chunk, sink, roundState);
     }
 
     public Flux<String> stream(String conversationId, String question, String fileId) {
