@@ -45,12 +45,16 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
         updateById(entity);
     }
 
+    /**
+     * @param totalResponseTime elapsed time for the full agent run (ms)
+     * @param firstResponseTime time until the first streamed token (ms)
+     */
     public void update(Long id,
                        StringBuilder finalAnswerBuffer,
                        StringBuilder thinkingBuffer,
                        AgentState agentState,
                        long totalResponseTime,
-                       long fistResponseTime,
+                       long firstResponseTime,
                        String usedToolsString,
                        String currentRecommendations,
                        String agentType,
@@ -67,7 +71,7 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                 .set(StringUtils.hasLength(currentRecommendations), AiChatSessionEntity::getRecommend, currentRecommendations)
                 .set(StringUtils.hasLength(agentType), AiChatSessionEntity::getAgentType, agentType)
                 .set(AiChatSessionEntity::getTotalResponseTime, totalResponseTime)
-                .set(AiChatSessionEntity::getFirstResponseTime, fistResponseTime);
+                .set(AiChatSessionEntity::getFirstResponseTime, firstResponseTime);
         update(wrapper);
     }
 }

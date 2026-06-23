@@ -161,8 +161,8 @@ public abstract class AbstractReactAgent implements PersistentChatAgent {
                 () -> {
                     AgentStreamLifecycle.logStreamBuffers(buffers);
                     sessionService.update(currentSessionId, buffers.finalAnswer(),
-                            buffers.thinking(), agentState, firstResponseTime,
-                            getTotalResponseTime(), JacksonJson.toJson(toolRecords),
+                            buffers.thinking(), agentState, getTotalResponseTime(),
+                            firstResponseTime, JacksonJson.toJson(toolRecords),
                             currentRecommendations, getAgentType(), null);
                 });
     }

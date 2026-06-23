@@ -36,6 +36,7 @@ public class PPTBuilderAgent implements PersistentChatAgent {
     protected Long currentSessionId;
     protected String currentRecommendations;
     protected long firstResponseTime;
+    protected long startTime;
     private final PptIntentRecognizer recognizer;
     private final AiPptInstService pptInstService;
     private final ImageGenerationService imageGenerationService;
@@ -87,6 +88,8 @@ public class PPTBuilderAgent implements PersistentChatAgent {
         }
         Sinks.Many<String> sink = started.sink();
 
+        initTimers();
+
         var aiChatSession = sessionService.saveQuestion(
                 AiChatSession.builder()
                         .question(question)
@@ -124,15 +127,33 @@ public class PPTBuilderAgent implements PersistentChatAgent {
                 conversationId,
                 agentTaskService,
                 buffers,
-                null,
+                this::recordFirstResponse,
                 null,
                 () -> {
                     AgentStreamLifecycle.logStreamBuffers(buffers);
                     sessionService.update(currentSessionId, buffers.finalAnswer(),
-                            buffers.thinking(), agentState, firstResponseTime,
-                            0, null,
+                            buffers.thinking(), agentState, getTotalResponseTime(),
+                            firstResponseTime, null,
                             currentRecommendations, AGENT_TYPE, null);
                 });
+    }
+
+    private void initTimers() {
+        startTime = System.currentTimeMillis();
+        firstResponseTime = 0;
+    }
+
+    private void recordFirstResponse() {
+        if (firstResponseTime == 0 && startTime > 0) {
+            firstResponseTime = System.currentTimeMillis() - startTime;
+        }
+    }
+
+    private long getTotalResponseTime() {
+        if (startTime == 0) {
+            return 0;
+        }
+        return System.currentTimeMillis() - startTime;
     }
 
     private void initStrategyContext() {

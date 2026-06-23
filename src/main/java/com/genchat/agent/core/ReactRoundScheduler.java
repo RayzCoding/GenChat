@@ -108,7 +108,7 @@ public final class ReactRoundScheduler {
                         hasSentFinalResult, finalAnswerBuffer,
                         conversationId, agentState, thinkingBuffer))
                 .onErrorResume(error -> {
-                    if (retryAttempt < maxRounds) {
+                    if (shouldRetryStream(retryAttempt)) {
                         log.warn("LLM stream error (attempt {}/{}), retrying in {}ms: {}",
                                 retryAttempt + 1, maxRetries, 1000, error.getMessage());
                         sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED", "LLM call failed, and the attempt is being reattempted ("
@@ -285,7 +285,7 @@ public final class ReactRoundScheduler {
                     sink.tryEmitComplete();
                 })
                 .onErrorResume(error -> {
-                    if (retryAttempt < maxRounds) {
+                    if (shouldRetryStream(retryAttempt)) {
                         log.warn("forceFinal stream error (attempt {}/{}), retrying in {}ms: {}",
                                 retryAttempt + 1, maxRetries, 1000, error.getMessage());
                         sink.tryEmitNext(new AgentStreamEvent.Error("LLM_CALL_FAILED", "LLM call failed, and the attempt is being reattempted ("
@@ -308,5 +308,9 @@ public final class ReactRoundScheduler {
         if (conversationId != null) {
             agentTaskService.setDisposable(conversationId, disposable);
         }
+    }
+
+    boolean shouldRetryStream(int retryAttempt) {
+        return retryAttempt < maxRetries;
     }
 }
