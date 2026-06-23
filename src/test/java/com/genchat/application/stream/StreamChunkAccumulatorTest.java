@@ -1,18 +1,14 @@
-package com.genchat.agent.stream;
+package com.genchat.application.stream;
 
-import com.genchat.application.stream.StreamChunkAccumulator;
 import com.genchat.common.AgentStreamEvent;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * Characterization tests for SSE chunk accumulation used across agents.
- */
-class StreamBufferParsingTest {
+class StreamChunkAccumulatorTest {
 
     @Test
-    void accumulatorMatchesLegacyJacksonBehavior() {
+    void accumulatesTextAndThinkingChunks() {
         var finalAnswer = new StringBuilder();
         var thinking = new StringBuilder();
 
@@ -25,7 +21,7 @@ class StreamBufferParsingTest {
     }
 
     @Test
-    void accumulatorTreatsInvalidJsonAsRawText() {
+    void treatsInvalidJsonAsRawText() {
         var finalAnswer = new StringBuilder();
         var thinking = new StringBuilder();
 
@@ -36,7 +32,7 @@ class StreamBufferParsingTest {
     }
 
     @Test
-    void accumulatorIgnoresNonTextThinkingEventTypes() {
+    void ignoresNonTextThinkingEventTypes() {
         var finalAnswer = new StringBuilder();
         var thinking = new StringBuilder();
         var toolStart = new AgentStreamEvent.ToolStart("search", "id-1", "{}").toJSON();

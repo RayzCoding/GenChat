@@ -1,5 +1,6 @@
 package com.genchat.agent.deepresearch;
 
+import com.genchat.application.stream.PersistentChatMemoryLoader;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.utils.ThinkTagParser;
 import com.genchat.dto.AiChatSession;
@@ -7,13 +8,11 @@ import com.genchat.dto.OverAllState;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
@@ -28,23 +27,7 @@ public class DeepResearchPreparation {
     private final DeepResearchDependencies deps;
 
     public ChatMemory buildChatMemory(String conversationId) {
-        int maxMessages = 30;
-        var historyMessages = deps.sessionService().queryRecentBySessionId(conversationId, maxMessages);
-        var memory = MessageWindowChatMemory.builder().maxMessages(maxMessages).build();
-        if (!CollectionUtils.isEmpty(historyMessages)) {
-            historyMessages.forEach(message -> {
-                var userQuestion = message.getQuestion();
-                var systemAnswer = message.getAnswer();
-                if (!ObjectUtils.isEmpty(userQuestion)) {
-                    memory.add(conversationId, new UserMessage(userQuestion));
-                }
-                if (!ObjectUtils.isEmpty(systemAnswer)) {
-                    memory.add(conversationId, new org.springframework.ai.chat.messages.AssistantMessage(systemAnswer));
-                }
-            });
-            log.info("Loading history messages, conversationId: {}, recordCount: {}", conversationId, historyMessages.size());
-        }
-        return memory;
+        return PersistentChatMemoryLoader.load(deps.sessionService(), conversationId);
     }
 
     public OverAllState initStateAndSaveQuestion(DeepResearchRunContext ctx,

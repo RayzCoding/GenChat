@@ -1,10 +1,12 @@
 package com.genchat.agent.core;
 
 import com.genchat.application.agent.PersistentChatAgent;
-import com.genchat.common.utils.JacksonJson;
+import com.genchat.application.stream.AgentStreamLifecycle;
+import com.genchat.application.stream.PersistentChatMemoryLoader;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.ToolRecord;
 import com.genchat.common.prompts.ReactAgentPrompts;
+import com.genchat.common.utils.JacksonJson;
 import com.genchat.dto.AiChatSession;
 import com.genchat.entity.AgentState;
 import com.genchat.entity.RoundMode;
@@ -14,7 +16,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.*;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -139,17 +140,17 @@ public abstract class AbstractReactAgent implements PersistentChatAgent {
         String conversationId = request.conversationId();
         String question = request.question();
 
-        if (!Objects.isNull(conversationId) && agentTaskService.hasRunningTask(conversationId)) {
-            return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later."));
+        if (AgentStreamLifecycle.isConversationBusy(agentTaskService, conversationId)) {
+            return AgentStreamLifecycle.conversationBusyError();
         }
         initTimers();
         toolRecords.clear();
-        Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
 
-        var taskInfo = agentTaskService.registerTask(conversationId, sink, getAgentType());
-        if (Objects.isNull(taskInfo)) {
-            return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later"));
+        var started = AgentStreamLifecycle.startStream(agentTaskService, conversationId, getAgentType());
+        if (started == null) {
+            return AgentStreamLifecycle.conversationBusyError();
         }
+        Sinks.Many<String> sink = started.sink();
 
         var aiChatSession = sessionService.saveQuestion(buildSessionForSave(request));
         currentSessionId = aiChatSession.getId();
@@ -167,65 +168,30 @@ public abstract class AbstractReactAgent implements PersistentChatAgent {
 
         var roundCounter = new AtomicInteger(0);
         var hasSentFinalResult = new AtomicBoolean(false);
-        var finalAnswerBuffer = new StringBuilder();
-        var thinkingBuffer = new StringBuilder();
+        var buffers = AgentStreamLifecycle.StreamBuffers.create();
         var agentState = createAgentState();
 
-        scheduleRound(messages, sink, roundCounter, hasSentFinalResult, finalAnswerBuffer,
-                conversationId, agentState, thinkingBuffer);
+        scheduleRound(messages, sink, roundCounter, hasSentFinalResult, buffers.finalAnswer(),
+                conversationId, agentState, buffers.thinking());
 
-        return sink.asFlux()
-                .doOnNext(chunk -> {
-                    recordFirstResponse();
-                    try {
-                        var json = JacksonJson.parseTreeLenient(chunk);
-                        if (json != null) {
-                            String type = json.path("type").asText(null);
-                            if ("text".equals(type)) {
-                                finalAnswerBuffer.append(json.path("content").asText(""));
-                            } else if ("thinking".equals(type)) {
-                                thinkingBuffer.append(json.path("content").asText(""));
-                            }
-                        } else {
-                            finalAnswerBuffer.append(chunk);
-                        }
-                    } catch (Exception e) {
-                        finalAnswerBuffer.append(chunk);
-                    }
-                })
-                .doOnCancel(() -> {
-                    hasSentFinalResult.set(true);
-                    agentTaskService.stopTask(conversationId);
-                })
-                .doFinally(signalType -> {
-                    log.info("Final Answer: {}", finalAnswerBuffer);
-                    log.info("Thinking process: {}", thinkingBuffer);
-                    sessionService.update(currentSessionId, finalAnswerBuffer,
-                            thinkingBuffer, agentState, firstResponseTime,
+        return AgentStreamLifecycle.attach(
+                started.flux(),
+                conversationId,
+                agentTaskService,
+                buffers,
+                this::recordFirstResponse,
+                () -> hasSentFinalResult.set(true),
+                () -> {
+                    AgentStreamLifecycle.logStreamBuffers(buffers);
+                    sessionService.update(currentSessionId, buffers.finalAnswer(),
+                            buffers.thinking(), agentState, firstResponseTime,
                             getTotalResponseTime(), JacksonJson.toJson(toolRecords),
                             currentRecommendations, getAgentType(), null);
-                    agentTaskService.stopTask(conversationId);
                 });
     }
 
     public void initPersistentChatMemory(String conversationId) {
-        int maxMessages = 30;
-        var historyMessages = sessionService.queryRecentBySessionId(conversationId, maxMessages);
-        var memory = MessageWindowChatMemory.builder().maxMessages(maxMessages).build();
-        if (!CollectionUtils.isEmpty(historyMessages)) {
-            historyMessages.forEach(message -> {
-                var userQuestion = message.getQuestion();
-                var systemAnswer = message.getAnswer();
-                if (!ObjectUtils.isEmpty(userQuestion)) {
-                    memory.add(conversationId, new UserMessage(userQuestion));
-                }
-                if (!ObjectUtils.isEmpty(systemAnswer)) {
-                    memory.add(conversationId, new AssistantMessage(systemAnswer));
-                }
-            });
-            log.info("Loading history messages, conversationId: {}, recordCount: {}", conversationId, historyMessages.size());
-        }
-        this.chatMemory = memory;
+        this.chatMemory = PersistentChatMemoryLoader.load(sessionService, conversationId);
     }
 
     private void initChatClient() {

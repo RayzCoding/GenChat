@@ -1,6 +1,8 @@
 package com.genchat.agent;
 
 import com.genchat.application.agent.PersistentChatAgent;
+import com.genchat.application.stream.AgentStreamLifecycle;
+import com.genchat.application.stream.PersistentChatMemoryLoader;
 import com.alibaba.fastjson2.JSON;
 import com.genchat.agent.deepresearch.DeepResearchDependencies;
 import com.genchat.agent.deepresearch.DeepResearchPlanLoop;
@@ -15,7 +17,6 @@ import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -29,20 +30,20 @@ public class DeepResearchAgent implements PersistentChatAgent {
     private ChatMemory chatMemory;
 
     public void initPersistentChatMemory(String conversationId) {
-        this.chatMemory = preparation.buildChatMemory(conversationId);
+        this.chatMemory = PersistentChatMemoryLoader.load(deps.sessionService(), conversationId);
     }
 
     public Flux<String> stream(String conversationsId, String question) {
-        if (deps.agentTaskService().hasRunningTask(conversationsId)) {
-            return Flux.error(new IllegalStateException("Agent is already running"));
+        if (AgentStreamLifecycle.isConversationBusy(deps.agentTaskService(), conversationsId)) {
+            return AgentStreamLifecycle.conversationBusyError(() -> "Agent is already running");
         }
 
-        Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
-        var taskInfo = deps.agentTaskService().registerTask(conversationsId, sink, deps.agentType());
-        if (Objects.isNull(taskInfo)) {
-            return Flux.error(new IllegalStateException(new IllegalStateException(
-                    "The conversation is currently in progress, Please try again later")));
+        var started = AgentStreamLifecycle.startStream(
+                deps.agentTaskService(), conversationsId, deps.agentType());
+        if (started == null) {
+            return AgentStreamLifecycle.conversationBusyError();
         }
+        Sinks.Many<String> sink = started.sink();
 
         var ctx = new DeepResearchRunContext(deps);
         DeepResearchStreams.initTimers(ctx);
@@ -52,32 +53,29 @@ public class DeepResearchAgent implements PersistentChatAgent {
 
         var finished = new AtomicBoolean(false);
         var overAllState = preparation.initStateAndSaveQuestion(ctx, conversationsId, question, chatMemory);
-        var finalAnswerBuffer = new StringBuilder();
-        var thinkingBuffer = new StringBuilder();
+        var buffers = AgentStreamLifecycle.StreamBuffers.create();
 
         preparation.clarifyRequirement(ctx, overAllState, sink, finished,
                 () -> preparation.generateResearchTopicPhase(ctx, overAllState, sink, finished,
-                        () -> planLoop.executeLoopPhase(ctx, overAllState, sink, finished, finalAnswerBuffer)));
+                        () -> planLoop.executeLoopPhase(ctx, overAllState, sink, finished, buffers.finalAnswer())));
 
         deps.agentTaskService().setDisposable(conversationsId, ctx.getCompositeDisposable());
 
-        return sink.asFlux()
-                .doOnNext(chunk -> {
-                    DeepResearchStreams.recordFirstResponse(ctx);
-                    DeepResearchStreams.parseAndAppendToBuffers(chunk, finalAnswerBuffer, thinkingBuffer);
-                })
-                .doOnCancel(() -> {
-                    finished.set(true);
-                    deps.agentTaskService().stopTask(conversationsId);
-                })
-                .doFinally(signalType -> {
+        return AgentStreamLifecycle.attach(
+                started.flux(),
+                conversationsId,
+                deps.agentTaskService(),
+                buffers,
+                () -> DeepResearchStreams.recordFirstResponse(ctx),
+                () -> finished.set(true),
+                () -> {
                     log.info("Agent has finished, conversationId: {}", conversationsId);
                     finished.set(true);
                     var totalResponseTime = System.currentTimeMillis() - ctx.getStartTime();
                     deps.sessionService().update(
                             ctx.getCurrentSessionId(),
-                            finalAnswerBuffer,
-                            thinkingBuffer,
+                            buffers.finalAnswer(),
+                            buffers.thinking(),
                             null,
                             totalResponseTime,
                             ctx.getFirstResponseTime(),
@@ -85,7 +83,6 @@ public class DeepResearchAgent implements PersistentChatAgent {
                             null,
                             deps.agentType(),
                             AgentStreamEvent.Reference.of(JSON.toJSONString(ctx.getAllReferences())).toJSON());
-                    deps.agentTaskService().stopTask(conversationsId);
                     ctx.getCompositeDisposable().dispose();
                 });
     }

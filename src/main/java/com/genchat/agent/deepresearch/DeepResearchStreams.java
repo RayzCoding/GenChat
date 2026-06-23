@@ -1,6 +1,6 @@
 package com.genchat.agent.deepresearch;
 
-import com.alibaba.fastjson2.JSON;
+import com.genchat.application.stream.StreamChunkAccumulator;
 import com.genchat.common.AgentStreamEvent;
 import org.springframework.ai.tool.ToolCallback;
 import reactor.core.publisher.Sinks;
@@ -21,17 +21,7 @@ public final class DeepResearchStreams {
     }
 
     public static void parseAndAppendToBuffers(String chunk, StringBuilder finalAnswerBuffer, StringBuilder thinkingBuffer) {
-        try {
-            var jsonObject = JSON.parseObject(chunk);
-            var type = jsonObject.get("type");
-            if ("text".equals(type)) {
-                finalAnswerBuffer.append(jsonObject.get("content"));
-            } else if ("thinking".equals(type)) {
-                thinkingBuffer.append(jsonObject.get("content"));
-            }
-        } catch (Exception e) {
-            finalAnswerBuffer.append(chunk);
-        }
+        StreamChunkAccumulator.append(chunk, finalAnswerBuffer, thinkingBuffer);
     }
 
     public static String renderToolDescriptions(List<ToolCallback> tools) {

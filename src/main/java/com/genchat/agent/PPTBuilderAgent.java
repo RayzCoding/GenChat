@@ -1,7 +1,8 @@
 package com.genchat.agent;
 
 import com.genchat.application.agent.PersistentChatAgent;
-import com.genchat.common.utils.JacksonJson;
+import com.genchat.application.stream.AgentStreamLifecycle;
+import com.genchat.application.stream.PersistentChatMemoryLoader;
 import com.genchat.application.strategy.PptStateStrategyContext;
 import com.genchat.application.strategy.PptStrategyDependencies;
 import com.genchat.common.AgentStreamEvent;
@@ -13,13 +14,9 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.MessageWindowChatMemory;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
@@ -80,16 +77,16 @@ public class PPTBuilderAgent implements PersistentChatAgent {
     }
 
     public Flux<String> stream(String conversationId, String question) {
-        if (!Objects.isNull(conversationId) && agentTaskService.hasRunningTask(conversationId)) {
-            return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later."));
+        if (AgentStreamLifecycle.isConversationBusy(agentTaskService, conversationId)) {
+            return AgentStreamLifecycle.conversationBusyError();
         }
-        Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
-        // register conversation task
-        var taskInfo = agentTaskService.registerTask(conversationId, sink, AGENT_TYPE);
-        if (Objects.isNull(taskInfo)) {
-            return Flux.error(new IllegalStateException("The conversation is currently in progress, Please try again later"));
+
+        var started = AgentStreamLifecycle.startStream(agentTaskService, conversationId, AGENT_TYPE);
+        if (started == null) {
+            return AgentStreamLifecycle.conversationBusyError();
         }
-        // save current conversation message to database
+        Sinks.Many<String> sink = started.sink();
+
         var aiChatSession = sessionService.saveQuestion(
                 AiChatSession.builder()
                         .question(question)
@@ -98,10 +95,7 @@ public class PPTBuilderAgent implements PersistentChatAgent {
         );
         currentSessionId = aiChatSession.getId();
 
-        // Collect the final answer (in plain text) and store it in memory
-        var finalAnswerBuffer = new StringBuilder();
-        // Collecting the thought process
-        var thinkingBuffer = new StringBuilder();
+        var buffers = AgentStreamLifecycle.StreamBuffers.create();
         var agentState = new AgentState();
         try {
 
@@ -111,9 +105,9 @@ public class PPTBuilderAgent implements PersistentChatAgent {
             initStrategyContext();
 
             switch (intentResult.getIntent()) {
-                case CREATE_PPT -> handleCreateIntent(conversationId, question, sink, thinkingBuffer);
-                case MODIFY_PPT -> handleModifyIntent(conversationId, question, sink, thinkingBuffer);
-                case RESUME_PPT -> handleResumeIntent(conversationId, question, sink, thinkingBuffer);
+                case CREATE_PPT -> handleCreateIntent(conversationId, question, sink, buffers.thinking());
+                case MODIFY_PPT -> handleModifyIntent(conversationId, question, sink, buffers.thinking());
+                case RESUME_PPT -> handleResumeIntent(conversationId, question, sink, buffers.thinking());
                 default -> {
                     sink.tryEmitNext(new AgentStreamEvent.Text(
                             "If your intention is not recognized, please rephrase it.").toJSON());
@@ -125,39 +119,19 @@ public class PPTBuilderAgent implements PersistentChatAgent {
             sink.tryEmitError(e);
         }
 
-        return sink.asFlux()
-                .doOnNext(chunk -> {
-                    // When parsing JSON, if the type is "text", only the content should be concatenated; if the type is "thinking", then the thinking should be concatenated
-                    try {
-                        var json = JacksonJson.parseTreeLenient(chunk);
-                        if (json != null) {
-                            var type = json.path("type").asText(null);
-                            if ("text".equals(type)) {
-                                finalAnswerBuffer.append(json.path("content").asText(""));
-                            } else if ("thinking".equals(type)) {
-                                thinkingBuffer.append(json.path("content").asText(""));
-                            }
-                        } else {
-                            finalAnswerBuffer.append(chunk);
-                        }
-                    } catch (Exception e) {
-                        log.error("Error while parsing JSON.", e);
-                        finalAnswerBuffer.append(chunk);
-                    }
-                })
-                .doOnCancel(() -> {
-                    agentTaskService.stopTask(conversationId);
-                })
-                .doFinally(signalType -> {
-                    log.info("Final Answer: {}", finalAnswerBuffer);
-                    log.info("Thinking process: {}", thinkingBuffer);
-                    // Save result to session
-                    sessionService.update(currentSessionId, finalAnswerBuffer,
-                            thinkingBuffer, agentState, firstResponseTime,
+        return AgentStreamLifecycle.attach(
+                started.flux(),
+                conversationId,
+                agentTaskService,
+                buffers,
+                null,
+                null,
+                () -> {
+                    AgentStreamLifecycle.logStreamBuffers(buffers);
+                    sessionService.update(currentSessionId, buffers.finalAnswer(),
+                            buffers.thinking(), agentState, firstResponseTime,
                             0, null,
                             currentRecommendations, AGENT_TYPE, null);
-                    // Remove task when stream ends
-                    agentTaskService.stopTask(conversationId);
                 });
     }
 
@@ -251,22 +225,6 @@ public class PPTBuilderAgent implements PersistentChatAgent {
     }
 
     public void initPersistentChatMemory(String conversationId) {
-        int maxMessages = 30;
-        var historyMessages = sessionService.queryRecentBySessionId(conversationId, maxMessages);
-        var chatMemory = MessageWindowChatMemory.builder().maxMessages(maxMessages).build();
-        if (!CollectionUtils.isEmpty(historyMessages)) {
-            historyMessages.forEach(message -> {
-                var userQuestion = message.getQuestion();
-                var systemAnswer = message.getAnswer();
-                if (!ObjectUtils.isEmpty(userQuestion)) {
-                    chatMemory.add(conversationId, new UserMessage(userQuestion));
-                }
-                if (!ObjectUtils.isEmpty(systemAnswer)) {
-                    chatMemory.add(conversationId, new AssistantMessage(systemAnswer));
-                }
-            });
-            log.info("Loading history messages, conversationId: {}, recordCount: {}", conversationId, historyMessages.size());
-        }
-        this.chatMemory = chatMemory;
+        this.chatMemory = PersistentChatMemoryLoader.load(sessionService, conversationId);
     }
 }
