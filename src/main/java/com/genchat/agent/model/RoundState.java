@@ -1,4 +1,4 @@
-package com.genchat.entity;
+package com.genchat.agent.model;
 
 import lombok.Data;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -21,5 +21,4 @@ public class RoundState {
 
     /** Tool call list */
     public List<AssistantMessage.ToolCall> toolCalls = synchronizedList(new java.util.ArrayList<>());
-
 }

@@ -1,8 +1,8 @@
 package com.genchat.agent.core;
 
 import com.genchat.common.AgentStreamEvent;
-import com.genchat.entity.RoundMode;
-import com.genchat.entity.RoundState;
+import com.genchat.agent.model.RoundMode;
+import com.genchat.agent.model.RoundState;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.util.ObjectUtils;

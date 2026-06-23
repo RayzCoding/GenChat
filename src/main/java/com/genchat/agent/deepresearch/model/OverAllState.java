@@ -1,4 +1,4 @@
-package com.genchat.dto;
+package com.genchat.agent.deepresearch.model;
 
 import lombok.Data;
 import org.springframework.ai.chat.messages.Message;
@@ -25,7 +25,6 @@ public class OverAllState {
     }
 
     public String renderFullContext() {
-        // Find the index of the most recent Critique Feedback
         int lastCritiqueIndex = findLastCritiqueIndex();
 
         StringBuilder sb = new StringBuilder();
@@ -33,7 +32,6 @@ public class OverAllState {
             Message m = messages.get(i);
             String text = m.getText();
 
-            // Skip Critique Feedback from earlier rounds
             if (i < lastCritiqueIndex && text != null && text.contains("【Critique Feedback】")) {
                 continue;
             }
@@ -73,5 +71,4 @@ public class OverAllState {
         }
         return sb.toString();
     }
-
 }

@@ -1,6 +1,6 @@
 package com.genchat.agent.core;
 
-import com.genchat.entity.RoundState;
+import com.genchat.agent.model.RoundState;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
 

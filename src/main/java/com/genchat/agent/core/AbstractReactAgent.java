@@ -7,7 +7,7 @@ import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.ToolRecord;
 import com.genchat.common.utils.JacksonJson;
 import com.genchat.dto.AiChatSession;
-import com.genchat.entity.AgentState;
+import com.genchat.agent.model.AgentState;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
 import lombok.Setter;

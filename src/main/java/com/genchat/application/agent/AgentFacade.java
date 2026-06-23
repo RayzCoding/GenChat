@@ -1,5 +1,6 @@
 package com.genchat.application.agent;
 
+import com.genchat.dto.StopAgentResponse;
 import com.genchat.service.AgentTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,8 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import reactor.core.publisher.Flux;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Supplier;
 
 @Service
@@ -48,26 +47,19 @@ public class AgentFacade {
                 agent -> agent.stream(conversationsId, question, fileId));
     }
 
-    public Map<String, Object> stopAgent(String conversationId) {
+    public StopAgentResponse stopAgent(String conversationId) {
         log.info("received request to stop agent, conversationId: {}", conversationId);
-        var result = new HashMap<String, Object>();
 
         if (ObjectUtils.isEmpty(conversationId)) {
             log.warn("conversationId is null or empty");
-            result.put("success", false);
-            result.put("message", "There is no conversation task.");
-            return result;
+            return new StopAgentResponse(false, "There is no conversation task.");
         }
         var success = agentTaskService.stopTask(conversationId);
         if (!success) {
             log.warn("stop agent failed, conversationId: {}", conversationId);
-            result.put("success", false);
-            result.put("message", "No task being found or stopped.");
-            return result;
+            return new StopAgentResponse(false, "No task being found or stopped.");
         }
-        result.put("success", true);
-        result.put("message", "Execution has been discontinued.");
-        return result;
+        return new StopAgentResponse(true, "Execution has been discontinued.");
     }
 
     private <T extends PersistentChatAgent> Flux<String> streamWithMemory(

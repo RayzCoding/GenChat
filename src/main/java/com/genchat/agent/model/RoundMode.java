@@ -1,4 +1,4 @@
-package com.genchat.entity;
+package com.genchat.agent.model;
 
 import lombok.Getter;
 

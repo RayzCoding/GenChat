@@ -1,6 +1,6 @@
 package com.genchat.agent.core;
 
-import com.genchat.entity.AgentState;
+import com.genchat.agent.model.AgentState;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;

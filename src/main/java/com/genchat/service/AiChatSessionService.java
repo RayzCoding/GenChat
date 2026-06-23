@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.converter.AiChatSessionConverter;
 import com.genchat.dto.AiChatSession;
-import com.genchat.entity.AgentState;
+import com.genchat.agent.model.AgentState;
 import com.genchat.entity.AiChatSessionEntity;
 import com.genchat.repository.AiChatSessionRepository;
 import org.springframework.stereotype.Service;

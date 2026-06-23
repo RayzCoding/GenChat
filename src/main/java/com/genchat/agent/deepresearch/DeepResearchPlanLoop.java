@@ -1,6 +1,6 @@
 package com.genchat.agent.deepresearch;
 
-import com.genchat.dto.OverAllState;
+import com.genchat.agent.deepresearch.model.OverAllState;
 import com.genchat.dto.PlanTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

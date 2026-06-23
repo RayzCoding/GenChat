@@ -2,8 +2,8 @@ package com.genchat.agent.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.genchat.entity.AgentState;
-import com.genchat.entity.SearchResult;
+import com.genchat.agent.model.AgentState;
+import com.genchat.agent.model.SearchResult;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.ToolResponseMessage;

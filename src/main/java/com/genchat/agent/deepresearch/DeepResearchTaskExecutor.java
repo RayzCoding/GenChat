@@ -29,7 +29,7 @@ public class DeepResearchTaskExecutor {
 
     public Map<String, TaskResult> executePlan(DeepResearchRunContext ctx,
                                                List<PlanTask> plan,
-                                               com.genchat.dto.OverAllState state,
+                                               com.genchat.agent.deepresearch.model.OverAllState state,
                                                Sinks.Many<String> sink,
                                                AtomicBoolean hasSentFinal) {
 

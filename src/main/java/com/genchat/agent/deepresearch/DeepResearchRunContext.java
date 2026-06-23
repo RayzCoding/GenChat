@@ -1,7 +1,7 @@
 package com.genchat.agent.deepresearch;
 
 import com.genchat.common.ToolRecord;
-import com.genchat.entity.SearchResult;
+import com.genchat.agent.model.SearchResult;
 import lombok.Getter;
 import lombok.Setter;
 import reactor.core.Disposable;

@@ -7,7 +7,7 @@ import com.genchat.application.strategy.PptStateStrategyContext;
 import com.genchat.application.strategy.PptStrategyDependencies;
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.dto.AiChatSession;
-import com.genchat.entity.AgentState;
+import com.genchat.agent.model.AgentState;
 import com.genchat.entity.PptInstStatus;
 import com.genchat.service.*;
 import lombok.Setter;

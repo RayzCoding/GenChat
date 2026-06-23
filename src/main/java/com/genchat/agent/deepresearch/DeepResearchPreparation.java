@@ -4,7 +4,7 @@ import com.genchat.application.stream.PersistentChatMemoryLoader;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.utils.ThinkTagParser;
 import com.genchat.dto.AiChatSession;
-import com.genchat.dto.OverAllState;
+import com.genchat.agent.deepresearch.model.OverAllState;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.memory.ChatMemory;

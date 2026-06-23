@@ -1,4 +1,4 @@
-package com.genchat.entity;
+package com.genchat.agent.model;
 
 public record SearchResult(
         String url,

@@ -4,7 +4,7 @@ import com.genchat.agent.core.AbstractReactAgent;
 import com.genchat.agent.core.ReactStreamRequest;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiChatSession;
-import com.genchat.entity.AgentState;
+import com.genchat.agent.model.AgentState;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
 import org.springframework.ai.chat.messages.Message;

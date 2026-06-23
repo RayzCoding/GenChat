@@ -2,9 +2,9 @@ package com.genchat.agent.core;
 
 import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.ToolRecord;
-import com.genchat.entity.AgentState;
-import com.genchat.entity.RoundMode;
-import com.genchat.entity.RoundState;
+import com.genchat.agent.model.AgentState;
+import com.genchat.agent.model.RoundMode;
+import com.genchat.agent.model.RoundState;
 import com.genchat.service.AgentTaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;

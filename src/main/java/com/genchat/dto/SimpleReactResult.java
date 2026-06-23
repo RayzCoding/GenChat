@@ -1,6 +1,6 @@
 package com.genchat.dto;
 
-import com.genchat.entity.SearchResult;
+import com.genchat.agent.model.SearchResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

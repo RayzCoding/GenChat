@@ -1,4 +1,4 @@
-package com.genchat.entity;
+package com.genchat.agent.model;
 
 import java.util.ArrayList;
 import java.util.List;
