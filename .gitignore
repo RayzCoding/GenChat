@@ -42,6 +42,7 @@ frontend/dist/
 
 ### Local config ###
 application-local.yml
+.env
 
 ### macOS ###
 .DS_Store
