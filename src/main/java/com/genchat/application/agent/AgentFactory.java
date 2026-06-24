@@ -28,7 +28,7 @@ public class AgentFactory {
     private final AgentTaskService agentTaskService;
     private final WebSearchToolInitConfig webSearchToolInitConfig;
     private final FileContentTool fileContentTool;
-    private final PptStrategyDependencies pptStrategyDependencies;
+    private final ObjectProvider<PptStrategyDependencies> pptStrategyDependenciesProvider;
     private final ObjectProvider<DeepResearchAgent> deepResearchAgentProvider;
     private final GenChatProperties genChatProperties;
 
@@ -72,7 +72,7 @@ public class AgentFactory {
                 sessionService,
                 agentTaskService,
                 webSearchToolInitConfig.getWebSearchToolCallbacks(),
-                pptStrategyDependencies);
+                pptStrategyDependenciesProvider.getObject());
     }
 
     public SkillsReactAgent createSkillsReactAgent() {
