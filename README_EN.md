@@ -15,16 +15,16 @@
 
 ## 🎯 Project Introduction
 
-GenChat is a intelligent conversation application platform built on Spring AI, integrating four core functional modules: web-connected search, file processing, document generation, and deep research. The platform aims to provide enterprise users and individual developers with an out-of-the-box, highly scalable AI agent solution.
+GenChat is an intelligent conversation application platform built on Spring AI. It offers multiple agent modes—web search, file Q&A, PPT generation, deep research, and a Skills assistant—along with a React frontend. The platform aims to provide enterprise users and individual developers with an out-of-the-box, highly scalable AI agent solution.
 
 **Project Vision**: To build a comprehensive, easy-to-integrate, production-ready intelligent conversation platform that helps enterprises create smarter business applications in the AI era.
 
 ### ✨ Platform Highlights
 - 🚀 **Comprehensive Features**: Covers multi-level AI application scenarios from basic conversations to complex research
-- 🏗️ **Engineering Architecture**: Adopts microservices architecture supporting high concurrency and scalable deployment
-- 🔌 **Modular Design**: Four core functional modules support independent use or combined deployment
-- 🔧 **Developer Friendly**: Based on Spring Boot ecosystem with complete API documentation and development tools
-- 📦 **Out-of-the-Box**: Pre-configured with enterprise best practices for rapid AI capability integration
+- 🏗️ **Modular Architecture**: Backend layered as controller → application → agent/service, with six agent modes that can evolve independently
+- 🔌 **Composable Capabilities**: Web search, RAG file Q&A, PPT state machine, Plan-Execute deep research, and more—usable standalone or combined
+- 🔧 **Developer Friendly**: Built on the Spring Boot ecosystem with clear REST / SSE APIs and externalized configuration
+- 📦 **Out-of-the-Box**: Session management, streaming stop, Flyway migrations, and a Vite + React frontend included
 
 ## 🔥 Core Features
 
@@ -55,19 +55,40 @@ GenChat is a intelligent conversation application platform built on Spring AI, i
 - **Iterative Optimization Mechanism**: Evaluation-Adjustment-Re-execution loop optimization strategy
 - **Automatic Problem Optimization**: Intelligently enriches and optimizes user's original problem statements
 
+### 🧩 Skills Assistant
+- **Extensible Skill Directory**: Load custom skills via `skills.directory` and compose tool capabilities on demand
+- **Multi-tool Collaboration**: Integrates web search, file retrieval, Grep, and more for complex automation tasks
+- **Streaming Interaction**: Same SSE streaming output and stop control as other agents
+
+## 🚀 Quick Start
+
+```bash
+# Backend (default port 8080, requires Java 21)
+./gradlew bootRun
+
+# Frontend (dev server at http://localhost:5173)
+cd frontend && npm install && npm run dev
+```
+
+Configure MySQL, Redis, OpenAI-compatible API, Tavily, MinIO, PgVector, and other connections in `application.yml` (overridable via environment variables). Agent behavior can be tuned via `genchat.*` settings (e.g. ReAct max rounds, chat memory window, file chunk size).
+
+See [`frontend/README.md`](frontend/README.md) for more frontend details.
+
 ## 🛠️ Technology Stack
 
 ### Base Frameworks
 | Component | Version | Core Functions |
 |-----------|---------|----------------|
+| Java | 21 | Runtime |
 | Spring Boot | 3.5.6 | Application base framework providing auto-configuration, dependency injection, Web container, etc. |
 | Spring AI | 1.1.0 | AI application development framework encapsulating LLM calls, tool integration, prompt management, etc. |
-| MyBatis-Plus | 3.5.5 | Simplifies MySQL operations, provides CRUD encapsulation, pagination, conditional queries, etc. |
+| MyBatis-Plus | 3.5.9 | Simplifies MySQL operations, provides CRUD encapsulation, pagination, conditional queries, etc. |
+| Flyway | - | Database schema migrations (`db/migration`) |
 
 ### Large Model Services
 | Model Name | Type | Main Purpose |
 |------------|------|--------------|
-| qwen-plus | Language Model | Core large model responsible for natural language understanding, logical reasoning, content generation |
+| qwen-plus | Language Model | Core large model for NLU, reasoning, and content generation (other models via OpenAI-compatible API) |
 | qwen3-vl-plus | Multimodal Model | Full-modal large model with image recognition capability for image content parsing |
 | nanobanana-pro | Text-to-Image Model | Generates high-definition 4K images, excellent quality, used for high-quality PPT illustrations |
 | qwen-image-plus | Text-to-Image Model | Generates simple illustrations, low cost, used for general image generation needs |
@@ -77,17 +98,19 @@ GenChat is a intelligent conversation application platform built on Spring AI, i
 | Component | Version | Purpose |
 |-----------|---------|---------|
 | MySQL | 8.0.33 | Stores structured data: session records, file metadata, PPT instance status, template configurations, etc. |
-| MinIO | 8.5.1 | Object storage service: stores user-uploaded files, generated PPT files, images, and other binary data |
+| Redis | - | Distributed agent task state and cross-instance stop signals (Redisson) |
+| MinIO | 8.6.0 | Object storage service: stores user-uploaded files, generated PPT files, images, and other binary data |
 | PgVector | - | Vector storage for file Q&A, stores chunked content vectors of large files |
 
 ### Tools and Middleware
 | Category | Component | Version | Purpose |
 |----------|-----------|---------|---------|
 | Tool Integration | MCP | - | Model Context Protocol, standard protocol for tool integration, unifies tool calls like search engines, file retrieval |
-| File Processing | Apache PDFBox | 2.0.30 | PDF file text extraction |
-| File Processing | Apache POI | 5.2.5 | Word/Excel file parsing |
+| File Processing | Apache PDFBox | 3.0.4 | PDF file text extraction |
+| File Processing | Apache POI | 5.3.0 | Word/Excel file parsing |
 | File Processing | python-pptx | - | Python scripts for generating PPT files |
-| Streaming Processing | Reactor | 3.7.11 | Controls agent streaming output start/stop, reactive programming framework |
+| Streaming Processing | Reactor | - | SSE streaming output and agent task lifecycle management |
+| Frontend | React + Vite | 19 / 6 | Web UI with zh-CN / en-US support |
 
 ## ⭐ Star History
 
