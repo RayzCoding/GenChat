@@ -20,6 +20,10 @@ export function getFileIcon(fileType?: string, name?: string): {
   return { icon: 'description', iconBg: 'bg-primary-container/20', iconColor: 'text-primary' }
 }
 
+export function isFileReady(status?: string): boolean {
+  return status?.toLowerCase() === 'success'
+}
+
 export function fileStatusLabel(
   status: string,
   t: (key: string) => string,

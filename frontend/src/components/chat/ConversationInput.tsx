@@ -14,6 +14,8 @@ interface ConversationInputProps {
   attachTitle?: string
   onSend: (message: string, extras?: { fileId?: string }) => void
   disabled?: boolean
+  sendDisabled?: boolean
+  attachDisabled?: boolean
   isStreaming?: boolean
   onStop?: () => void
   layout?: ConversationInputLayout
@@ -32,6 +34,8 @@ export function ConversationInput({
   attachTitle = 'Attach',
   onSend,
   disabled,
+  sendDisabled,
+  attachDisabled,
   isStreaming,
   onStop,
   layout = 'fixed',
@@ -48,9 +52,11 @@ export function ConversationInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const cannotSend = sendDisabled ?? disabled
+
   const handleSend = useCallback(() => {
     const trimmed = value.trim()
-    if (!trimmed || disabled) return
+    if (!trimmed || cannotSend) return
     onSend(trimmed, attachedFileId ? { fileId: attachedFileId } : undefined)
     setValue('')
     setAttachedFileId(null)
@@ -58,7 +64,7 @@ export function ConversationInput({
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
-  }, [value, disabled, onSend, attachedFileId])
+  }, [value, cannotSend, onSend, attachedFileId])
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -140,7 +146,7 @@ export function ConversationInput({
               <button
                 type="button"
                 onClick={() => (onAttachClick ? onAttachClick() : fileInputRef.current?.click())}
-                disabled={disabled || uploading}
+                disabled={(attachDisabled ?? disabled) || uploading}
                 title={attachTitle}
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-on-surface-variant transition-colors hover:bg-surface-variant/30 hover:text-on-surface disabled:opacity-40"
               >
@@ -170,7 +176,7 @@ export function ConversationInput({
           <button
             type="button"
             onClick={handleSend}
-            disabled={disabled || !value.trim()}
+            disabled={cannotSend || !value.trim()}
             title={sendTitle}
             className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-lg shadow-primary/20 transition-all hover:opacity-90 active:scale-90 disabled:opacity-40"
           >

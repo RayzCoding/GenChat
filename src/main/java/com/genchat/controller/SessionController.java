@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/agent/sessions")
 @RequiredArgsConstructor
@@ -42,6 +44,17 @@ public class SessionController {
             return Result.success(sessionQueryService.listSessions(page, pageSize));
         }
         return Result.success(sessionQueryService.searchSessions(q.trim(), page, pageSize));
+    }
+
+    @GetMapping("/by-file/{fileId}")
+    public Result<SessionDetailDTO> getSessionByFile(@PathVariable String fileId) {
+        log.info("Get session by fileId: {}", fileId);
+        var detail = sessionQueryService.getSessionDetailByFileId(fileId)
+                .orElseGet(() -> SessionDetailDTO.builder()
+                        .conversationId(null)
+                        .messages(List.of())
+                        .build());
+        return Result.success(detail);
     }
 
     @GetMapping("/{conversationId}")

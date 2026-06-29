@@ -39,6 +39,10 @@ export function getSessionDetail(conversationId: string): Promise<SessionDetail>
   return getResult(`/agent/sessions/${encodeURIComponent(conversationId)}`)
 }
 
+export function getFileSessionDetail(fileId: string): Promise<SessionDetail> {
+  return getResult(`/agent/sessions/by-file/${encodeURIComponent(fileId)}`)
+}
+
 export async function deleteSession(conversationId: string): Promise<void> {
   const response = await fetch(
     buildUrl(`/agent/sessions/${encodeURIComponent(conversationId)}`),

@@ -58,7 +58,7 @@ public class AgentController {
         return agentFacade.simpleStream(question);
     }
 
-    @GetMapping("/file/stream")
+    @GetMapping(value = "/file/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> fileStream(@RequestParam String question,
                                    @RequestParam String conversationId,
                                    @RequestParam String fileId) {

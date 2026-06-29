@@ -58,7 +58,7 @@ public class FileReactAgent extends AbstractReactAgent {
 
     @Override
     protected void emitToolThinking(String toolName, String argsJson, Sinks.Many<String> sink) {
-        if (toolName.contains("loadContent")) {
+        if (toolName.contains("loadFileContents") || toolName.contains("loadContent")) {
             sink.tryEmitNext(new AgentStreamEvent.Thinking("📖 Retrieving the contents of the file, please wait... ").toJSON());
         }
     }

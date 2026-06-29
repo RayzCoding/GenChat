@@ -3,9 +3,12 @@ package com.genchat.application.tool;
 import com.genchat.dto.FileInfo;
 import com.genchat.entity.FileStatus;
 import com.genchat.service.EmbeddingService;
+import com.genchat.service.FileParserService;
 import com.genchat.service.FileService;
+import com.genchat.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -14,7 +17,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -22,6 +24,8 @@ import java.util.Optional;
 public class FileContentTool {
     private final EmbeddingService embeddingService;
     private final FileService fileService;
+    private final MinioService minioService;
+    private final FileParserService fileParserService;
 
     @Tool(description = "Load file contents based on file IDs or perform RAG semantic retrieval. " +
             "If the file is vectorized (embed=1), it uses semantic search to return the relevant fragment," +
@@ -45,12 +49,35 @@ public class FileContentTool {
             if (embed == Boolean.TRUE) {
                 return retrieveWithRAG(fileInfo, question);
             }
-            return buildResponse(fileInfo, fileInfo.getExtractedText(), null);
+            var content = resolveFileContent(fileInfo);
+            return buildResponse(fileInfo, content, null);
         } catch (Exception e) {
             log.error("Error while loading file contents based on file id: {}", fileId);
             return "Error while loading file contents: " + e.getMessage();
         }
 
+    }
+
+    private String resolveFileContent(FileInfo fileInfo) {
+        if (StringUtils.hasText(fileInfo.getExtractedText())) {
+            return fileInfo.getExtractedText();
+        }
+        if (!StringUtils.hasText(fileInfo.getPath())) {
+            return null;
+        }
+        try (var inputStream = minioService.download(fileInfo.getPath())) {
+            byte[] fileBytes = IOUtils.toByteArray(inputStream);
+            var parsed = fileParserService.parse(fileBytes, fileInfo.getName());
+            if (StringUtils.hasText(parsed)) {
+                log.info("Re-parsed file content from storage, file id: {}", fileInfo.getId());
+                fileInfo.setExtractedText(parsed);
+                fileService.updateFileInfo(fileInfo);
+            }
+            return parsed;
+        } catch (Exception e) {
+            log.warn("Failed to re-parse file from storage, file id: {}", fileInfo.getId(), e);
+            return null;
+        }
     }
 
     private String retrieveWithRAG(FileInfo fileInfo, String question) {
@@ -70,19 +97,16 @@ public class FileContentTool {
         sb.append("file name: ").append(fileInfo.getName()).append("\n");
         sb.append("file type: ").append(fileInfo.getFileType()).append("\n");
 
-        sb.append("\n=== File info ===\n");
+        sb.append("\n=== File content ===\n");
 
         if (segments != null && !segments.isEmpty()) {
-            // RAG search result format
-            sb.append("Related content: ").append("\n\n");
+            sb.append("Related content:\n\n");
             for (int i = 0; i < segments.size(); i++) {
                 sb.append(segments.get(i)).append("\n\n");
             }
-        } else if (content != null) {
-            // Load content formats directly
+        } else if (StringUtils.hasText(content)) {
             sb.append(content);
         } else {
-            // Tip information
             sb.append("No content to display");
         }
 

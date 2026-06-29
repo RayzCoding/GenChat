@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.genchat.converter.AiChatSessionConverter;
+import com.genchat.agent.FileReactAgent;
 import com.genchat.dto.PageResult;
 import com.genchat.dto.SessionDetailDTO;
 import com.genchat.dto.SessionMessageDTO;
@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,40 @@ public class SessionQueryService extends ServiceImpl<AiChatSessionRepository, Ai
         if (entities.isEmpty()) {
             return Optional.empty();
         }
+
+        var messages = entities.stream()
+                .map(this::toMessageDto)
+                .toList();
+
+        return Optional.of(SessionDetailDTO.builder()
+                .conversationId(conversationId)
+                .messages(messages)
+                .build());
+    }
+
+    public Optional<SessionDetailDTO> getSessionDetailByFileId(String fileId) {
+        if (!StringUtils.hasLength(fileId)) {
+            return Optional.empty();
+        }
+
+        var wrapper = new LambdaQueryWrapper<AiChatSessionEntity>()
+                .eq(AiChatSessionEntity::getFileid, fileId)
+                .and(w -> w.eq(AiChatSessionEntity::getAgentType, FileReactAgent.AGENT_TYPE)
+                        .or()
+                        .isNull(AiChatSessionEntity::getAgentType))
+                .orderByAsc(AiChatSessionEntity::getCreateTime);
+
+        var entities = list(wrapper);
+        if (entities.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var conversationId = entities.stream()
+                .max(Comparator.comparing(
+                        AiChatSessionEntity::getUpdateTime,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(AiChatSessionEntity::getSessionId)
+                .orElseGet(() -> entities.getLast().getSessionId());
 
         var messages = entities.stream()
                 .map(this::toMessageDto)

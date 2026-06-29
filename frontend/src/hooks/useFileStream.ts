@@ -15,6 +15,11 @@ export function useFileStream({ conversationId, fileId }: UseFileStreamOptions) 
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  const setTurnsExternal = useCallback((next: ChatTurn[]) => {
+    setTurns(next)
+    setError(null)
+  }, [])
+
   const sendMessage = useCallback(
     async (question: string, t: (key: string) => string) => {
       const trimmed = question.trim()
@@ -104,6 +109,7 @@ export function useFileStream({ conversationId, fileId }: UseFileStreamOptions) 
     error,
     sendMessage,
     stopGeneration,
+    setTurns: setTurnsExternal,
     resetTurns,
     clearError: () => setError(null),
   }

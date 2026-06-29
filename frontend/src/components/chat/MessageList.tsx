@@ -1,17 +1,29 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../ui/Icon'
 import type { ChatTurn } from '../../types'
 import { AssistantMessage } from './AssistantMessage'
 import { UserBubble } from './UserBubble'
 
+export type MessageListLayout = 'chat' | 'embedded'
+
 interface MessageListProps {
   turns: ChatTurn[]
   isStreaming: boolean
   onRecommendSelect: (question: string) => void
+  emptyState?: ReactNode
+  maxWidthClass?: string
+  layout?: MessageListLayout
 }
 
-export function MessageList({ turns, isStreaming, onRecommendSelect }: MessageListProps) {
+export function MessageList({
+  turns,
+  isStreaming,
+  onRecommendSelect,
+  emptyState,
+  maxWidthClass = 'max-w-chat',
+  layout = 'chat',
+}: MessageListProps) {
   const { t } = useTranslation()
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -37,7 +49,21 @@ export function MessageList({ turns, isStreaming, onRecommendSelect }: MessageLi
     }
   }, [turns, isStreaming])
 
+  const isEmbedded = layout === 'embedded'
+  const containerClass = isEmbedded
+    ? 'flex min-h-0 flex-1 overflow-y-auto px-4 py-3 md:px-6'
+    : 'flex-1 overflow-y-auto px-container-padding pb-44 pt-8 md:pb-40'
+  const innerClass = isEmbedded ? 'space-y-6 pb-4 pt-2' : 'space-y-8'
+
   if (turns.length === 0) {
+    if (emptyState) {
+      return (
+        <div className={`${containerClass} ${isEmbedded ? 'flex flex-col justify-end' : ''}`}>
+          <div className={`mx-auto w-full ${maxWidthClass}`}>{emptyState}</div>
+        </div>
+      )
+    }
+
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-container-padding pb-40 text-center">
         <div className="ai-glow mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-primary/30 bg-primary/20">
@@ -52,8 +78,8 @@ export function MessageList({ turns, isStreaming, onRecommendSelect }: MessageLi
   }
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto px-container-padding pb-44 pt-8 md:pb-40">
-      <div className="mx-auto w-full max-w-chat space-y-8">
+    <div ref={containerRef} className={containerClass}>
+      <div className={`mx-auto w-full ${maxWidthClass} ${innerClass}`}>
         {turns.map((turn) =>
           turn.role === 'user' ? (
             <UserBubble key={turn.id} content={turn.content} />

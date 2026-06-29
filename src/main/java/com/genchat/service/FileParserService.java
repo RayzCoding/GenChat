@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -31,10 +32,21 @@ public class FileParserService {
      * Parse file content from MultipartFile, dispatch by file type
      */
     public String parse(MultipartFile file) {
-        String filename = file.getOriginalFilename();
+        try {
+            return parse(file.getBytes(), file.getOriginalFilename());
+        } catch (Exception e) {
+            log.error("Failed to read uploaded file: {}", file.getOriginalFilename(), e);
+            throw new RuntimeException("Failed to parse file", e);
+        }
+    }
+
+    /**
+     * Parse file content from raw bytes, dispatch by file type
+     */
+    public String parse(byte[] data, String filename) {
         String fileType = FileUtil.getFileType(filename);
 
-        try (InputStream is = file.getInputStream()) {
+        try (InputStream is = new ByteArrayInputStream(data)) {
             String text = switch (fileType) {
                 case "pdf" -> parsePdf(is);
                 case "doc" -> parseDoc(is);

@@ -4,25 +4,36 @@ import { useNavigate } from 'react-router-dom'
 import { useFileStream } from '../../hooks/useFileStream'
 import type { FileInfoDto } from '../../services/fileApi'
 import { deleteFile, listFiles, uploadFile } from '../../services/fileApi'
-import { createConversationId } from '../../utils/chat'
-import { fileStatusLabel, formatFileSize, getFileIcon } from '../../utils/fileMeta'
+import { getFileSessionDetail } from '../../services/sessionApi'
+import { createConversationId, sessionMessagesToTurns } from '../../utils/chat'
+import {
+  createFileConversationId,
+  resolveFileConversationId,
+  storeFileConversationId,
+} from '../../utils/fileConversation'
+import { fileStatusLabel, formatFileSize, getFileIcon, isFileReady } from '../../utils/fileMeta'
 import { AppShell } from '../layout/AppShell'
-import { AssistantMessage } from '../chat/AssistantMessage'
 import { ConversationInput } from '../chat/ConversationInput'
-import { UserBubble } from '../chat/UserBubble'
+import { MessageList } from '../chat/MessageList'
 import { Icon } from '../ui/Icon'
 
 export function FileQaPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
-  const [conversationId] = useState(createConversationId)
+  const [conversationId, setConversationId] = useState(createConversationId)
   const [files, setFiles] = useState<FileInfoDto[]>([])
   const [activeFileId, setActiveFileId] = useState<number | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [filesLoading, setFilesLoading] = useState(true)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const activeFileIdRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    activeFileIdRef.current = activeFileId
+  }, [activeFileId])
 
   useEffect(() => {
     let cancelled = false
@@ -51,10 +62,47 @@ export function FileQaPage() {
 
   const activeFile = files.find((f) => f.id === activeFileId) ?? null
 
-  const { turns, isStreaming, sendMessage, stopGeneration, resetTurns } = useFileStream({
+  const { turns, isStreaming, sendMessage, stopGeneration, setTurns } = useFileStream({
     conversationId,
     fileId: activeFileId ? String(activeFileId) : null,
   })
+
+  const loadFileHistory = useCallback(
+    async (fileId: number) => {
+      setHistoryLoading(true)
+      try {
+        const detail = await getFileSessionDetail(String(fileId))
+        if (activeFileIdRef.current !== fileId) return
+
+        const convId = resolveFileConversationId(fileId, detail.conversationId)
+        setConversationId(convId)
+        setTurns(sessionMessagesToTurns(detail.messages))
+      } catch {
+        if (activeFileIdRef.current !== fileId) return
+        const convId = resolveFileConversationId(fileId)
+        setConversationId(convId)
+        setTurns([])
+      } finally {
+        if (activeFileIdRef.current === fileId) {
+          setHistoryLoading(false)
+        }
+      }
+    },
+    [setTurns],
+  )
+
+  useEffect(() => {
+    if (activeFileId == null || isStreaming) return
+    void loadFileHistory(activeFileId)
+  }, [activeFileId, isStreaming, loadFileHistory])
+
+  const handleSelectFile = useCallback(
+    (fileId: number) => {
+      if (isStreaming || fileId === activeFileId) return
+      setActiveFileId(fileId)
+    },
+    [activeFileId, isStreaming],
+  )
 
   const handleNewChat = useCallback(() => {
     navigate(`/chat/${createConversationId()}`)
@@ -76,8 +124,10 @@ export function FileQaPage() {
       try {
         const uploaded = await uploadFile(file)
         setFiles((prev) => [...prev, uploaded])
+        const newConversationId = createFileConversationId(uploaded.id)
+        setConversationId(newConversationId)
+        setTurns([])
         setActiveFileId(uploaded.id)
-        resetTurns()
       } catch (err) {
         setUploadError(err instanceof Error ? err.message : t('fileQa.uploadFailed'))
       } finally {
@@ -87,7 +137,7 @@ export function FileQaPage() {
         }
       }
     },
-    [resetTurns, t],
+    [setTurns, t],
   )
 
   const handleDeleteFile = useCallback(
@@ -98,27 +148,47 @@ export function FileQaPage() {
         if (activeFileId === id) {
           const remaining = files.filter((f) => f.id !== id)
           setActiveFileId(remaining[0]?.id ?? null)
-          resetTurns()
         }
       } catch {
         setUploadError(t('fileQa.deleteFailed'))
       }
     },
-    [activeFileId, files, resetTurns, t],
+    [activeFileId, files, t],
   )
 
   const handleSend = useCallback(
     (message: string) => {
-      if (!activeFileId || activeFile?.status !== 'success') return
+      if (!activeFileId || !isFileReady(activeFile?.status)) return
+      storeFileConversationId(activeFileId, conversationId)
       void sendMessage(message, t)
     },
-    [activeFile?.status, activeFileId, sendMessage, t],
+    [activeFile?.status, activeFileId, conversationId, sendMessage, t],
   )
 
-  const fileInputDisabled =
-    !activeFileId || activeFile?.status !== 'success' || isStreaming || uploading
+  const handleRecommendSelect = useCallback(
+    (question: string) => {
+      handleSend(question)
+    },
+    [handleSend],
+  )
 
-  const visibleTurns = turns.slice(-2)
+  const sendDisabled =
+    !activeFileId || !isFileReady(activeFile?.status) || isStreaming || uploading || historyLoading
+
+  const welcomeState = (
+    <div className="flex gap-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary">
+        <Icon name="smart_toy" className="text-on-primary text-lg" />
+      </div>
+      <div className="glass-panel max-w-[85%] rounded-2xl rounded-tl-none border-primary/10 p-4">
+        <p className="text-sm leading-relaxed text-on-surface">
+          {activeFile
+            ? t('fileQa.welcomeWithFile', { name: activeFile.name })
+            : t('fileQa.welcomeEmpty')}
+        </p>
+      </div>
+    </div>
+  )
 
   return (
     <AppShell
@@ -153,14 +223,10 @@ export function FileQaPage() {
                       key={file.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
-                        setActiveFileId(file.id)
-                        resetTurns()
-                      }}
+                      onClick={() => handleSelectFile(file.id)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          setActiveFileId(file.id)
-                          resetTurns()
+                          handleSelectFile(file.id)
                         }
                       }}
                       className={`glass-panel group flex cursor-pointer items-start gap-3 rounded-xl p-3 transition-colors ${
@@ -222,38 +288,20 @@ export function FileQaPage() {
         </aside>
 
         <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-surface-container-lowest">
-          <div className="flex min-h-0 flex-1 flex-col justify-end overflow-hidden px-4 py-3 md:px-6">
-            <div className="mx-auto flex w-full max-w-[900px] min-h-0 flex-1 flex-col justify-end gap-4 overflow-hidden">
-              {turns.length === 0 ? (
-                <div className="flex gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary">
-                    <Icon name="smart_toy" className="text-on-primary text-lg" />
-                  </div>
-                  <div className="glass-panel max-w-[85%] rounded-2xl rounded-tl-none border-primary/10 p-4">
-                    <p className="text-sm leading-relaxed text-on-surface">
-                      {activeFile
-                        ? t('fileQa.welcomeWithFile', { name: activeFile.name })
-                        : t('fileQa.welcomeEmpty')}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="min-h-0 space-y-4 overflow-hidden">
-                  {visibleTurns.map((turn) =>
-                    turn.role === 'user' ? (
-                      <div key={turn.id} className="scale-[0.95] origin-right">
-                        <UserBubble content={turn.content} />
-                      </div>
-                    ) : (
-                      <div key={turn.id} className="max-h-[42vh] overflow-hidden">
-                        <AssistantMessage turn={turn} />
-                      </div>
-                    ),
-                  )}
-                </div>
-              )}
+          {historyLoading ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center">
+              <Icon name="progress_activity" className="text-3xl text-primary" spin />
             </div>
-          </div>
+          ) : (
+            <MessageList
+              turns={turns}
+              isStreaming={isStreaming}
+              onRecommendSelect={handleRecommendSelect}
+              emptyState={welcomeState}
+              maxWidthClass="max-w-[900px]"
+              layout="embedded"
+            />
+          )}
 
           <ConversationInput
             placeholder={
@@ -263,7 +311,9 @@ export function FileQaPage() {
             sendTitle={t('input.send')}
             attachTitle={t('input.attach')}
             onSend={handleSend}
-            disabled={fileInputDisabled}
+            disabled={isStreaming}
+            sendDisabled={sendDisabled}
+            attachDisabled={uploading || isStreaming || historyLoading}
             isStreaming={isStreaming}
             onStop={() => void stopGeneration()}
             layout="embedded"

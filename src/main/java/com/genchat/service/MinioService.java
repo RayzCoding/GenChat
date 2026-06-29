@@ -25,18 +25,29 @@ public class MinioService {
      * Upload file to MinIO and return the storage path
      */
     public String upload(MultipartFile file) {
+        try {
+            return upload(file.getBytes(), file.getOriginalFilename(), file.getContentType());
+        } catch (Exception e) {
+            log.error("File upload failed: {}", file.getOriginalFilename(), e);
+            throw new RuntimeException("File upload failed", e);
+        }
+    }
+
+    /**
+     * Upload raw file bytes to MinIO and return the storage path
+     */
+    public String upload(byte[] data, String originalFilename, String contentType) {
         String bucketName = minioConfig.getBucketName();
         ensureBucketExists(bucketName);
 
-        String originalFilename = file.getOriginalFilename();
         String objectName = UUID.randomUUID() + "/" + originalFilename;
 
         try {
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(bucketName)
                     .object(objectName)
-                    .stream(file.getInputStream(), file.getSize(), -1)
-                    .contentType(file.getContentType())
+                    .stream(new ByteArrayInputStream(data), data.length, -1)
+                    .contentType(contentType)
                     .build());
             log.info("File uploaded successfully: {}/{}", bucketName, objectName);
             return objectName;

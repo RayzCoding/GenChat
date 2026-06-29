@@ -12,7 +12,6 @@ import com.genchat.service.FileService;
 import com.genchat.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
@@ -25,7 +24,6 @@ import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.InputStream;
 import java.util.List;
 
 @Service
@@ -46,14 +44,18 @@ public class FileApplication {
         var fileInfo = FileInfo.initFile(file);
         fileInfo = fileService.saveFileInfo(fileInfo);
         try {
-            var minioPath = minioService.upload(file);
+            byte[] fileBytes = file.getBytes();
+            var minioPath = minioService.upload(fileBytes, originalFilename, file.getContentType());
             fileInfo.setPath(minioPath);
             fileInfo.setStatus(FileStatus.SUCCESS);
             fileService.updateFileInfo(fileInfo);
 
             if (FileUtil.isTextFile(originalFilename)) {
                 try {
-                    var extractedText = fileParserService.parse(file);
+                    var extractedText = fileParserService.parse(fileBytes, originalFilename);
+                    if (!StringUtils.hasText(extractedText)) {
+                        log.warn("Parsed text is empty for file id: {}, name: {}", fileInfo.getId(), originalFilename);
+                    }
                     fileInfo.setExtractedText(extractedText);
                     fileService.updateFileInfo(fileInfo);
                     log.info("File parsed successfully, file id: {}", fileInfo.getId());
@@ -79,7 +81,7 @@ public class FileApplication {
 
             if (FileUtil.isImageFile(originalFilename)) {
                 try {
-                    var extractedText = image2Text(file);
+                    var extractedText = image2Text(fileBytes);
                     fileInfo.setExtractedText(extractedText);
                     fileService.updateFileInfo(fileInfo);
                     log.info("Image file parsed successfully, file id: {}", fileInfo.getId());
@@ -106,10 +108,8 @@ public class FileApplication {
 
     }
 
-    private String image2Text(MultipartFile file) {
-        try (InputStream inputStream = file.getInputStream()) {
-            byte[] imageBytes = IOUtils.toByteArray(inputStream);
-
+    private String image2Text(byte[] imageBytes) {
+        try {
             if (imageBytes == null || imageBytes.length == 0) {
                 throw new RuntimeException("The image file content is empty.");
             }
