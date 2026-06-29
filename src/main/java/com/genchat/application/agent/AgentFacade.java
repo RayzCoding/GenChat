@@ -21,7 +21,7 @@ public class AgentFacade {
     private final GenChatProperties genChatProperties;
 
     public Flux<String> chatStream(String conversationId, String question) {
-        return streamWithMemory(conversationId, "chat stream", () -> agentFactory.createWebSearchAgent(),
+        return streamWithMemory(conversationId, "chat stream", agentFactory::createWebSearchAgent,
                 agent -> agent.stream(conversationId, question));
     }
 

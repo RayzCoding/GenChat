@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `ai_chat_session`  (
                                `session_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'session id',
                                `question` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT 'user question',
                                `answer` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT 'AI answer',
-                               `tools` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'tool name',
+                               `tools` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'tool name',
                                `first_response_time` bigint NULL DEFAULT NULL COMMENT 'first response time',
                                `total_response_time` bigint NULL DEFAULT NULL COMMENT 'fill response time',
                                `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',

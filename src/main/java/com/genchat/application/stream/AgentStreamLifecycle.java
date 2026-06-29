@@ -56,16 +56,22 @@ public final class AgentStreamLifecycle {
                     }
                 })
                 .doOnCancel(() -> {
-                    if (onCancel != null) {
-                        onCancel.run();
+                    try {
+                        if (onCancel != null) {
+                            onCancel.run();
+                        }
+                    } finally {
+                        agentTaskService.stopTask(conversationId);
                     }
-                    agentTaskService.stopTask(conversationId);
                 })
                 .doFinally(signalType -> {
-                    if (onPersist != null) {
-                        onPersist.run();
+                    try {
+                        if (onPersist != null) {
+                            onPersist.run();
+                        }
+                    } finally {
+                        agentTaskService.stopTask(conversationId);
                     }
-                    agentTaskService.stopTask(conversationId);
                 });
     }
 
