@@ -1,3 +1,5 @@
+import { readAgentSseStream } from '../utils/agentStream'
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 function buildUrl(path: string, params?: Record<string, string | number | undefined>): string {
@@ -12,52 +14,33 @@ function buildUrl(path: string, params?: Record<string, string | number | undefi
   return url.toString()
 }
 
-export async function streamChat(
-  conversationId: string,
-  question: string,
+async function streamAgentGet(
+  path: string,
+  params: Record<string, string | number | undefined>,
   signal: AbortSignal,
   onChunk: (line: string) => void,
 ): Promise<void> {
-  const url = buildUrl('/agent/chat/stream', { conversationId, question })
-  const response = await fetch(url, { signal })
+  const url = buildUrl(path, params)
+  const response = await fetch(url, {
+    signal,
+    headers: { Accept: 'text/event-stream' },
+  })
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')
     throw new Error(text || `HTTP ${response.status}`)
   }
 
-  const reader = response.body?.getReader()
-  if (!reader) {
-    throw new Error('No response body')
-  }
+  await readAgentSseStream(response, onChunk)
+}
 
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim()
-      if (!line) continue
-
-      if (line.startsWith('data:')) {
-        onChunk(line.slice(5).trim())
-      } else {
-        onChunk(line)
-      }
-    }
-  }
-
-  if (buffer.trim()) {
-    const line = buffer.trim()
-    onChunk(line.startsWith('data:') ? line.slice(5).trim() : line)
-  }
+export async function streamChat(
+  conversationId: string,
+  question: string,
+  signal: AbortSignal,
+  onChunk: (line: string) => void,
+): Promise<void> {
+  await streamAgentGet('/agent/chat/stream', { conversationId, question }, signal, onChunk)
 }
 
 export async function stopAgent(conversationId: string): Promise<void> {
@@ -71,41 +54,7 @@ export async function streamDeepResearch(
   signal: AbortSignal,
   onChunk: (line: string) => void,
 ): Promise<void> {
-  const url = buildUrl('/agent/deep/stream', { conversationsId, question })
-  const response = await fetch(url, { signal })
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new Error(text || `HTTP ${response.status}`)
-  }
-
-  const reader = response.body?.getReader()
-  if (!reader) {
-    throw new Error('No response body')
-  }
-
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim()
-      if (!line) continue
-      onChunk(line.startsWith('data:') ? line.slice(5).trim() : line)
-    }
-  }
-
-  if (buffer.trim()) {
-    const line = buffer.trim()
-    onChunk(line.startsWith('data:') ? line.slice(5).trim() : line)
-  }
+  await streamAgentGet('/agent/deep/stream', { conversationsId, question }, signal, onChunk)
 }
 
 export async function streamPpt(
@@ -114,41 +63,7 @@ export async function streamPpt(
   signal: AbortSignal,
   onChunk: (line: string) => void,
 ): Promise<void> {
-  const url = buildUrl('/agent/ppt/stream', { conversationsId, question })
-  const response = await fetch(url, { signal })
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new Error(text || `HTTP ${response.status}`)
-  }
-
-  const reader = response.body?.getReader()
-  if (!reader) {
-    throw new Error('No response body')
-  }
-
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim()
-      if (!line) continue
-      onChunk(line.startsWith('data:') ? line.slice(5).trim() : line)
-    }
-  }
-
-  if (buffer.trim()) {
-    const line = buffer.trim()
-    onChunk(line.startsWith('data:') ? line.slice(5).trim() : line)
-  }
+  await streamAgentGet('/agent/ppt/stream', { conversationsId, question }, signal, onChunk)
 }
 
 export async function streamSkills(
@@ -158,39 +73,5 @@ export async function streamSkills(
   signal: AbortSignal,
   onChunk: (line: string) => void,
 ): Promise<void> {
-  const url = buildUrl('/agent/skills/stream', { conversationsId, question, fileId })
-  const response = await fetch(url, { signal })
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new Error(text || `HTTP ${response.status}`)
-  }
-
-  const reader = response.body?.getReader()
-  if (!reader) {
-    throw new Error('No response body')
-  }
-
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim()
-      if (!line) continue
-      onChunk(line.startsWith('data:') ? line.slice(5).trim() : line)
-    }
-  }
-
-  if (buffer.trim()) {
-    const line = buffer.trim()
-    onChunk(line.startsWith('data:') ? line.slice(5).trim() : line)
-  }
+  await streamAgentGet('/agent/skills/stream', { conversationsId, question, fileId }, signal, onChunk)
 }

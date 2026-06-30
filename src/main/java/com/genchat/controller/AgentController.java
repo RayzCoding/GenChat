@@ -31,21 +31,19 @@ public class AgentController {
         return agentFacade.chatStream(conversationId, question);
     }
 
-    @GetMapping("/deep/stream")
+    @GetMapping(value = "/deep/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> deepStream(@RequestParam String question,
-                                   @RequestParam(required = false) String conversationsId,
-                                   @RequestParam(required = false) String conversationId) {
-        var effectiveConversationId = StreamRequestValidator.resolveConversationId(conversationId, conversationsId);
-        log.info("Receive question, question: {}, conversationId: {}", question, effectiveConversationId);
+                                   @RequestParam(required = false) String conversationsId) {
+        log.info("Receive question, question: {}, conversationId: {}", question, conversationsId);
         var questionError = StreamRequestValidator.requireQuestionFlux(question);
         if (questionError != null) {
             return questionError;
         }
-        var conversationError = StreamRequestValidator.requireConversationIdFlux(effectiveConversationId);
+        var conversationError = StreamRequestValidator.requireConversationIdFlux(conversationsId);
         if (conversationError != null) {
             return conversationError;
         }
-        return agentFacade.deepStream(question, effectiveConversationId);
+        return agentFacade.deepStream(question, conversationsId);
     }
 
     @GetMapping(value = "/simple/stream", produces = "text/event-stream;charset=UTF-8")
@@ -71,31 +69,27 @@ public class AgentController {
         return agentFacade.fileStream(conversationId, question, fileId);
     }
 
-    @GetMapping("/ppt/stream")
+    @GetMapping(value = "/ppt/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> pptStream(@RequestParam String question,
-                                  @RequestParam(required = false) String conversationsId,
-                                  @RequestParam(required = false) String conversationId) {
-        var effectiveConversationId = StreamRequestValidator.resolveConversationId(conversationId, conversationsId);
-        log.info("Received ppt question, question: {}, conversationId: {}", question, effectiveConversationId);
+                                  @RequestParam(required = false) String conversationsId) {
+        log.info("Received ppt question, question: {}, conversationId: {}", question, conversationsId);
         var error = StreamRequestValidator.requireQuestionFlux(question);
         if (error != null) {
             return error;
         }
-        return agentFacade.pptStream(effectiveConversationId, question);
+        return agentFacade.pptStream(conversationsId, question);
     }
 
-    @GetMapping("/skills/stream")
+    @GetMapping(value = "/skills/stream", produces = "text/event-stream;charset=UTF-8")
     public Flux<String> skillsStream(@RequestParam String question,
                                      @RequestParam(required = false) String conversationsId,
-                                     @RequestParam(required = false) String conversationId,
                                      @RequestParam(required = false) String fileId) {
-        var effectiveConversationId = StreamRequestValidator.resolveConversationId(conversationId, conversationsId);
-        log.info("Received skills question, question: {}, conversationId: {}", question, effectiveConversationId);
+        log.info("Received skills question, question: {}, conversationId: {}", question, conversationsId);
         var error = StreamRequestValidator.requireQuestionFlux(question);
         if (error != null) {
             return error;
         }
-        return agentFacade.skillsStream(effectiveConversationId, question, fileId);
+        return agentFacade.skillsStream(conversationsId, question, fileId);
     }
 
     @GetMapping("/stop")

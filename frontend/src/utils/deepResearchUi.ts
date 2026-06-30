@@ -1,4 +1,4 @@
-import type { DeepResearchPhase, DeepResearchState } from '../types/deepResearch'
+import type { DeepResearchPhase, DeepResearchState, ThinkingTimelineEntry } from '../types/deepResearch'
 
 export type StreamStatus = 'active' | 'queued' | 'pending' | 'done'
 
@@ -158,37 +158,19 @@ export interface ThinkingTerminalLine {
   tone: 'system' | 'success' | 'active' | 'default'
 }
 
-export function parseTerminalLines(
-  log: string,
-  elapsedMs: number,
-  limit = 30,
-): ThinkingTerminalLine[] {
-  if (!log.trim()) return []
-
-  const lines = log
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 4)
-    .filter((l) => !l.startsWith('---'))
-
-  const slice = lines.slice(-limit)
-  const start = Date.now() - elapsedMs
-
-  return slice.map((text, index) => {
-    const ratio = slice.length <= 1 ? 1 : index / (slice.length - 1)
-    const ts = new Date(start + ratio * Math.max(elapsedMs, 1000))
-    const timestamp = ts.toLocaleTimeString([], { hour12: false })
-
+export function formatThinkingTimeline(entries: ThinkingTimelineEntry[]): ThinkingTerminalLine[] {
+  return entries.map((entry, index) => {
+    const timestamp = new Date(entry.timestamp).toLocaleTimeString([], { hour12: false })
     let tone: ThinkingTerminalLine['tone'] = 'default'
-    if (/✅|completed|passed/i.test(text)) tone = 'success'
-    else if (/🔍|initialized|Analyzing|generating|Executing|⚙️|📋|🔄|📝/i.test(text))
-      tone = index === slice.length - 1 ? 'active' : 'system'
-    else if (/System|initialized/i.test(text)) tone = 'system'
+    if (/✅|completed|passed/i.test(entry.text)) tone = 'success'
+    else if (/🔍|initialized|Analyzing|generating|Executing|⚙️|📋|🔄|📝/i.test(entry.text))
+      tone = index === entries.length - 1 ? 'active' : 'system'
+    else if (/System|initialized/i.test(entry.text)) tone = 'system'
 
     return {
-      id: `${index}-${text.slice(0, 20)}`,
+      id: entry.id,
       timestamp,
-      text: text.replace(/^[^\w\u4e00-\u9fff]+/, '').trim(),
+      text: entry.text,
       tone,
     }
   })

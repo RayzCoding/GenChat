@@ -4,6 +4,7 @@ import type {
   DeepResearchPhase,
   DeepResearchPlanTask,
   DeepResearchState,
+  ThinkingTimelineEntry,
 } from '../types/deepResearch'
 import { INITIAL_DEEP_RESEARCH_STATE } from '../types/deepResearch'
 import { DEEP_RESEARCH_MARKERS } from './deepResearchMarkers'
@@ -41,6 +42,65 @@ function parsePlanTasks(text: string, round: number): DeepResearchPlanTask[] {
   return tasks
 }
 
+function mergePlanTasks(
+  existing: DeepResearchPlanTask[],
+  newPlanTasks: DeepResearchPlanTask[],
+  round: number,
+): DeepResearchPlanTask[] {
+  const kept = existing.filter((task) => {
+    if (task.round !== round) return true
+    if (task.status !== 'pending') return true
+    return !newPlanTasks.some((planned) => planned.instruction === task.instruction)
+  })
+  const pendingInstructions = new Set(
+    kept.filter((task) => task.round === round && task.status === 'pending').map((t) => t.instruction),
+  )
+  const additions = newPlanTasks.filter((task) => !pendingInstructions.has(task.instruction))
+  return [...kept, ...additions]
+}
+
+function findPendingTaskByInstruction(
+  tasks: DeepResearchPlanTask[],
+  instruction: string,
+  round: number,
+): number {
+  const normalized = instruction.trim()
+  return tasks.findIndex(
+    (task) =>
+      task.instruction === normalized &&
+      task.round === round &&
+      (task.status === 'pending' || task.id.startsWith('r')),
+  )
+}
+
+function extractDisplayLines(log: string): string[] {
+  return log
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 4 && !line.startsWith('---'))
+    .map((line) => line.replace(/^[^\w\u4e00-\u9fff]+/, '').trim())
+    .filter(Boolean)
+}
+
+function syncThinkingTimeline(
+  entries: ThinkingTimelineEntry[],
+  log: string,
+  limit = 30,
+): ThinkingTimelineEntry[] {
+  const lines = extractDisplayLines(log).slice(-limit)
+  return lines.map((text, index) => {
+    const prev = entries[index]
+    if (prev && prev.text === text) {
+      return prev
+    }
+    return {
+      id: `${index}-${text.slice(0, 24)}`,
+      text,
+      timestamp: Date.now(),
+    }
+  })
+}
+
 function applyThinkingMarkers(state: DeepResearchState, log: string): DeepResearchState {
   let next = state
 
@@ -73,9 +133,10 @@ function applyThinkingMarkers(state: DeepResearchState, log: string): DeepResear
   }
 
   if (log.includes(DEEP_RESEARCH_MARKERS.planTableHeader)) {
-    const tasks = parsePlanTasks(log, next.round || 1)
-    if (tasks.length > 0) {
-      next = { ...next, tasks }
+    const round = next.round || 1
+    const newPlanTasks = parsePlanTasks(log, round)
+    if (newPlanTasks.length > 0) {
+      next = { ...next, tasks: mergePlanTasks(next.tasks, newPlanTasks, round) }
     }
   }
 
@@ -83,18 +144,26 @@ function applyThinkingMarkers(state: DeepResearchState, log: string): DeepResear
   const lastExec = execMatches.pop()
   if (lastExec) {
     const [, taskId, instruction] = lastExec
+    const round = next.round || 1
+    const normalized = instruction.trim()
     const exists = next.tasks.some((t) => t.id === taskId)
     let tasks = next.tasks
     if (!exists) {
-      tasks = [
-        ...tasks,
-        { id: taskId, instruction: instruction.trim(), status: 'executing', round: next.round || 1 },
-      ]
+      const pendingIdx = findPendingTaskByInstruction(tasks, normalized, round)
+      if (pendingIdx >= 0) {
+        tasks = tasks.map((task, index) =>
+          index === pendingIdx
+            ? { ...task, id: taskId, status: 'executing', instruction: normalized }
+            : task,
+        )
+      } else {
+        tasks = [...tasks, { id: taskId, instruction: normalized, status: 'executing', round }]
+      }
     } else {
       tasks = tasks.map((t) =>
         t.id === taskId
-          ? { ...t, status: 'executing', instruction: instruction.trim() }
-          : t.status === 'executing'
+          ? { ...t, status: 'executing', instruction: normalized }
+          : t.status === 'executing' && t.id !== taskId
             ? { ...t, status: 'completed' }
             : t,
       )
@@ -102,11 +171,17 @@ function applyThinkingMarkers(state: DeepResearchState, log: string): DeepResear
     next = { ...next, tasks, activeTaskId: taskId }
   }
 
-  if (log.includes(DEEP_RESEARCH_MARKERS.taskResult) && next.activeTaskId) {
-    next = {
-      ...next,
-      tasks: updateTask(next.tasks, next.activeTaskId, { status: 'completed' }),
-      activeTaskId: null,
+  if (log.includes(DEEP_RESEARCH_MARKERS.taskResult)) {
+    const execMatchesForResult = [...log.matchAll(new RegExp(DEEP_RESEARCH_MARKERS.taskExecuting.source, 'g'))]
+    const resultCount = (log.match(/Execution result:/g) ?? []).length
+    const lastExecuted = execMatchesForResult[Math.min(resultCount, execMatchesForResult.length) - 1]
+    const completedTaskId = lastExecuted?.[1] ?? next.activeTaskId
+    if (completedTaskId) {
+      next = {
+        ...next,
+        tasks: updateTask(next.tasks, completedTaskId, { status: 'completed' }),
+        activeTaskId: next.activeTaskId === completedTaskId ? null : next.activeTaskId,
+      }
     }
   }
 
@@ -161,7 +236,8 @@ export function reduceDeepResearchState(
     case 'thinking': {
       const delta = String(chunk.content ?? '')
       const thinkingLog = state.thinkingLog + delta
-      let next = { ...state, thinkingLog }
+      const thinkingTimeline = syncThinkingTimeline(state.thinkingTimeline, thinkingLog)
+      let next = { ...state, thinkingLog, thinkingTimeline }
       next = applyThinkingMarkers(next, thinkingLog)
       return next
     }
@@ -184,10 +260,15 @@ export function reduceDeepResearchState(
       if (text.includes(DEEP_RESEARCH_MARKERS.userStopped)) {
         return { ...state, phase: 'stopped', report: state.report + text }
       }
-      if (state.phase === 'summarizing' || state.report.length > 0) {
+      const reportReady =
+        state.phase === 'summarizing' ||
+        state.report.length > 0 ||
+        state.thinkingLog.includes(DEEP_RESEARCH_MARKERS.researchDone) ||
+        state.thinkingLog.includes(DEEP_RESEARCH_MARKERS.summarizeStart)
+      if (reportReady) {
         return {
           ...state,
-          phase: state.phase === 'summarizing' ? 'summarizing' : 'summarizing',
+          phase: 'summarizing',
           report: state.report + text,
         }
       }
@@ -197,8 +278,8 @@ export function reduceDeepResearchState(
       const refs = normalizeRefs(chunk.content)
       return {
         ...state,
-        references: refs,
-        phase: 'complete',
+        references: refs.length > 0 ? refs : state.references,
+        phase: state.report ? 'complete' : state.phase,
       }
     }
     case 'error': {

@@ -24,6 +24,12 @@ export interface DeepResearchPlanTask {
   round: number
 }
 
+export interface ThinkingTimelineEntry {
+  id: string
+  text: string
+  timestamp: number
+}
+
 export interface DeepResearchState {
   phase: DeepResearchPhase
   question: string
@@ -32,6 +38,7 @@ export interface DeepResearchState {
   maxRounds: number
   tasks: DeepResearchPlanTask[]
   thinkingLog: string
+  thinkingTimeline: ThinkingTimelineEntry[]
   report: string
   references: SearchResult[]
   /** Follow-up content from backend text when requirements are insufficient */
@@ -51,6 +58,7 @@ export const INITIAL_DEEP_RESEARCH_STATE: DeepResearchState = {
   maxRounds: DEEP_RESEARCH_MAX_ROUNDS,
   tasks: [],
   thinkingLog: '',
+  thinkingTimeline: [],
   report: '',
   references: [],
   clarificationPrompt: '',

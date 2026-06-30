@@ -1,3 +1,5 @@
+import { readAgentSseStream } from '../utils/agentStream'
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 function buildUrl(path: string, params?: Record<string, string | number | undefined>): string {
@@ -64,39 +66,6 @@ export async function deleteFile(id: number): Promise<void> {
   }
 }
 
-async function readSseStream(
-  response: Response,
-  onChunk: (line: string) => void,
-): Promise<void> {
-  const reader = response.body?.getReader()
-  if (!reader) {
-    throw new Error('No response body')
-  }
-
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim()
-      if (!line) continue
-      onChunk(line.startsWith('data:') ? line.slice(5).trim() : line)
-    }
-  }
-
-  if (buffer.trim()) {
-    const line = buffer.trim()
-    onChunk(line.startsWith('data:') ? line.slice(5).trim() : line)
-  }
-}
-
 export async function streamFileChat(
   conversationId: string,
   question: string,
@@ -105,12 +74,15 @@ export async function streamFileChat(
   onChunk: (line: string) => void,
 ): Promise<void> {
   const url = buildUrl('/agent/file/stream', { conversationId, question, fileId })
-  const response = await fetch(url, { signal })
+  const response = await fetch(url, {
+    signal,
+    headers: { Accept: 'text/event-stream' },
+  })
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')
     throw new Error(text || `HTTP ${response.status}`)
   }
 
-  await readSseStream(response, onChunk)
+  await readAgentSseStream(response, onChunk)
 }

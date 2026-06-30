@@ -55,14 +55,4 @@ public final class StreamRequestValidator {
         }
         return null;
     }
-
-    public static String resolveConversationId(String conversationId, String conversationsId) {
-        if (StringUtils.hasLength(conversationId)) {
-            return conversationId;
-        }
-        if (StringUtils.hasLength(conversationsId)) {
-            return conversationsId;
-        }
-        return null;
-    }
 }

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDeepResearchStream } from '../../hooks/useDeepResearchStream'
 import type { DeepResearchPlanTask } from '../../types/deepResearch'
 import { createConversationId } from '../../utils/chat'
-import { parseTerminalLines, terminalLineClass } from '../../utils/deepResearchUi'
+import { formatThinkingTimeline, terminalLineClass } from '../../utils/deepResearchUi'
 import { AppShell } from '../layout/AppShell'
 import { MarkdownContent } from '../chat/MarkdownContent'
 import { Icon } from '../ui/Icon'
@@ -87,7 +87,7 @@ export function DeepResearchPage() {
   const [conversationId] = useState(createConversationId)
   const terminalRef = useRef<HTMLDivElement>(null)
 
-  const { state, elapsedMs, isStreaming, error, sendQuestion, stopGeneration } =
+  const { state, isStreaming, error, sendQuestion, stopGeneration } =
     useDeepResearchStream(conversationId)
 
   const handleNewChat = useCallback(() => {
@@ -103,12 +103,30 @@ export function DeepResearchPage() {
 
   const resumeMode = state.phase === 'awaiting_clarification'
   const hasStarted = state.phase !== 'idle'
-  const terminalLines = parseTerminalLines(state.thinkingLog, elapsedMs)
+  const terminalLines = formatThinkingTimeline(state.thinkingTimeline)
 
-  const filteredTasks = useMemo(() => {
+  const visibleTasks = useMemo(() => {
+    const statusRank: Record<string, number> = {
+      completed: 4,
+      executing: 3,
+      failed: 2,
+      pending: 1,
+    }
+    const byInstruction = new Map<string, (typeof state.tasks)[number]>()
+    for (const task of state.tasks) {
+      const key = `${task.round}:${task.instruction}`
+      const existing = byInstruction.get(key)
+      if (
+        !existing ||
+        (statusRank[task.status] ?? 0) >= (statusRank[existing.status] ?? 0)
+      ) {
+        byInstruction.set(key, task)
+      }
+    }
+    const deduped = Array.from(byInstruction.values())
     const q = searchQuery.trim().toLowerCase()
-    if (!q) return state.tasks
-    return state.tasks.filter((task) => task.instruction.toLowerCase().includes(q))
+    if (!q) return deduped
+    return deduped.filter((task) => task.instruction.toLowerCase().includes(q))
   }, [state.tasks, searchQuery])
 
   const filteredReferences = useMemo(() => {
@@ -125,7 +143,7 @@ export function DeepResearchPage() {
   useEffect(() => {
     const el = terminalRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [terminalLines.length, state.thinkingLog])
+  }, [terminalLines.length, state.thinkingTimeline])
 
   return (
     <AppShell
@@ -180,12 +198,12 @@ export function DeepResearchPage() {
                   )}
 
                   <div className="task-branch relative space-y-4 pt-2 pl-4">
-                    {hasStarted && filteredTasks.length === 0 && (
+                    {hasStarted && visibleTasks.length === 0 && (
                       <p className="font-label-md text-on-surface-variant">
                         {t('deepResearch.tasksEmpty')}
                       </p>
                     )}
-                    {filteredTasks.map((task) => (
+                    {visibleTasks.map((task) => (
                       <TaskRow key={task.id} task={task} />
                     ))}
                   </div>
