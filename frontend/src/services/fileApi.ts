@@ -66,6 +66,16 @@ export async function deleteFile(id: number): Promise<void> {
   }
 }
 
+export async function getPresignedFileUrl(fileUrl: string): Promise<string> {
+  const url = buildUrl('/file/presign', { url: fileUrl })
+  const response = await fetch(url)
+  const result = (await response.json()) as ApiResult<string>
+  if (!response.ok || result.code !== 200 || !result.data) {
+    throw new Error(result.message || `Presign failed (${response.status})`)
+  }
+  return result.data
+}
+
 export async function streamFileChat(
   conversationId: string,
   question: string,

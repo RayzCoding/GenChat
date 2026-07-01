@@ -1,5 +1,11 @@
+import { Suspense, lazy } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../ui/Icon'
+import { openPptDownload } from '../../utils/pptDownload'
+
+const PptSlideViewer = lazy(() =>
+  import('./PptSlideViewer').then((module) => ({ default: module.PptSlideViewer })),
+)
 
 interface PptPreviewModalProps {
   open: boolean
@@ -21,7 +27,7 @@ export function PptPreviewModal({ open, title, slideCount, fileUrl, onClose }: P
       role="presentation"
     >
       <div
-        className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-outline-variant/20 bg-surface-container-high p-6 shadow-2xl"
+        className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-outline-variant/20 bg-surface-container-high p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -30,7 +36,7 @@ export function PptPreviewModal({ open, title, slideCount, fileUrl, onClose }: P
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-variant hover:text-on-surface"
+          className="absolute right-4 top-4 z-10 rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-variant hover:text-on-surface"
           aria-label={t('ppt.preview.close')}
         >
           <Icon name="close" />
@@ -38,22 +44,25 @@ export function PptPreviewModal({ open, title, slideCount, fileUrl, onClose }: P
 
         <h3 className="mb-2 pr-10 font-headline-md text-primary">{title}</h3>
         {slideCount != null && (
-          <p className="mb-6 font-label-md text-on-surface-variant">
+          <p className="mb-4 font-label-md text-on-surface-variant">
             {t('ppt.preview.slideCount', { count: slideCount })}
           </p>
         )}
 
-        <div className="mb-6 overflow-hidden rounded-xl border border-outline-variant/10">
-          <img
-            src="/assets/ppt-preview-cover.jpg"
-            alt={title}
-            className="aspect-video w-full object-cover"
-          />
-        </div>
+        <Suspense
+          fallback={
+            <div className="flex aspect-video w-full items-center justify-center gap-2 rounded-xl border border-outline-variant/10 bg-surface-container-lowest font-label-md text-on-surface-variant">
+              <Icon name="hourglass_empty" className="animate-spin text-primary" />
+              {t('ppt.preview.loading')}
+            </div>
+          }
+        >
+          <PptSlideViewer fileUrl={fileUrl} />
+        </Suspense>
 
-        <p className="mb-6 font-body-md text-on-surface-variant">{t('ppt.preview.hint')}</p>
+        <p className="mt-4 font-body-md text-on-surface-variant">{t('ppt.preview.hint')}</p>
 
-        <div className="flex gap-4">
+        <div className="mt-6 flex gap-4">
           <button
             type="button"
             onClick={onClose}
@@ -61,15 +70,18 @@ export function PptPreviewModal({ open, title, slideCount, fileUrl, onClose }: P
           >
             {t('ppt.preview.close')}
           </button>
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => {
+              void openPptDownload(fileUrl).catch(() => {
+                window.open(fileUrl, '_blank', 'noopener,noreferrer')
+              })
+            }}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 font-label-md text-on-primary transition-all hover:opacity-90"
           >
             <Icon name="download" />
             {t('ppt.result.download')}
-          </a>
+          </button>
         </div>
       </div>
     </div>

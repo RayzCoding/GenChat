@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ChatTurn } from '../../types'
 import {
@@ -13,6 +13,7 @@ import { Icon } from '../ui/Icon'
 import { PptPreviewModal } from './PptPreviewModal'
 import { PptProgressStrip } from './PptProgressStrip'
 import { PptResultCard } from './PptResultCard'
+import { openPptDownload } from '../../utils/pptDownload'
 
 interface PptAssistantMessageProps {
   turn: ChatTurn
@@ -41,6 +42,16 @@ export function PptAssistantMessage({
   const showThinkingLine = isStreaming || (thinking && !fileUrl)
   const previewText = thinkingPreview(thinking)
 
+  const handleMarkdownLinkClick = (href: string, event: MouseEvent<HTMLAnchorElement>) => {
+    if (!href.includes(':9000/')) {
+      return
+    }
+    event.preventDefault()
+    void openPptDownload(href).catch(() => {
+      window.open(href, '_blank', 'noopener,noreferrer')
+    })
+  }
+
   return (
     <div className="flex flex-col items-start gap-4 duration-700 animate-in fade-in slide-in-from-left-4">
       <div className="flex w-full max-w-[85%] flex-col gap-2">
@@ -57,7 +68,11 @@ export function PptAssistantMessage({
 
         {(turn.content || isStreaming) && (
           <div className="chat-bubble-ai rounded-2xl border border-outline-variant/20 bg-surface-container-high px-6 py-4 text-on-surface shadow-xl">
-            <MarkdownContent content={turn.content} isStreaming={isStreaming && !fileUrl} />
+            <MarkdownContent
+              content={turn.content}
+              isStreaming={isStreaming && !fileUrl}
+              onLinkClick={handleMarkdownLinkClick}
+            />
           </div>
         )}
 

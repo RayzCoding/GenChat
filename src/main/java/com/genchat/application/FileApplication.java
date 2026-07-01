@@ -177,4 +177,11 @@ public class FileApplication {
     public List<FileInfo> listFiles() {
         return fileService.listSummaries();
     }
+
+    public String getPresignedDownloadUrl(String fileUrl) {
+        if (!StringUtils.hasText(fileUrl)) {
+            throw new IllegalArgumentException("File URL must not be empty.");
+        }
+        return minioService.toPresignedUrl(fileUrl, MinioService.DOWNLOAD_PRESIGN_EXPIRY_SECONDS);
+    }
 }

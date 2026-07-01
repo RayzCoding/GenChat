@@ -264,7 +264,9 @@
     "preview": {
       "close": "Close",
       "slideCount": "{{count}} slides",
-      "hint": "Download the file to open and edit in PowerPoint or compatible apps."
+      "loading": "Loading preview…",
+      "loadFailed": "Failed to load preview. Try downloading the file.",
+      "hint": "Use the arrow buttons to navigate slides, or download to edit in PowerPoint."
     },
     "suggestions": {
       "springBoot": {

@@ -264,7 +264,9 @@
     "preview": {
       "close": "关闭",
       "slideCount": "共 {{count}} 页",
-      "hint": "请下载文件后在 PowerPoint 或兼容应用中打开编辑。"
+      "loading": "正在加载预览…",
+      "loadFailed": "预览加载失败，请尝试下载文件",
+      "hint": "使用左右箭头切换幻灯片，或下载后在 PowerPoint 中编辑。"
     },
     "suggestions": {
       "springBoot": {

@@ -18,6 +18,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MinioService {
 
+    /** Presigned URL expiry for user-facing download links (7 days). */
+    public static final int DOWNLOAD_PRESIGN_EXPIRY_SECONDS = 7 * 24 * 3600;
+
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
 
@@ -176,11 +179,18 @@ public class MinioService {
      * Convert a MinIO URL to a presigned URL
      */
     public String toPresignedUrl(String minioUrl) {
+        return toPresignedUrl(minioUrl, 3600);
+    }
+
+    /**
+     * Convert a MinIO URL to a presigned URL with custom expiry
+     */
+    public String toPresignedUrl(String minioUrl, int expirySeconds) {
         String objectName = extractObjectNameFromUrl(minioUrl);
         if (objectName == null) {
             log.warn("Cannot extract object name from URL: {}", minioUrl);
-            return minioUrl; // Return original URL if parsing fails
+            return minioUrl;
         }
-        return getPresignedUrl(objectName);
+        return getPresignedUrl(objectName, expirySeconds);
     }
 }

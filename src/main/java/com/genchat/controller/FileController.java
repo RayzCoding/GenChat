@@ -18,6 +18,12 @@ public class FileController {
 
     private final FileApplication fileApplication;
 
+    @GetMapping("/presign")
+    public Result<String> presign(@RequestParam("url") String url) {
+        log.debug("Generating presigned URL for: {}", url);
+        return Result.success(fileApplication.getPresignedDownloadUrl(url));
+    }
+
     @GetMapping
     public Result<List<FileInfo>> list() {
         log.debug("Listing files");

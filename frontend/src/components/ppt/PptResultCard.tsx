@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../ui/Icon'
+import { openPptDownload } from '../../utils/pptDownload'
 
 interface PptResultCardProps {
   title: string
@@ -13,7 +14,9 @@ export function PptResultCard({ title, slideCount, theme, fileUrl, onPreview }: 
   const { t } = useTranslation()
 
   const handleDownload = () => {
-    window.open(fileUrl, '_blank', 'noopener,noreferrer')
+    void openPptDownload(fileUrl).catch(() => {
+      window.open(fileUrl, '_blank', 'noopener,noreferrer')
+    })
   }
 
   return (
@@ -36,13 +39,14 @@ export function PptResultCard({ title, slideCount, theme, fileUrl, onPreview }: 
         <button
           type="button"
           onClick={onPreview}
-          className="group relative mb-6 aspect-video w-full overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-lowest shadow-2xl"
+          className="group relative mb-6 aspect-video w-full overflow-hidden rounded-xl border border-outline-variant/10 bg-gradient-to-br from-primary/15 via-surface-container-low to-surface-container-lowest shadow-2xl"
         >
-          <img
-            src="/assets/ppt-preview-cover.jpg"
-            alt={title}
-            className="h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
-          />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-on-surface-variant">
+            <span className="rounded-full bg-primary/15 p-4 text-primary transition-transform duration-500 group-hover:scale-110">
+              <Icon name="slideshow" className="text-4xl" />
+            </span>
+            <span className="font-label-md opacity-80">{t('ppt.result.preview')}</span>
+          </div>
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
             <span className="rounded-full bg-white/10 p-4 text-white backdrop-blur-md">
               <Icon name="play_circle" className="text-3xl" />
