@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ChatTurn } from '../../types'
 import { Icon } from '../ui/Icon'
-import { PptUserBubble } from '../ppt/PptUserBubble'
+import { UserBubble } from '../chat/UserBubble'
 import { SkillsAssistantMessage } from './SkillsAssistantMessage'
 
 interface SkillsMessageListProps {
@@ -55,7 +55,7 @@ export function SkillsMessageList({ turns, isStreaming }: SkillsMessageListProps
       <div className="mx-auto w-full max-w-chat space-y-8">
         {turns.map((turn) =>
           turn.role === 'user' ? (
-            <PptUserBubble key={turn.id} content={turn.content} />
+            <UserBubble key={turn.id} content={turn.content} />
           ) : (
             <SkillsAssistantMessage key={turn.id} turn={turn} />
           ),

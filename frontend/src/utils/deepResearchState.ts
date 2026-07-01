@@ -8,6 +8,7 @@ import type {
 } from '../types/deepResearch'
 import { INITIAL_DEEP_RESEARCH_STATE } from '../types/deepResearch'
 import { DEEP_RESEARCH_MARKERS } from './deepResearchMarkers'
+import { isDisplayableThinkingLine, sanitizeThinkingLineText } from './thinkingText'
 
 function setPhase(state: DeepResearchState, phase: DeepResearchPhase): DeepResearchState {
   if (state.phase === phase) return state
@@ -76,10 +77,8 @@ function findPendingTaskByInstruction(
 function extractDisplayLines(log: string): string[] {
   return log
     .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 4 && !line.startsWith('---'))
-    .map((line) => line.replace(/^[^\w\u4e00-\u9fff]+/, '').trim())
-    .filter(Boolean)
+    .map((line) => sanitizeThinkingLineText(line))
+    .filter(isDisplayableThinkingLine)
 }
 
 function syncThinkingTimeline(
@@ -90,8 +89,8 @@ function syncThinkingTimeline(
   const lines = extractDisplayLines(log).slice(-limit)
   return lines.map((text, index) => {
     const prev = entries[index]
-    if (prev && prev.text === text) {
-      return prev
+    if (prev && sanitizeThinkingLineText(prev.text) === text) {
+      return prev.text === text ? prev : { ...prev, text }
     }
     return {
       id: `${index}-${text.slice(0, 24)}`,

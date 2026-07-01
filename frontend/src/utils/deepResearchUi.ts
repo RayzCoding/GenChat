@@ -1,4 +1,5 @@
 import type { DeepResearchPhase, DeepResearchState, ThinkingTimelineEntry } from '../types/deepResearch'
+import { sanitizeThinkingLineText } from './thinkingText'
 
 export type StreamStatus = 'active' | 'queued' | 'pending' | 'done'
 
@@ -159,21 +160,24 @@ export interface ThinkingTerminalLine {
 }
 
 export function formatThinkingTimeline(entries: ThinkingTimelineEntry[]): ThinkingTerminalLine[] {
-  return entries.map((entry, index) => {
-    const timestamp = new Date(entry.timestamp).toLocaleTimeString([], { hour12: false })
-    let tone: ThinkingTerminalLine['tone'] = 'default'
-    if (/✅|completed|passed/i.test(entry.text)) tone = 'success'
-    else if (/🔍|initialized|Analyzing|generating|Executing|⚙️|📋|🔄|📝/i.test(entry.text))
-      tone = index === entries.length - 1 ? 'active' : 'system'
-    else if (/System|initialized/i.test(entry.text)) tone = 'system'
+  return entries
+    .map((entry, index) => {
+      const text = sanitizeThinkingLineText(entry.text)
+      const timestamp = new Date(entry.timestamp).toLocaleTimeString([], { hour12: false })
+      let tone: ThinkingTerminalLine['tone'] = 'default'
+      if (/✅|completed|passed/i.test(text)) tone = 'success'
+      else if (/🔍|initialized|Analyzing|generating|Executing|⚙️|📋|🔄|📝/i.test(text))
+        tone = index === entries.length - 1 ? 'active' : 'system'
+      else if (/System|initialized/i.test(text)) tone = 'system'
 
-    return {
-      id: entry.id,
-      timestamp,
-      text: entry.text,
-      tone,
-    }
-  })
+      return {
+        id: entry.id,
+        timestamp,
+        text,
+        tone,
+      }
+    })
+    .filter((line) => line.text.length > 0)
 }
 
 export function terminalLineClass(tone: ThinkingTerminalLine['tone'], isLast: boolean): string {

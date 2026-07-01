@@ -10,7 +10,7 @@ import { ConversationInput } from '../chat/ConversationInput'
 import { AppShell } from '../layout/AppShell'
 import { Icon } from '../ui/Icon'
 import { PptAssistantMessage } from './PptAssistantMessage'
-import { PptUserBubble } from './PptUserBubble'
+import { UserBubble } from '../chat/UserBubble'
 
 export function PptGenPage() {
   const { t } = useTranslation()
@@ -135,7 +135,7 @@ export function PptGenPage() {
 
             {pairs.map(({ user, assistant }) => (
               <div key={user?.id ?? assistant?.id} className="space-y-8">
-                {user && <PptUserBubble content={user.content} />}
+                {user && <UserBubble content={user.content} />}
                 {assistant && (
                   <PptAssistantMessage
                     turn={assistant}
