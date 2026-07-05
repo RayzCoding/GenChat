@@ -11,15 +11,12 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/chat" replace />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/chat/:conversationId" element={<ChatPage />} />
+        <Route path="/chat/:conversationId?" element={<ChatPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/file-qa" element={<FileQaPage />} />
-        <Route path="/ppt" element={<PptGenPage />} />
-        <Route path="/ppt/:conversationId" element={<PptGenPage />} />
+        <Route path="/ppt/:conversationId?" element={<PptGenPage />} />
         <Route path="/deep-research" element={<DeepResearchPage />} />
-        <Route path="/skills" element={<SkillsPage />} />
-        <Route path="/skills/:conversationId" element={<SkillsPage />} />
+        <Route path="/skills/:conversationId?" element={<SkillsPage />} />
       </Routes>
     </BrowserRouter>
   )

@@ -43,7 +43,7 @@ export function ChatPage() {
   }, [routeConversationId, conversationId])
 
   useEffect(() => {
-    if (!routeConversationId) return
+    if (!routeConversationId || isStreaming) return
 
     let cancelled = false
     void loadSessionTurns(routeConversationId)
@@ -57,7 +57,7 @@ export function ChatPage() {
     return () => {
       cancelled = true
     }
-  }, [routeConversationId, loadSessionTurns, setTurns])
+  }, [routeConversationId, isStreaming, loadSessionTurns, setTurns])
 
   const handleNewChat = useCallback(() => {
     const newId = createConversationId()

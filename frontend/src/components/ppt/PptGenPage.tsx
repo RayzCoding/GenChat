@@ -48,7 +48,7 @@ export function PptGenPage() {
   }, [routeConversationId, conversationId])
 
   useEffect(() => {
-    if (!routeConversationId) return
+    if (!routeConversationId || isStreaming) return
 
     let cancelled = false
     void loadSessionTurns(routeConversationId)
@@ -62,7 +62,7 @@ export function PptGenPage() {
     return () => {
       cancelled = true
     }
-  }, [routeConversationId, loadSessionTurns, setTurns])
+  }, [routeConversationId, isStreaming, loadSessionTurns, setTurns])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })

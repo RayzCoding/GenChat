@@ -38,7 +38,7 @@ export function SkillsPage() {
   }, [routeConversationId, conversationId])
 
   useEffect(() => {
-    if (!routeConversationId) return
+    if (!routeConversationId || isStreaming) return
 
     let cancelled = false
     void loadSessionTurns(routeConversationId)
@@ -52,7 +52,7 @@ export function SkillsPage() {
     return () => {
       cancelled = true
     }
-  }, [routeConversationId, loadSessionTurns, setTurns])
+  }, [routeConversationId, isStreaming, loadSessionTurns, setTurns])
 
   const handleNewChat = useCallback(() => {
     const newId = createConversationId()
