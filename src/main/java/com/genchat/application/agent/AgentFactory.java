@@ -8,6 +8,7 @@ import com.genchat.application.tool.SkillsTool;
 import com.genchat.common.utils.ToolMergeUtils;
 import com.genchat.config.WebSearchToolInitConfig;
 import com.genchat.config.GenChatProperties;
+import com.genchat.context.ContextCompactor;
 import com.genchat.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ChatModel;
@@ -31,6 +32,7 @@ public class AgentFactory {
     private final ObjectProvider<PptStrategyDependencies> pptStrategyDependenciesProvider;
     private final ObjectProvider<DeepResearchAgent> deepResearchAgentProvider;
     private final GenChatProperties genChatProperties;
+    private final ContextCompactor contextCompactor;
 
     @Value("${skills.directory:}")
     private String skillsDirectory;
@@ -43,6 +45,7 @@ public class AgentFactory {
                 webSearchToolInitConfig.getWebSearchToolCallbacks(),
                 genChatProperties.getAgent().getMaxRounds());
         agent.setMaxRetries(genChatProperties.getAgent().getMaxRetries());
+        agent.setContextCompactor(contextCompactor);
         return agent;
     }
 
@@ -55,15 +58,19 @@ public class AgentFactory {
     }
 
     public SimpleReactAgent createSimpleReactAgent(List<ToolCallback> tools) {
-        return new SimpleReactAgent(chatModel, tools);
+        var agent = new SimpleReactAgent(chatModel, tools);
+        agent.setContextCompactor(contextCompactor);
+        return agent;
     }
 
     public FileReactAgent createFileReactAgent() {
-        return new FileReactAgent(
+        var agent = new FileReactAgent(
                 chatModel,
                 sessionService,
                 agentTaskService,
                 List.of(ToolCallbacks.from(fileContentTool)));
+        agent.setContextCompactor(contextCompactor);
+        return agent;
     }
 
     public PPTBuilderAgent createPptBuilderAgent() {
@@ -91,6 +98,7 @@ public class AgentFactory {
                 toolCallbacks,
                 genChatProperties.getAgent().getMaxRounds());
         agent.setMaxRetries(genChatProperties.getAgent().getMaxRetries());
+        agent.setContextCompactor(contextCompactor);
         return agent;
     }
 }

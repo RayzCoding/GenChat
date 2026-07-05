@@ -4,6 +4,7 @@ import com.genchat.agent.core.ReactChunkProcessor;
 import com.genchat.agent.core.ReactToolSupport;
 import com.genchat.common.prompts.PlanExecutePrompts;
 import com.genchat.common.prompts.ReactAgentPrompts;
+import com.genchat.context.ContextCompactor;
 import com.genchat.dto.SimpleReactResult;
 import com.genchat.agent.model.AgentState;
 import com.genchat.agent.model.RoundMode;
@@ -38,6 +39,7 @@ public class SimpleReactAgent {
     private String systemPrompt;
     private int maxRounds;
     protected Set<String> usedTools;
+    private ContextCompactor contextCompactor;
 
     public SimpleReactAgent(ChatModel chatModel,
                             List<ToolCallback> webSearchToolCallbacks) {
@@ -79,7 +81,7 @@ public class SimpleReactAgent {
         var thinkingBuffer = new StringBuilder();
 
         // add Round
-        scheduleRound(messages, sink, roundCounter, hasSentFinalResult, finalAnswerBuffer);
+        scheduleRound(messages, sink, roundCounter, hasSentFinalResult, finalAnswerBuffer, question);
 
         return sink.asFlux()
                 .doOnNext(thinkingBuffer::append)
@@ -91,8 +93,12 @@ public class SimpleReactAgent {
                                Sinks.Many<String> sink,
                                AtomicInteger roundCounter,
                                AtomicBoolean hasSentFinalResult,
-                               StringBuilder finalAnswerBuffer) {
+                               StringBuilder finalAnswerBuffer,
+                               String currentQuestion) {
         roundCounter.incrementAndGet();
+        log.info("SimpleReact round {}, message size: {}", roundCounter.get(), messages.size());
+        compactMessages(messages, currentQuestion);
+
         var roundState = new RoundState();
 
         chatClient.prompt()
@@ -102,7 +108,7 @@ public class SimpleReactAgent {
                 .publishOn(Schedulers.boundedElastic())
                 .doOnNext(chunk -> ReactChunkProcessor.processChunk(chunk, sink, roundState, false))
                 .doOnComplete(() -> finishRound(messages, sink,
-                        roundState, roundCounter, hasSentFinalResult, finalAnswerBuffer))
+                        roundState, roundCounter, hasSentFinalResult, finalAnswerBuffer, currentQuestion))
                 .doOnError(error -> {
                     if (!hasSentFinalResult.get()) {
                         hasSentFinalResult.set(true);
@@ -117,7 +123,8 @@ public class SimpleReactAgent {
                              RoundState roundState,
                              AtomicInteger roundCounter,
                              AtomicBoolean hasSentFinalResult,
-                             StringBuilder finalAnswerBuffer) {
+                             StringBuilder finalAnswerBuffer,
+                             String currentQuestion) {
         // non tool
         if (roundState.mode != RoundMode.TOOL_CALL) {
             sink.tryEmitComplete();
@@ -125,7 +132,7 @@ public class SimpleReactAgent {
             return;
         }
         if (maxRounds > 0 && roundCounter.get() >= maxRounds) {
-            forceFinalStream(messages, sink, hasSentFinalResult);
+            forceFinalStream(messages, sink, hasSentFinalResult, currentQuestion);
             return;
         }
         // tool call
@@ -139,9 +146,16 @@ public class SimpleReactAgent {
                 () -> {
                     if (!hasSentFinalResult.get()) {
                         scheduleRound(messages, sink, roundCounter,
-                                hasSentFinalResult, finalAnswerBuffer);
+                                hasSentFinalResult, finalAnswerBuffer, currentQuestion);
                     }
                 });
+    }
+
+    private void compactMessages(List<Message> messages, String currentQuestion) {
+        if (contextCompactor != null) {
+            contextCompactor.compact(messages, currentQuestion);
+            log.debug("SimpleReact compacted, message count: {}", messages.size());
+        }
     }
 
     private void executeToolCalls(List<AssistantMessage.ToolCall> toolCalls,
@@ -185,7 +199,8 @@ public class SimpleReactAgent {
 
     private void forceFinalStream(List<Message> messages,
                                   Sinks.Many<String> sink,
-                                  AtomicBoolean hasSentFinalResult) {
+                                  AtomicBoolean hasSentFinalResult,
+                                  String currentQuestion) {
         messages.add(new UserMessage("""
                 You have reached the maximum number of reasoning rounds.
                 Based on the current context information,
@@ -193,6 +208,8 @@ public class SimpleReactAgent {
                 Do not use any further tools.
                 If the information is incomplete, please summarize and explain it reasonably.
                 """));
+
+        compactMessages(messages, currentQuestion);
 
         var finalTextBuffer = new StringBuilder();
         chatClient.prompt()
@@ -240,12 +257,15 @@ public class SimpleReactAgent {
                         If information is incomplete, summarize reasonably and explain the gaps.
                         """));
 
+                compactMessages(messages, question);
                 String forcedAnswer = chatClient.prompt().messages(messages).call().content();
                 return SimpleReactResult.builder()
                         .answer(forcedAnswer)
                         .searchResults(agentState != null ? agentState.searchResults : Collections.emptyList())
                         .build();
             }
+
+            compactMessages(messages, question);
 
             ChatClientResponse chatResponse = chatClient
                     .prompt()

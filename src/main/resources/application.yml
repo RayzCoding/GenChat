@@ -83,12 +83,17 @@ app:
 
 genchat:
   agent:
-    max-rounds: 5
+    max-rounds: 1
     max-retries: 0
     chat-memory-size: 30
   file:
     chunk-size: 500
     chunk-overlap: 50
   deep-research:
-    max-rounds: 3
-    tool-semaphore-permits: 3
+    max-rounds: 1
+    tool-semaphore-permits: 1
+  context:
+    token-threshold: 60000
+    keep-recent-tools: 4
+    max-tool-length: 200
+    truncation-keep-messages: 10

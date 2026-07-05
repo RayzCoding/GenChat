@@ -55,4 +55,15 @@ public final class ReactAgentPrompts {
     public static String getRecommendPrompt() {
         return PromptLoader.format("react/recommend.md", java.time.LocalDateTime.now());
     }
+
+    public static String getCompactSummarySystemPrompt() {
+        return PromptLoader.load("react/compact-summary-system.md");
+    }
+
+    public static String getCompactSummaryUserPrompt(String conversationText, String currentQuestion) {
+        var focus = currentQuestion != null && !currentQuestion.isBlank()
+                ? currentQuestion
+                : "(not specified)";
+        return PromptLoader.format("react/compact-summary-user.md", focus, conversationText);
+    }
 }

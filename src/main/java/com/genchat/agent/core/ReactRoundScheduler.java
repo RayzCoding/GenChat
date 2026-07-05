@@ -5,6 +5,7 @@ import com.genchat.common.ToolRecord;
 import com.genchat.agent.model.AgentState;
 import com.genchat.agent.model.RoundMode;
 import com.genchat.agent.model.RoundState;
+import com.genchat.context.ContextCompactor;
 import com.genchat.service.AgentTaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -55,6 +56,8 @@ public final class ReactRoundScheduler {
     private final int maxRetries;
     private final List<ToolRecord> toolRecords;
     private final Callbacks callbacks;
+    private final ContextCompactor contextCompactor;
+    private final String currentQuestion;
 
     public ReactRoundScheduler(ChatClient chatClient,
                                List<ToolCallback> tools,
@@ -62,7 +65,9 @@ public final class ReactRoundScheduler {
                                int maxRounds,
                                int maxRetries,
                                List<ToolRecord> toolRecords,
-                               Callbacks callbacks) {
+                               Callbacks callbacks,
+                               ContextCompactor contextCompactor,
+                               String currentQuestion) {
         this.chatClient = chatClient;
         this.tools = tools;
         this.agentTaskService = agentTaskService;
@@ -70,6 +75,8 @@ public final class ReactRoundScheduler {
         this.maxRetries = maxRetries;
         this.toolRecords = toolRecords;
         this.callbacks = callbacks;
+        this.contextCompactor = contextCompactor;
+        this.currentQuestion = currentQuestion;
     }
 
     public void scheduleRound(List<Message> messages,
@@ -95,6 +102,11 @@ public final class ReactRoundScheduler {
                                int retryAttempt) {
         roundCounter.incrementAndGet();
         log.info("Round Counter: {}, message size:{}", roundCounter.get(), messages.size());
+        if (contextCompactor != null) {
+            contextCompactor.compact(messages, currentQuestion);
+            log.info("=== Round {} compacted, message count: {} ===", roundCounter.get(), messages.size());
+        }
+
         var roundState = new RoundState();
 
         var disposable = chatClient.prompt()

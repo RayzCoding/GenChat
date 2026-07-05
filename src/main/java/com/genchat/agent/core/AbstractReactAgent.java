@@ -8,6 +8,7 @@ import com.genchat.common.ToolRecord;
 import com.genchat.common.utils.JacksonJson;
 import com.genchat.dto.AiChatSession;
 import com.genchat.agent.model.AgentState;
+import com.genchat.context.ContextCompactor;
 import com.genchat.service.AgentTaskService;
 import com.genchat.service.AiChatSessionService;
 import lombok.Setter;
@@ -51,6 +52,7 @@ public abstract class AbstractReactAgent implements PersistentChatAgent {
     protected long firstResponseTime;
     protected long startTime;
     protected boolean enableRecommendations = true;
+    protected ContextCompactor contextCompactor;
     protected final List<ToolRecord> toolRecords = Collections.synchronizedList(new ArrayList<>());
 
     protected AbstractReactAgent(ChatModel chatModel,
@@ -211,7 +213,9 @@ public abstract class AbstractReactAgent implements PersistentChatAgent {
                     public String getSystemPrompt() {
                         return systemPrompt;
                     }
-                });
+                },
+                contextCompactor,
+                currentQuestion);
     }
 
     private String generateRecommendations(String conversationId, String currentQuestion, String currentAnswer) {

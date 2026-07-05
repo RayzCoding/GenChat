@@ -37,6 +37,8 @@ class ReactRoundSchedulerTest {
                 maxRounds,
                 maxRetries,
                 Collections.synchronizedList(Collections.emptyList()),
+                null,
+                null,
                 null);
     }
 }
