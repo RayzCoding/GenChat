@@ -168,15 +168,15 @@ public final class ReactRoundScheduler {
                 .toolCalls(roundState.toolCalls)
                 .build();
         messages.add(assistantMessage);
-        if (maxRounds > 0 && roundCounter.get() >= maxRounds) {
-            forceFinalStream(messages, sink, hasSentFinalResult, roundState, conversationId, agentState);
-            return;
-        }
         executeToolCalls(sink, roundState.toolCalls,
                 messages, hasSentFinalResult,
                 agentState,
                 () -> {
                     if (!hasSentFinalResult.get()) {
+                        if (maxRounds > 0 && roundCounter.get() >= maxRounds) {
+                            forceFinalStream(messages, sink, hasSentFinalResult, roundState, conversationId, agentState);
+                            return;
+                        }
                         scheduleRound(messages, sink, roundCounter,
                                 hasSentFinalResult, finalAnswerBuffer,
                                 conversationId, agentState, thinkingBuffer);

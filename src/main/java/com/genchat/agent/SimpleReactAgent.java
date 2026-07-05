@@ -131,10 +131,6 @@ public class SimpleReactAgent {
             hasSentFinalResult.set(true);
             return;
         }
-        if (maxRounds > 0 && roundCounter.get() >= maxRounds) {
-            forceFinalStream(messages, sink, hasSentFinalResult, currentQuestion);
-            return;
-        }
         // tool call
         var assistantMessage = AssistantMessage.builder()
                 .toolCalls(roundState.toolCalls)
@@ -145,6 +141,10 @@ public class SimpleReactAgent {
                 messages, hasSentFinalResult,
                 () -> {
                     if (!hasSentFinalResult.get()) {
+                        if (maxRounds > 0 && roundCounter.get() >= maxRounds) {
+                            forceFinalStream(messages, sink, hasSentFinalResult, currentQuestion);
+                            return;
+                        }
                         scheduleRound(messages, sink, roundCounter,
                                 hasSentFinalResult, finalAnswerBuffer, currentQuestion);
                     }
