@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useChatStream } from '../../hooks/useChatStream'
 import { useSessions } from '../../hooks/useSessions'
-import { createConversationId } from '../../utils/chat'
+import { createConversationId, mergeSessionTurns } from '../../utils/chat'
+import type { ChatTurn } from '../../types'
 import { AppShell } from '../layout/AppShell'
 import { ChatInput } from './ChatInput'
 import { MessageList } from './MessageList'
@@ -15,6 +16,7 @@ export function ChatPage() {
   const [conversationId, setConversationId] = useState(
     () => routeConversationId ?? createConversationId(),
   )
+  const skipHistoryLoadRef = useRef(false)
 
   const {
     sessions,
@@ -25,6 +27,7 @@ export function ChatPage() {
     loadSessionTurns,
   } = useSessions()
 
+  const turnsRef = useRef<ChatTurn[]>([])
   const {
     turns,
     isStreaming,
@@ -34,7 +37,11 @@ export function ChatPage() {
   } = useChatStream({
     conversationId,
     onSessionUpdated: () => void refresh(),
+    onStreamComplete: () => {
+      skipHistoryLoadRef.current = true
+    },
   })
+  turnsRef.current = turns
 
   useEffect(() => {
     if (routeConversationId && routeConversationId !== conversationId) {
@@ -44,11 +51,17 @@ export function ChatPage() {
 
   useEffect(() => {
     if (!routeConversationId || isStreaming) return
+    if (skipHistoryLoadRef.current) {
+      skipHistoryLoadRef.current = false
+      return
+    }
 
     let cancelled = false
     void loadSessionTurns(routeConversationId)
       .then((loaded) => {
-        if (!cancelled) setTurns(loaded)
+        if (!cancelled) {
+          setTurns(mergeSessionTurns(turnsRef.current, loaded))
+        }
       })
       .catch(() => {
         if (!cancelled) setTurns([])

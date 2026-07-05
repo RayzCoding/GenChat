@@ -23,8 +23,11 @@ public final class SessionPayloadParser {
         }
         try {
             var root = JacksonJson.parseTreeLenient(referenceJson.trim());
-            if (root == null || root.isArray()) {
+            if (root == null) {
                 return Collections.emptyList();
+            }
+            if (root.isArray()) {
+                return parseSearchResultArray(root);
             }
             if (!root.isObject()) {
                 return Collections.emptyList();
@@ -56,8 +59,11 @@ public final class SessionPayloadParser {
         }
         try {
             var root = JacksonJson.parseTreeLenient(recommendJson.trim());
-            if (root == null || root.isArray()) {
+            if (root == null) {
                 return Collections.emptyList();
+            }
+            if (root.isArray()) {
+                return parseStringArray(root);
             }
             if (root.isObject()) {
                 JsonNode content = root.get("content");

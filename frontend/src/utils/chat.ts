@@ -35,12 +35,12 @@ export function applyChunk(turn: ChatTurn, chunk: AgentChunk): ChatTurn {
         thinking: (turn.thinking ?? '') + String(chunk.content ?? ''),
       }
     case 'reference': {
-      const refs = normalizeReferences(chunk.content)
-      return { ...turn, references: refs }
+      const refs = dedupeReferences(normalizeReferences(chunk.content))
+      return { ...turn, references: refs.length > 0 ? refs : turn.references }
     }
     case 'recommend': {
       const recs = normalizeRecommendations(chunk.content)
-      return { ...turn, recommendations: recs }
+      return { ...turn, recommendations: recs.length > 0 ? recs : turn.recommendations }
     }
     case 'error': {
       const message = String(chunk.message ?? chunk.content ?? '')
@@ -101,16 +101,45 @@ export function applyChunk(turn: ChatTurn, chunk: AgentChunk): ChatTurn {
 
 function normalizeReferences(content: unknown): SearchResult[] {
   if (Array.isArray(content)) {
-    return content as SearchResult[]
+    return content.filter(isSearchResultLike).map(normalizeSearchResult)
   }
   if (typeof content === 'string') {
     try {
-      return JSON.parse(content) as SearchResult[]
+      const parsed = JSON.parse(content) as unknown
+      if (Array.isArray(parsed)) {
+        return parsed.filter(isSearchResultLike).map(normalizeSearchResult)
+      }
     } catch {
       return []
     }
   }
   return []
+}
+
+function isSearchResultLike(value: unknown): value is SearchResult {
+  if (!value || typeof value !== 'object') return false
+  const record = value as Record<string, unknown>
+  return typeof record.url === 'string' || typeof record.title === 'string'
+}
+
+function normalizeSearchResult(value: SearchResult): SearchResult {
+  return {
+    url: value.url ?? '',
+    title: value.title ?? '',
+    content: value.content,
+  }
+}
+
+function dedupeReferences(references: SearchResult[]): SearchResult[] {
+  const seen = new Set<string>()
+  const deduped: SearchResult[] = []
+  for (const ref of references) {
+    const key = ref.url || ref.title
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    deduped.push(ref)
+  }
+  return deduped
 }
 
 function normalizeRecommendations(content: unknown): string[] {
@@ -145,18 +174,53 @@ export function sessionMessagesToTurns(
       content: msg.question,
       dbId: msg.id,
     })
-    if (msg.answer || msg.thinking) {
+    const references = msg.reference?.length ? dedupeReferences(msg.reference) : undefined
+    const recommendations = msg.recommend?.length ? msg.recommend : undefined
+    if (msg.answer || msg.thinking || references?.length || recommendations?.length) {
       turns.push({
         id: `assistant-${msg.id}`,
         role: 'assistant',
         content: msg.answer ?? '',
         thinking: msg.thinking,
-        references: msg.reference,
-        recommendations: msg.recommend,
+        references,
+        recommendations,
         status: 'complete',
         dbId: msg.id,
       })
     }
   }
   return turns
+}
+
+/** Preserve stream-time references/recommendations when history reload is incomplete. */
+export function mergeSessionTurns(localTurns: ChatTurn[], loadedTurns: ChatTurn[]): ChatTurn[] {
+  if (localTurns.length === 0) return loadedTurns
+
+  const localAssistants = localTurns.filter((turn) => turn.role === 'assistant')
+  const localByDbId = new Map(
+    localAssistants
+      .filter((turn) => turn.dbId != null)
+      .map((turn) => [turn.dbId as number, turn]),
+  )
+
+  let assistantIndex = 0
+  return loadedTurns.map((turn) => {
+    if (turn.role !== 'assistant') return turn
+
+    const localTurn =
+      (turn.dbId != null ? localByDbId.get(turn.dbId) : undefined) ??
+      localAssistants[assistantIndex]
+    assistantIndex += 1
+
+    if (!localTurn) return turn
+
+    return {
+      ...turn,
+      references:
+        turn.references?.length ? turn.references : localTurn.references,
+      recommendations:
+        turn.recommendations?.length ? turn.recommendations : localTurn.recommendations,
+      toolCalls: turn.toolCalls?.length ? turn.toolCalls : localTurn.toolCalls,
+    }
+  })
 }

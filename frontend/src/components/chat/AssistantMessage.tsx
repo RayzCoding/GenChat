@@ -17,6 +17,7 @@ export function AssistantMessage({
   recommendDisabled,
 }: AssistantMessageProps) {
   const isStreaming = turn.status === 'streaming'
+  const hasRecommendations = (turn.recommendations?.length ?? 0) > 0
 
   return (
     <div className="flex justify-start gap-4 duration-700 animate-in fade-in slide-in-from-left-4">
@@ -40,9 +41,9 @@ export function AssistantMessage({
           </div>
         )}
 
-        {turn.recommendations && turn.recommendations.length > 0 && onRecommendSelect && (
+        {hasRecommendations && onRecommendSelect && (
           <RecommendChips
-            recommendations={turn.recommendations}
+            recommendations={turn.recommendations ?? []}
             onSelect={onRecommendSelect}
             disabled={recommendDisabled}
           />

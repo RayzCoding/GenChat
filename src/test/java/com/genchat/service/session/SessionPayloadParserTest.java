@@ -27,12 +27,15 @@ class SessionPayloadParserTest {
     }
 
     @Test
-    void parseReferenceFromDirectArrayReturnsEmptyBecauseLegacyParserExpectsObjectEnvelope() {
+    void parseReferenceFromDirectArray() {
         var json = """
                 [{"url":"https://a.com","title":"A","content":"alpha"}]
                 """;
 
-        assertTrue(SessionPayloadParser.parseReference(json).isEmpty());
+        var results = SessionPayloadParser.parseReference(json);
+
+        assertEquals(1, results.size());
+        assertEquals("https://a.com", results.getFirst().getUrl());
     }
 
     @Test
@@ -76,10 +79,10 @@ class SessionPayloadParserTest {
     }
 
     @Test
-    void parseRecommendFromDirectArrayReturnsEmptyBecauseLegacyParserExpectsObjectEnvelope() {
+    void parseRecommendFromDirectArray() {
         var json = "[\"Follow up A\",\"Follow up B\"]";
 
-        assertTrue(SessionPayloadParser.parseRecommend(json).isEmpty());
+        assertEquals(List.of("Follow up A", "Follow up B"), SessionPayloadParser.parseRecommend(json));
     }
 
     @Test

@@ -68,7 +68,9 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
                 .set(StringUtils.hasLength(thinkingBuffer.toString()), AiChatSessionEntity::getThinking, thinkingBuffer.toString())
                 .set(StringUtils.hasLength(usedToolsString), AiChatSessionEntity::getTools, usedToolsString)
                 .set(StringUtils.hasLength(referenceJson), AiChatSessionEntity::getReference, referenceJson)
-                .set(StringUtils.hasLength(currentRecommendations), AiChatSessionEntity::getRecommend, currentRecommendations)
+                .set(StringUtils.hasLength(currentRecommendations),
+                        AiChatSessionEntity::getRecommend,
+                        AgentStreamEvent.Recommend.of(currentRecommendations).toJSON())
                 .set(StringUtils.hasLength(agentType), AiChatSessionEntity::getAgentType, agentType)
                 .set(AiChatSessionEntity::getTotalResponseTime, totalResponseTime)
                 .set(AiChatSessionEntity::getFirstResponseTime, firstResponseTime);

@@ -7,9 +7,10 @@ import { applyChunk, createId, parseAgentChunk } from '../utils/chat'
 interface UseFileStreamOptions {
   conversationId: string
   fileId: string | null
+  onStreamComplete?: () => void
 }
 
-export function useFileStream({ conversationId, fileId }: UseFileStreamOptions) {
+export function useFileStream({ conversationId, fileId, onStreamComplete }: UseFileStreamOptions) {
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -81,11 +82,12 @@ export function useFileStream({ conversationId, fileId }: UseFileStreamOptions) 
           )
         }
       } finally {
+        onStreamComplete?.()
         setIsStreaming(false)
         abortRef.current = null
       }
     },
-    [conversationId, fileId, isStreaming],
+    [conversationId, fileId, isStreaming, onStreamComplete],
   )
 
   const stopGeneration = useCallback(async () => {

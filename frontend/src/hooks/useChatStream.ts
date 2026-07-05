@@ -6,9 +6,14 @@ import { applyChunk, createId, parseAgentChunk } from '../utils/chat'
 interface UseChatStreamOptions {
   conversationId: string
   onSessionUpdated?: () => void
+  onStreamComplete?: () => void
 }
 
-export function useChatStream({ conversationId, onSessionUpdated }: UseChatStreamOptions) {
+export function useChatStream({
+  conversationId,
+  onSessionUpdated,
+  onStreamComplete,
+}: UseChatStreamOptions) {
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -83,11 +88,12 @@ export function useChatStream({ conversationId, onSessionUpdated }: UseChatStrea
           )
         }
       } finally {
+        onStreamComplete?.()
         setIsStreaming(false)
         abortRef.current = null
       }
     },
-    [conversationId, isStreaming, onSessionUpdated],
+    [conversationId, isStreaming, onSessionUpdated, onStreamComplete],
   )
 
   const stopGeneration = useCallback(async () => {

@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useFileStream } from '../../hooks/useFileStream'
 import type { FileInfoDto } from '../../services/fileApi'
+import type { ChatTurn } from '../../types'
 import { deleteFile, listFiles, uploadFile } from '../../services/fileApi'
 import { getFileSessionDetail } from '../../services/sessionApi'
-import { createConversationId, sessionMessagesToTurns } from '../../utils/chat'
+import { createConversationId, mergeSessionTurns, sessionMessagesToTurns } from '../../utils/chat'
 import {
   createFileConversationId,
   resolveFileConversationId,
@@ -30,6 +31,8 @@ export function FileQaPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const activeFileIdRef = useRef<number | null>(null)
+  const skipHistoryLoadRef = useRef(false)
+  const turnsRef = useRef<ChatTurn[]>([])
 
   useEffect(() => {
     activeFileIdRef.current = activeFileId
@@ -65,7 +68,11 @@ export function FileQaPage() {
   const { turns, isStreaming, sendMessage, stopGeneration, setTurns } = useFileStream({
     conversationId,
     fileId: activeFileId ? String(activeFileId) : null,
+    onStreamComplete: () => {
+      skipHistoryLoadRef.current = true
+    },
   })
+  turnsRef.current = turns
 
   const loadFileHistory = useCallback(
     async (fileId: number) => {
@@ -76,7 +83,7 @@ export function FileQaPage() {
 
         const convId = resolveFileConversationId(fileId, detail.conversationId)
         setConversationId(convId)
-        setTurns(sessionMessagesToTurns(detail.messages))
+        setTurns(mergeSessionTurns(turnsRef.current, sessionMessagesToTurns(detail.messages)))
       } catch {
         if (activeFileIdRef.current !== fileId) return
         const convId = resolveFileConversationId(fileId)
@@ -93,6 +100,10 @@ export function FileQaPage() {
 
   useEffect(() => {
     if (activeFileId == null || isStreaming) return
+    if (skipHistoryLoadRef.current) {
+      skipHistoryLoadRef.current = false
+      return
+    }
     void loadFileHistory(activeFileId)
   }, [activeFileId, isStreaming, loadFileHistory])
 

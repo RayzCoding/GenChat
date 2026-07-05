@@ -13,9 +13,16 @@ const badgeColors = [
   'bg-secondary/20 text-secondary',
 ]
 
-function badgeLabel(title?: string, url?: string): string {
-  const source = title || url || '?'
-  return source.slice(0, 2).toUpperCase()
+function displayTitle(ref: SearchResult): string {
+  if (ref.title?.trim()) return ref.title.trim()
+  if (ref.url?.trim()) {
+    try {
+      return new URL(ref.url).hostname.replace(/^www\./, '')
+    } catch {
+      return ref.url
+    }
+  }
+  return 'Source'
 }
 
 export function ReferenceTags({ references }: ReferenceTagsProps) {
@@ -30,23 +37,44 @@ export function ReferenceTags({ references }: ReferenceTagsProps) {
         {t('chat.references')}
       </h3>
       <div className="flex flex-wrap gap-3">
-        {references.map((ref, index) => (
-          <a
-            key={`${ref.url}-${index}`}
-            href={ref.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 rounded-lg border border-outline-variant/10 bg-surface-container px-3 py-1.5 transition-all hover:border-primary/40"
-            title={ref.content}
-          >
-            <div
-              className={`flex h-4 w-4 items-center justify-center rounded text-[10px] ${badgeColors[index % badgeColors.length]}`}
+        {references.map((ref, index) => {
+          const title = displayTitle(ref)
+          const href = ref.url?.trim() || undefined
+          const className =
+            'flex max-w-full items-center gap-2 rounded-lg border border-outline-variant/10 bg-surface-container px-3 py-1.5 transition-all hover:border-primary/40'
+
+          const inner = (
+            <>
+              <div
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${badgeColors[index % badgeColors.length]}`}
+              >
+                {index + 1}
+              </div>
+              <span className="truncate font-label-md text-xs">{title}</span>
+            </>
+          )
+
+          if (!href) {
+            return (
+              <div key={`${title}-${index}`} className={className} title={ref.content}>
+                {inner}
+              </div>
+            )
+          }
+
+          return (
+            <a
+              key={`${href}-${index}`}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={className}
+              title={ref.content || title}
             >
-              {badgeLabel(ref.title, ref.url)}
-            </div>
-            <span className="font-label-md text-xs">{ref.title || ref.url}</span>
-          </a>
-        ))}
+              {inner}
+            </a>
+          )
+        })}
       </div>
     </div>
   )
