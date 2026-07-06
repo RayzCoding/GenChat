@@ -1,4 +1,5 @@
 import { readAgentSseStream } from '../utils/agentStream'
+import { normalizeMinioFileUrl } from '../utils/pptUi'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
@@ -67,7 +68,8 @@ export async function deleteFile(id: number): Promise<void> {
 }
 
 export async function getPresignedFileUrl(fileUrl: string): Promise<string> {
-  const url = buildUrl('/file/presign', { url: fileUrl })
+  const normalizedUrl = normalizeMinioFileUrl(fileUrl)
+  const url = buildUrl('/file/presign', { url: normalizedUrl })
   const response = await fetch(url)
   const result = (await response.json()) as ApiResult<string>
   if (!response.ok || result.code !== 200 || !result.data) {

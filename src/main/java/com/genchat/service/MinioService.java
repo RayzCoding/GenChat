@@ -11,6 +11,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Slf4j
@@ -161,18 +164,60 @@ public class MinioService {
     /**
      * Extract object name from MinIO URL
      * e.g., "http://127.0.0.1:9000/bucket/path/to/file.png" -> "path/to/file.png"
+     * Query strings from presigned URLs are ignored.
      */
     public String extractObjectNameFromUrl(String url) {
-        if (url == null || url.isEmpty()) {
+        if (url == null || url.isBlank()) {
             return null;
         }
         String bucketName = minioConfig.getBucketName();
-        // Find bucket name position in URL
-        int bucketIndex = url.indexOf("/" + bucketName + "/");
+        String pathPrefix = "/" + bucketName + "/";
+
+        try {
+            URI uri = URI.create(url.strip());
+            String path = uri.getPath();
+            if (path != null && path.contains(pathPrefix)) {
+                int idx = path.indexOf(pathPrefix);
+                return decodeObjectName(path.substring(idx + pathPrefix.length()));
+            }
+        } catch (IllegalArgumentException ignored) {
+            // fall through to legacy parsing
+        }
+
+        int bucketIndex = url.indexOf(pathPrefix);
         if (bucketIndex == -1) {
             return null;
         }
-        return url.substring(bucketIndex + bucketName.length() + 2);
+        String objectName = url.substring(bucketIndex + pathPrefix.length());
+        int queryIndex = objectName.indexOf('?');
+        if (queryIndex >= 0) {
+            objectName = objectName.substring(0, queryIndex);
+        }
+        int hashIndex = objectName.indexOf('#');
+        if (hashIndex >= 0) {
+            objectName = objectName.substring(0, hashIndex);
+        }
+        return decodeObjectName(objectName);
+    }
+
+    private static String decodeObjectName(String objectName) {
+        if (objectName == null || objectName.isEmpty()) {
+            return objectName;
+        }
+        try {
+            String decoded = URLDecoder.decode(objectName, StandardCharsets.UTF_8);
+            int queryIndex = decoded.indexOf('?');
+            if (queryIndex >= 0) {
+                decoded = decoded.substring(0, queryIndex);
+            }
+            int hashIndex = decoded.indexOf('#');
+            if (hashIndex >= 0) {
+                decoded = decoded.substring(0, hashIndex);
+            }
+            return decoded;
+        } catch (Exception ignored) {
+            return objectName;
+        }
     }
 
     /**

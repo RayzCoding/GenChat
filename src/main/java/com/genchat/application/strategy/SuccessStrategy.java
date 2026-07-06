@@ -6,11 +6,9 @@ import com.genchat.common.utils.JacksonJson;
 import com.genchat.dto.AiPptInst;
 import com.genchat.dto.PptSchema;
 import com.genchat.entity.PptInstStatus;
-import com.genchat.service.MinioService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
@@ -25,7 +23,7 @@ public class SuccessStrategy implements PptStateStrategy {
                         String question,
                         StringBuilder thinkingBuffer,
                         PptStateStrategyContext context) {
-        var fileUrl = toDownloadUrl(inst.getFileUrl(), context);
+        var fileUrl = inst.getFileUrl();
         var pptSchema = JacksonJson.fromJson(inst.getPptSchema(), PptSchema.class);
         var size = pptSchema.getSlides().size();
         String prompt;
@@ -61,14 +59,6 @@ public class SuccessStrategy implements PptStateStrategy {
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();
         context.setDisposable(inst.getConversationId(), disposable);
-    }
-
-    private static String toDownloadUrl(String fileUrl, PptStateStrategyContext context) {
-        if (!StringUtils.hasText(fileUrl)) {
-            return fileUrl;
-        }
-        return context.getDependencies().minioService()
-                .toPresignedUrl(fileUrl, MinioService.DOWNLOAD_PRESIGN_EXPIRY_SECONDS);
     }
 
     private static void updateSession(StringBuilder thinkingBuffer, PptStateStrategyContext context, StringBuilder llmResponse) {

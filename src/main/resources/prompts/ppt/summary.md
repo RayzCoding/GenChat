@@ -16,7 +16,7 @@
                 1. First clearly inform the user that the PPT has been generated
                 2. Briefly summarize the PPT topic and main content
                 3. Use friendly, natural language
-                4. Do not output any extra markup symbols
+                4. Use a markdown link for the download URL; link text must be "Download" (do not show the raw URL)
                 5. Output text content directly
 
                 Output format example:
@@ -24,6 +24,5 @@
 
                 A PPT about [topic] has been created for you, totaling %d pages.
 
-                You can click the link below to download:
-                %s
+                You can click the link below to download: [Download](%s)
                 

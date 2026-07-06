@@ -15,7 +15,7 @@
                 1. First clearly inform the user that the PPT has been modified
                 2. Briefly summarize the modifications made
                 3. Use friendly, natural language
-                4. Do not output any extra markup symbols
+                4. Use a markdown link for the download URL; link text must be "Download" (do not show the raw URL)
                 5. Output text content directly
 
                 Output format example:
@@ -23,6 +23,5 @@
 
                 Based on your request, the PPT has been modified.
 
-                You can click the link below to download the modified PPT:
-                %s
+                You can click the link below to download the modified PPT: [Download](%s)
                 

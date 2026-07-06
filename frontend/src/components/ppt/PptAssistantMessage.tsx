@@ -6,7 +6,9 @@ import {
   extractFileUrl,
   extractPptTitle,
   extractSlideCount,
+  formatPptDownloadLinks,
   thinkingPreview,
+  isPptFileUrl,
 } from '../../utils/pptUi'
 import { MarkdownContent } from '../chat/MarkdownContent'
 import { Icon } from '../ui/Icon'
@@ -41,9 +43,13 @@ export function PptAssistantMessage({
 
   const showThinkingLine = isStreaming || (thinking && !fileUrl)
   const previewText = thinkingPreview(thinking)
+  const displayContent = useMemo(
+    () => formatPptDownloadLinks(turn.content, t('ppt.result.download')),
+    [turn.content, t],
+  )
 
   const handleMarkdownLinkClick = (href: string, event: MouseEvent<HTMLAnchorElement>) => {
-    if (!href.includes(':9000/')) {
+    if (!isPptFileUrl(href)) {
       return
     }
     event.preventDefault()
@@ -69,7 +75,7 @@ export function PptAssistantMessage({
         {(turn.content || isStreaming) && (
           <div className="chat-bubble-ai rounded-2xl border border-outline-variant/20 bg-surface-container-high px-6 py-4 text-on-surface shadow-xl">
             <MarkdownContent
-              content={turn.content}
+              content={displayContent}
               isStreaming={isStreaming && !fileUrl}
               onLinkClick={handleMarkdownLinkClick}
             />
