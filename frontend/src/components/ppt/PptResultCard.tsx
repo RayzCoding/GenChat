@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../ui/Icon'
 import { openPptDownload } from '../../utils/pptDownload'
+import { PptInlineTitle } from './PptInlineTitle'
 
 interface PptResultCardProps {
   title: string
@@ -24,7 +25,7 @@ export function PptResultCard({ title, slideCount, theme, fileUrl, onPreview }: 
       <div className="relative overflow-hidden rounded-3xl border border-outline-variant/20 bg-surface-container-highest/40 p-6 backdrop-blur-md">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h4 className="font-headline-md text-primary">{title}</h4>
+            <PptInlineTitle title={title} className="font-headline-md text-primary" />
             <p className="font-label-md text-on-surface-variant">
               {slideCount != null
                 ? t('ppt.result.meta', { count: slideCount, theme: theme ?? t('ppt.result.defaultTheme') })

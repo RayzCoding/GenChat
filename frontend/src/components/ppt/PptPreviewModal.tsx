@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../ui/Icon'
 import { openPptDownload } from '../../utils/pptDownload'
+import { PptInlineTitle } from './PptInlineTitle'
 
 const PptSlideViewer = lazy(() =>
   import('./PptSlideViewer').then((module) => ({ default: module.PptSlideViewer })),
@@ -42,7 +43,7 @@ export function PptPreviewModal({ open, title, slideCount, fileUrl, onClose }: P
           <Icon name="close" />
         </button>
 
-        <h3 className="mb-2 pr-10 font-headline-md text-primary">{title}</h3>
+        <PptInlineTitle title={title} className="mb-2 pr-10 font-headline-md text-primary" />
         {slideCount != null && (
           <p className="mb-4 font-label-md text-on-surface-variant">
             {t('ppt.preview.slideCount', { count: slideCount })}

@@ -109,12 +109,41 @@ export function extractSlideCount(text: string): number | null {
   return match ? Number(match[1]) : null
 }
 
+export function stripMarkdownInline(text: string): string {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .trim()
+}
+
 export function extractPptTitle(content: string, fallback: string): string {
-  const about = content.match(/PPT about [「"']?([^「"'\n.]+)/i)
-  if (about) return about[1].trim()
+  const boldMatch = content.match(/\*\*([^*]+)\*\*/)
+  if (boldMatch?.[1]) {
+    return stripMarkdownInline(boldMatch[1].trim())
+  }
+
+  const aboutQuoted = content.match(/PPT about [「"']([^」"'\n]+)[」"']/i)
+  if (aboutQuoted?.[1]) {
+    return stripMarkdownInline(aboutQuoted[1].trim())
+  }
+
+  const about = content.match(/PPT about (.+?)(?:\s+has been|\s*,|\.\s|$)/i)
+  if (about?.[1]) {
+    return stripMarkdownInline(about[1].trim())
+  }
+
+  const created = content.match(/^(.+?)\s+has been created for you/i)
+  if (created?.[1]) {
+    return stripMarkdownInline(created[1].trim())
+  }
+
   const file = content.match(/([\w\u4e00-\u9fff\s-]+)\.pptx/i)
-  if (file) return `${file[1].trim()}.pptx`
-  return fallback
+  if (file) return `${stripMarkdownInline(file[1].trim())}.pptx`
+
+  return stripMarkdownInline(fallback)
 }
 
 export function getProgressSteps(phase: PptPhase): { outline: boolean; generating: boolean } {
