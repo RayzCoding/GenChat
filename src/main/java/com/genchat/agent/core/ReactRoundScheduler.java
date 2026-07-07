@@ -15,6 +15,7 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.tool.ToolCallback;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
@@ -137,7 +138,7 @@ public final class ReactRoundScheduler {
                         hasSentFinalResult.set(true);
                         sink.tryEmitComplete();
                     }
-                    return reactor.core.publisher.Flux.empty();
+                    return Flux.empty();
                 })
                 .subscribe();
 
