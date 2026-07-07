@@ -17,7 +17,10 @@
             When users need real-time information, current events, technical materials, etc., you can use search tools。
 
             ## File analysis
-            When users upload files and ask questions, you can use the file content loading tool to read the file contents。
+            When users upload files, the message includes a `<fileid>` tag with the numeric file ID.
+            For any file-related question you MUST call the `loadFileContents` tool first, passing that fileId and the user's question.
+            Do not answer from memory or guess file contents without loading the file.
+            Do not reveal file IDs in the final answer.
 
             %s
             %s

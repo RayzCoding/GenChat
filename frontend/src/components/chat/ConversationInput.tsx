@@ -24,6 +24,8 @@ interface ConversationInputProps {
   onAttachClick?: () => void
   suggestions?: SuggestionConfig[]
   showSuggestions?: boolean
+  /** Keep the attached file across multiple sends until the user removes it. */
+  persistAttachment?: boolean
 }
 
 export function ConversationInput({
@@ -44,6 +46,7 @@ export function ConversationInput({
   onAttachClick,
   suggestions,
   showSuggestions,
+  persistAttachment,
 }: ConversationInputProps) {
   const [value, setValue] = useState('')
   const [attachedFileId, setAttachedFileId] = useState<string | null>(null)
@@ -59,12 +62,14 @@ export function ConversationInput({
     if (!trimmed || cannotSend) return
     onSend(trimmed, attachedFileId ? { fileId: attachedFileId } : undefined)
     setValue('')
-    setAttachedFileId(null)
-    setAttachedFileName(null)
+    if (!persistAttachment) {
+      setAttachedFileId(null)
+      setAttachedFileName(null)
+    }
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
-  }, [value, cannotSend, onSend, attachedFileId])
+  }, [value, cannotSend, onSend, attachedFileId, persistAttachment])
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -110,22 +115,27 @@ export function ConversationInput({
         {showSuggestions && suggestions && suggestions.length > 0 && (
           <SuggestionChips
             items={suggestions}
-            onSelect={(prompt) => onSend(prompt)}
+            onSelect={(prompt) =>
+              onSend(prompt, attachedFileId ? { fileId: attachedFileId } : undefined)
+            }
             disabled={disabled || isStreaming}
           />
         )}
 
         {attachedFileName && (
-          <div className="mb-2 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary-container/10 px-3 py-1.5 font-label-md text-on-primary-container">
-            <Icon name="attach_file" className="text-sm" />
-            <span className="truncate">{attachedFileName}</span>
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface-container-high px-3 py-2 font-label-md shadow-sm">
+            <Icon name="attach_file" className="shrink-0 text-base text-primary" />
+            <span className="min-w-0 truncate text-on-surface" title={attachedFileName}>
+              {attachedFileName}
+            </span>
             <button
               type="button"
               onClick={() => {
                 setAttachedFileId(null)
                 setAttachedFileName(null)
               }}
-              className="ml-auto text-on-surface-variant hover:text-on-surface"
+              className="ml-auto shrink-0 rounded-md p-0.5 text-on-surface-variant transition-colors hover:bg-surface-variant/30 hover:text-on-surface"
+              aria-label="Remove attachment"
             >
               <Icon name="close" className="text-sm" />
             </button>

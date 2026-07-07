@@ -2,6 +2,7 @@ package com.genchat.agent;
 
 import com.genchat.agent.core.AbstractReactAgent;
 import com.genchat.agent.core.ReactStreamRequest;
+import com.genchat.common.AgentStreamEvent;
 import com.genchat.common.prompts.ReactAgentPrompts;
 import com.genchat.dto.AiChatSession;
 import com.genchat.agent.model.AgentState;
@@ -46,13 +47,22 @@ public class SkillsReactAgent extends AbstractReactAgent {
         return AiChatSession.builder()
                 .question(request.question())
                 .sessionId(request.conversationId())
+                .fileid(resolveFileId(request))
                 .build();
     }
 
     @Override
     protected void appendExtraUserMessages(List<Message> messages, ReactStreamRequest request) {
-        if (StringUtils.hasLength(request.fileId())) {
-            messages.add(new UserMessage("<file>" + request.fileId() + "</file>"));
+        var fileId = resolveFileId(request);
+        if (StringUtils.hasLength(fileId)) {
+            messages.add(new UserMessage("<fileid>" + fileId + "</fileid>"));
+        }
+    }
+
+    @Override
+    protected void emitToolThinking(String toolName, String argsJson, Sinks.Many<String> sink) {
+        if (toolName.contains("loadFileContents") || toolName.contains("loadContent")) {
+            sink.tryEmitNext(new AgentStreamEvent.Thinking("📖 Loading file contents, please wait...\n").toJSON());
         }
     }
 
@@ -84,5 +94,12 @@ public class SkillsReactAgent extends AbstractReactAgent {
 
     public Flux<String> stream(String conversationId, String question, String fileId) {
         return streamInternal(ReactStreamRequest.withFile(conversationId, question, fileId));
+    }
+
+    private String resolveFileId(ReactStreamRequest request) {
+        if (StringUtils.hasLength(request.fileId())) {
+            return request.fileId();
+        }
+        return sessionService.findLatestFileIdBySessionId(request.conversationId()).orElse(null);
     }
 }

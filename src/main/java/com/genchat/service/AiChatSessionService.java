@@ -29,6 +29,23 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionRepository, A
         return AiChatSessionConverter.INSTANCE.toDtoList(entities);
     }
 
+    public Optional<String> findLatestFileIdBySessionId(String sessionId) {
+        if (!StringUtils.hasText(sessionId)) {
+            return Optional.empty();
+        }
+        var wrapper = new LambdaQueryWrapper<AiChatSessionEntity>()
+                .eq(AiChatSessionEntity::getSessionId, sessionId)
+                .isNotNull(AiChatSessionEntity::getFileid)
+                .ne(AiChatSessionEntity::getFileid, "")
+                .orderByDesc(AiChatSessionEntity::getCreateTime)
+                .last("LIMIT 1");
+        var entity = getOne(wrapper, false);
+        if (entity == null || !StringUtils.hasText(entity.getFileid())) {
+            return Optional.empty();
+        }
+        return Optional.of(entity.getFileid());
+    }
+
     public AiChatSession saveQuestion(AiChatSession session) {
         var entity = AiChatSessionConverter.INSTANCE.toEntity(session);
         this.save(entity);

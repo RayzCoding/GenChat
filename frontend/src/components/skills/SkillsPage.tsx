@@ -76,7 +76,8 @@ export function SkillsPage() {
       if (!routeConversationId) {
         navigate(`/skills/${conversationId}`, { replace: true })
       }
-      void sendMessage(question, t, extras?.fileId)
+      const fileId = extras?.fileId
+      void sendMessage(question, t, fileId)
     },
     [conversationId, routeConversationId, navigate, sendMessage, t],
   )
@@ -97,6 +98,7 @@ export function SkillsPage() {
           <p className="px-container-padding pb-2 text-center font-label-md text-error">{error}</p>
         )}
         <ConversationInput
+          key={conversationId}
           placeholder={t('skills.inputPlaceholder')}
           enterHint={t('input.enterHint')}
           disclaimer={t('input.disclaimer')}
@@ -108,6 +110,7 @@ export function SkillsPage() {
           onStop={() => void stopGeneration()}
           layout="fixed"
           attachable
+          persistAttachment
           suggestions={SKILLS_SUGGESTIONS}
           showSuggestions={turns.length === 0}
         />

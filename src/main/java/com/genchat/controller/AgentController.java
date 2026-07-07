@@ -84,7 +84,8 @@ public class AgentController {
     public Flux<String> skillsStream(@RequestParam String question,
                                      @RequestParam(required = false) String conversationsId,
                                      @RequestParam(required = false) String fileId) {
-        log.info("Received skills question, question: {}, conversationId: {}", question, conversationsId);
+        log.info("Received skills question, question: {}, conversationId: {}, fileId: {}",
+                question, conversationsId, fileId);
         var error = StreamRequestValidator.requireQuestionFlux(question);
         if (error != null) {
             return error;
