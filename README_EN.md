@@ -34,11 +34,22 @@ GenChat is an intelligent conversation application platform built on Spring AI. 
 - **Streaming Response Control**: Supports real-time streaming output and intelligent interruption control
 - **Information Traceability**: All answers include authoritative reference sources ensuring information reliability
 
+<p>
+  <img src="images/ai-chat-1.png" alt="Web conversation page - 1" width="49%" />
+  <img src="images/ai-chat-2.png" alt="Web conversation page - 2" width="49%" />
+</p>
+
 ### 📁 Multimodal File Analysis
 - **Full Format Support**: PDF, DOCX, TXT, PNG, JPG, and other common document formats
 - **Intelligent Content Extraction**: Implements efficient semantic retrieval for large files using RAG technology
 - **Image Text Recognition**: Parses text information in images through multimodal large language models
 - **Context Awareness**: Automatic association between files and conversation sessions supporting multi-turn deep Q&A
+
+<p>
+  <img src="images/file-qa-1.png" alt="File Q&A page - 1" width="32%" />
+  <img src="images/file-qa-2.png" alt="File Q&A page - 2" width="32%" />
+  <img src="images/file-qa-3.png" alt="File Q&A page - 3" width="32%" />
+</p>
 
 ### 📊 Intelligent Document Generation
 - **Requirement-Driven Generation**: Automatically generates professional PPT documents based on natural language descriptions
@@ -49,16 +60,31 @@ GenChat is an intelligent conversation application platform built on Spring AI. 
 - **Intelligent State Management**: Full-process state control from requirement clarification to final output
 - **Automatic Image Generation**: Integrates text-to-image services to enrich document visual effects
 
+<p>
+  <img src="images/ppt-1.png" alt="PPT generation page - 1" width="32%" />
+  <img src="images/ppt-2.png" alt="PPT generation page - 2" width="32%" />
+  <img src="images/ppt-3.png" alt="PPT generation page - 3" width="32%" />
+</p>
+
 ### 🔍 Deep Research Analysis
 - **Intelligent Planning and Execution**: Automatically decomposes complex problems based on Plan-Execute pattern
 - **Parallel Processing Optimization**: Multi-task parallel execution significantly improves research efficiency
 - **Iterative Optimization Mechanism**: Evaluation-Adjustment-Re-execution loop optimization strategy
 - **Automatic Problem Optimization**: Intelligently enriches and optimizes user's original problem statements
 
+<p>
+  <img src="images/deep-research.png" alt="Deep research page" width="100%" />
+</p>
+
 ### 🧩 Skills Assistant
 - **Extensible Skill Directory**: Load custom skills via `skills.directory` and compose tool capabilities on demand
 - **Multi-tool Collaboration**: Integrates web search, file retrieval, Grep, and more for complex automation tasks
 - **Streaming Interaction**: Same SSE streaming output and stop control as other agents
+
+<p>
+  <img src="images/skills-1.png" alt="Skills page - 1" width="49%" />
+  <img src="images/skills-2.png" alt="Skills page - 2" width="49%" />
+</p>
 
 ## 🚀 Quick Start
 
