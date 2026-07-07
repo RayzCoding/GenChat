@@ -30,7 +30,11 @@ src/main/java/com/genchat/
 │   ├── utils/JacksonJson.java     # Unified JSON helper
 │   └── prompts/                   # PromptLoader + thin Java wrappers
 ├── config/                        # Spring configuration + GenChatProperties
+├── context/                       # Context compaction and token budget controls
 ├── controller/                    # REST + SSE endpoints
+├── converter/                     # MapStruct converters
+├── dto/                           # API/session transport objects
+├── entity/                        # Persistence entities
 ├── service/                       # Business services
 │   └── session/                   # SessionPayloadParser (reference / recommend)
 └── repository/                    # MyBatis-Plus repositories
@@ -47,8 +51,8 @@ src/main/resources/
 | Prefix | Controller | Notes |
 |--------|------------|-------|
 | `/agent/**` | AgentController | SSE streaming chat (6 agent modes) + `/agent/stop` |
-| `/agent/sessions/**` | SessionController | Session list, search, detail, delete; returns `Result<T>` |
-| `/file/**` | FileController | Upload, list, delete files |
+| `/agent/sessions/**` | SessionController | Session list/search/detail/delete + `/by-file/{fileId}`; returns `Result<T>` |
+| `/file/**` | FileController | Presign URL + upload/list/delete files |
 
 ## Agent Modes
 
@@ -59,8 +63,8 @@ src/main/resources/
 5. Skills assistant (`/agent/skills/stream`)
 6. Simple ReAct (`/agent/simple/stream`)
 
-Deep/ppt/skills endpoints accept both `conversationId` and `conversationsId` as session ID aliases.
+Parameter naming note: `/agent/chat/stream`, `/agent/file/stream`, and `/agent/stop` use `conversationId`; `/agent/deep/stream`, `/agent/ppt/stream`, and `/agent/skills/stream` currently use `conversationsId`.
 
 ## Frontend
 
-React + Vite app under `frontend/`. Proxies `/agent` and `/file` to the backend in dev.
+React + Vite app under `frontend/`. In dev, `/agent` and `/file` proxy to `http://localhost:8081`.

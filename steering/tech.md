@@ -51,17 +51,17 @@
 ### `genchat.*` agent settings (defaults in `application.yml`)
 | Key | Default | Purpose |
 |-----|---------|---------|
-| `genchat.agent.max-rounds` | 5 | ReAct round limit for web search / skills agents |
+| `genchat.agent.max-rounds` | 1 | ReAct round limit for web search / skills agents |
 | `genchat.agent.max-retries` | 0 | LLM stream retry count on transient errors |
 | `genchat.agent.chat-memory-size` | 30 | Conversation history window for persistent agents |
 | `genchat.file.chunk-size` | 500 | Large-file embedding chunk size (chars) |
 | `genchat.file.chunk-overlap` | 50 | Chunk overlap for RAG splitting |
-| `genchat.deep-research.max-rounds` | 3 | Deep research plan-execute loop limit |
-| `genchat.deep-research.tool-semaphore-permits` | 3 | Concurrent tool call limit in deep research |
+| `genchat.deep-research.max-rounds` | 1 | Deep research plan-execute loop limit |
+| `genchat.deep-research.tool-semaphore-permits` | 1 | Concurrent tool call limit in deep research |
 
 Other notable keys: `skills.directory`, `ppt.python-script`, `app.cors.allowed-origin-patterns`.
 
 ## Frontend
 - React 19 + Vite 6 under `frontend/`
-- Dev proxy: `/agent/*` and `/file/*` → `http://localhost:8080`
+- Dev proxy: `/agent/*` and `/file/*` → `http://localhost:8081`
 - See `frontend/README.md` for local setup
