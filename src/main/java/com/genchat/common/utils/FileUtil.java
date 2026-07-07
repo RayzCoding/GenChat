@@ -11,7 +11,7 @@ public final class FileUtil {
     }
 
     private static final Set<String> TEXT_EXTENSIONS = Set.of(
-            "txt", "md", "pdf", "doc", "docx"
+            "txt", "md", "pdf", "doc", "docx", "xlsx", "xls"
     );
 
     private static final Set<String> IMAGE_EXTENSIONS = Set.of(

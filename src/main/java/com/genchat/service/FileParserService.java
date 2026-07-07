@@ -7,9 +7,16 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -17,6 +24,8 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +60,7 @@ public class FileParserService {
                 case "pdf" -> parsePdf(is);
                 case "doc" -> parseDoc(is);
                 case "docx" -> parseDocx(is);
+                case "xlsx", "xls" -> parseExcel(is);
                 default -> {
                     if (FileUtil.isTextFile(filename)) {
                         yield parseText(is);
@@ -95,6 +105,44 @@ public class FileParserService {
              XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
             return extractor.getText();
         }
+    }
+
+    /**
+     * Parse Excel (.xlsx / .xls) content using Apache POI
+     */
+    private String parseExcel(InputStream is) throws Exception {
+        DataFormatter formatter = new DataFormatter();
+        StringBuilder sb = new StringBuilder();
+        try (Workbook workbook = WorkbookFactory.create(is)) {
+            int sheetCount = workbook.getNumberOfSheets();
+            for (int sheetIndex = 0; sheetIndex < sheetCount; sheetIndex++) {
+                Sheet sheet = workbook.getSheetAt(sheetIndex);
+                if (sheet == null) {
+                    continue;
+                }
+                if (sheetCount > 1) {
+                    sb.append("=== Sheet: ").append(sheet.getSheetName()).append(" ===\n");
+                }
+                for (Row row : sheet) {
+                    if (row == null) {
+                        continue;
+                    }
+                    List<String> cells = new ArrayList<>();
+                    int lastCellNum = row.getLastCellNum();
+                    for (int cellIndex = 0; cellIndex < lastCellNum; cellIndex++) {
+                        Cell cell = row.getCell(cellIndex, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+                        cells.add(cell == null ? "" : formatter.formatCellValue(cell));
+                    }
+                    if (cells.stream().anyMatch(StringUtils::hasText)) {
+                        sb.append(String.join("\t", cells)).append('\n');
+                    }
+                }
+                if (sheetIndex < sheetCount - 1) {
+                    sb.append('\n');
+                }
+            }
+        }
+        return sb.toString().trim();
     }
 
     /**
