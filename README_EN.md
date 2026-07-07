@@ -35,9 +35,12 @@ GenChat is an intelligent conversation application platform built on Spring AI. 
 - **Information Traceability**: All answers include authoritative reference sources ensuring information reliability
 
 <p>
-  <img src="images/ai-chat-1.png" alt="Web conversation page - 1" width="49%" />
-  <img src="images/ai-chat-2.png" alt="Web conversation page - 2" width="49%" />
+  <a href="images/ai-chat-1.png"><img src="images/ai-chat-1.png" alt="Web conversation page - 1" width="100%" /></a>
 </p>
+<p>
+  <a href="images/ai-chat-2.png"><img src="images/ai-chat-2.png" alt="Web conversation page - 2" width="100%" /></a>
+</p>
+<p><em>Search and answer in one flow with transparent reasoning, structured output, and traceable references.</em></p>
 
 ### 📁 Multimodal File Analysis
 - **Full Format Support**: PDF, DOCX, TXT, PNG, JPG, and other common document formats
@@ -46,10 +49,15 @@ GenChat is an intelligent conversation application platform built on Spring AI. 
 - **Context Awareness**: Automatic association between files and conversation sessions supporting multi-turn deep Q&A
 
 <p>
-  <img src="images/file-qa-1.png" alt="File Q&A page - 1" width="32%" />
-  <img src="images/file-qa-2.png" alt="File Q&A page - 2" width="32%" />
-  <img src="images/file-qa-3.png" alt="File Q&A page - 3" width="32%" />
+  <a href="images/file-qa-1.png"><img src="images/file-qa-1.png" alt="File Q&A page - 1" width="100%" /></a>
 </p>
+<p>
+  <a href="images/file-qa-2.png"><img src="images/file-qa-2.png" alt="File Q&A page - 2" width="100%" /></a>
+</p>
+<p>
+  <a href="images/file-qa-3.png"><img src="images/file-qa-3.png" alt="File Q&A page - 3" width="100%" /></a>
+</p>
+<p><em>Upload files and continue multi-turn Q&A with semantic retrieval and multimodal understanding for dense content.</em></p>
 
 ### 📊 Intelligent Document Generation
 - **Requirement-Driven Generation**: Automatically generates professional PPT documents based on natural language descriptions
@@ -61,10 +69,15 @@ GenChat is an intelligent conversation application platform built on Spring AI. 
 - **Automatic Image Generation**: Integrates text-to-image services to enrich document visual effects
 
 <p>
-  <img src="images/ppt-1.png" alt="PPT generation page - 1" width="32%" />
-  <img src="images/ppt-2.png" alt="PPT generation page - 2" width="32%" />
-  <img src="images/ppt-3.png" alt="PPT generation page - 3" width="32%" />
+  <a href="images/ppt-1.png"><img src="images/ppt-1.png" alt="PPT generation page - 1" width="100%" /></a>
 </p>
+<p>
+  <a href="images/ppt-2.png"><img src="images/ppt-2.png" alt="PPT generation page - 2" width="100%" /></a>
+</p>
+<p>
+  <a href="images/ppt-3.png"><img src="images/ppt-3.png" alt="PPT generation page - 3" width="100%" /></a>
+</p>
+<p><em>From requirement clarification to export, generate editable presentations with multiple modes and automatic visuals.</em></p>
 
 ### 🔍 Deep Research Analysis
 - **Intelligent Planning and Execution**: Automatically decomposes complex problems based on Plan-Execute pattern
@@ -73,8 +86,9 @@ GenChat is an intelligent conversation application platform built on Spring AI. 
 - **Automatic Problem Optimization**: Intelligently enriches and optimizes user's original problem statements
 
 <p>
-  <img src="images/deep-research.png" alt="Deep research page" width="100%" />
+  <a href="images/deep-research.png"><img src="images/deep-research.png" alt="Deep research page" width="100%" /></a>
 </p>
+<p><em>Use a plan-execute loop with parallel tasks to decompose complex topics, synthesize evidence, and iterate results.</em></p>
 
 ### 🧩 Skills Assistant
 - **Extensible Skill Directory**: Load custom skills via `skills.directory` and compose tool capabilities on demand
@@ -82,9 +96,12 @@ GenChat is an intelligent conversation application platform built on Spring AI. 
 - **Streaming Interaction**: Same SSE streaming output and stop control as other agents
 
 <p>
-  <img src="images/skills-1.png" alt="Skills page - 1" width="49%" />
-  <img src="images/skills-2.png" alt="Skills page - 2" width="49%" />
+  <a href="images/skills-1.png"><img src="images/skills-1.png" alt="Skills page - 1" width="100%" /></a>
 </p>
+<p>
+  <a href="images/skills-2.png"><img src="images/skills-2.png" alt="Skills page - 2" width="100%" /></a>
+</p>
+<p><em>Extend custom skills by directory and orchestrate tools for robust search, analysis, and automation workflows.</em></p>
 
 ## 🚀 Quick Start
 
